@@ -3,14 +3,10 @@
  *
  * This file serves as the integration point between the generic
  * ServerlessClaw dashboard and domain-specific product extensions.
- *
- * To add product-specific UI (sidebar links, components, etc.),
- * implement the init() function below.
- *
- * Note: In production builds, this file should remain generic.
- * Domain-specific logic should be injected via dependencies or
- * build-time configuration.
  */
+
+import { GoldExPlugin } from '@goldex/core';
+import { PluginManager } from '@claw/core/lib/plugin-manager';
 
 interface ExtensionHooks {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,11 +15,18 @@ interface ExtensionHooks {
   registerComponent: (ext: any) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function init({ registerSidebar, registerComponent }: ExtensionHooks) {
-  // Generic OSS implementation is empty.
-  // Product-specific logic (e.g. Spoke) should be registered here
-  // by importing from domain packages.
+  // Register the GoldEx plugin with the Framework's PluginManager
+  PluginManager.register(GoldExPlugin).catch(err => {
+    console.error('[GoldEx] Failed to register plugin:', err);
+  });
 
-  console.debug('[Framework] Extension bridge initialized (Generic).');
+  // Register sidebar extensions from the plugin
+  if (GoldExPlugin.sidebarExtensions) {
+    GoldExPlugin.sidebarExtensions.forEach(ext => {
+      registerSidebar(ext);
+    });
+  }
+
+  console.debug('[GoldEx] Extension bridge initialized with GoldExPlugin.');
 }
