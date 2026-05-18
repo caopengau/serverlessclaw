@@ -77,6 +77,12 @@ export const TranslationsProvider: React.FC<{
   };
 
   const t = (key: string): string => {
+    if (key === 'DASHBOARD_TITLE' && process.env.NEXT_PUBLIC_APP_TITLE) {
+      return process.env.NEXT_PUBLIC_APP_TITLE;
+    }
+    if (key === 'LOGIN_TITLE' && process.env.NEXT_PUBLIC_APP_TITLE) {
+      return `${process.env.NEXT_PUBLIC_APP_TITLE} Auth`;
+    }
     return (messages as Record<string, string>)[key] ?? key;
   };
 

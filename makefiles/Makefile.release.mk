@@ -161,5 +161,5 @@ receipt: ## Generate deployment receipt and log details
 
 # Helper to get the deployment URL
 define get_url
-	$$($(SST) shell --stage $(ENV) -- sh -c 'echo $$$$SST_RESOURCE_ClawCenter | jq -r .url')
+	$$($(SST) shell --stage $(ENV) -- sh -c 'echo $$$$SST_RESOURCE_MissionControl | jq -r .url')
 endef
