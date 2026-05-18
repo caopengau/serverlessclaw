@@ -23,8 +23,8 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './apps/dashboard/src'),
       '@claw/core': path.resolve(__dirname, './packages/core'),
-      react: path.resolve(__dirname, '../node_modules/react'),
-      'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
+      react: path.dirname(require.resolve('react')),
+      'react-dom': path.dirname(require.resolve('react-dom')),
     },
     // Ensure TSX files are transformed for the web environment (jsdom)
     browser: {
