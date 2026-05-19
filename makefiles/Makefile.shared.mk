@@ -178,9 +178,22 @@ sync-status: ## Show sync remote safety status and commit/file differences
 sync-downstream: ## Pull latest framework subtree (Remote: SUBTREE_OFFICIAL_REMOTE or SYNC_DOWNSTREAM_REMOTE)
 	@REMOTE=$(or $(SYNC_DOWNSTREAM_REMOTE),$(SUBTREE_OFFICIAL_REMOTE)); \
 	$(call log_step,Syncing framework subtree from $$REMOTE/$(SUBTREE_BRANCH)...); \
+	$(call log_info,Backing up framework .env files...); \
+	mkdir -p .env_backup; \
+	cp -r framework/.env* .env_backup/ 2>/dev/null || true; \
 	git fetch $$REMOTE $(SUBTREE_BRANCH); \
-	GIT_EDITOR=true git subtree pull --prefix=framework $$REMOTE $(SUBTREE_BRANCH) --squash
-	@$(call log_success,Framework subtree synced.)
+	GIT_EDITOR=true git subtree pull --prefix=framework $$REMOTE $(SUBTREE_BRANCH) --squash; \
+	status=$$?; \
+	$(call log_info,Restoring framework .env files...); \
+	if [ -d .env_backup ]; then \
+		cp -r .env_backup/.env* framework/ 2>/dev/null || true; \
+		rm -rf .env_backup; \
+	fi; \
+	if [ $$status -ne 0 ]; then \
+		$(call log_error,Framework subtree sync failed.); \
+		exit $$status; \
+	fi; \
+	$(call log_success,Framework subtree synced.)
 
 sync-upstream: ## Run framework quality gates and promote subtree to upstream (required: SYNC_UPSTREAM_REMOTE)
 	@$(call log_step,Preparing framework subtree promotion...)

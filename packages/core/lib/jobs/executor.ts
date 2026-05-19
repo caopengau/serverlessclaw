@@ -39,6 +39,8 @@ export class JobExecutorService {
       cwd: executionCwd,
       env: {
         ...process.env,
+        WORKSPACE_ID: workspaceId,
+        STAGING_BUCKET_NAME: process.env.STAGING_BUCKET_NAME || '',
         ...this.injectEnv(spec.executor.envOverrides || {}, run.inputsApplied),
       },
     });
@@ -113,7 +115,7 @@ export class JobExecutorService {
   /**
    * Helper to replace {{inputName}} placeholders with dynamic parameter inputs in strings.
    */
-  private static injectInputs(template: string, inputs: Record<string, any>): string {
+  public static injectInputs(template: string, inputs: Record<string, any>): string {
     let result = template;
     for (const [key, value] of Object.entries(inputs)) {
       result = result.replace(new RegExp(`{{${key}}}`, 'g'), String(value));

@@ -100,6 +100,55 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 /**
+ * Verifies if a given model file exists in S3 (deployed) or the local workspace (local development).
+ */
+async function checkModelFileExists(
+  workspaceId: string,
+  spec: JobSpec,
+  inputs: Record<string, any>
+): Promise<boolean> {
+  const outputPath = spec.executor.outputPath;
+  if (!outputPath) return true; // If no output verification configured, skip and proceed
+
+  const resolvedRelativePath = JobExecutorService.injectInputs(outputPath, inputs);
+  const bucketName = process.env.STAGING_BUCKET_NAME;
+
+  if (bucketName) {
+    const filename = path.basename(resolvedRelativePath);
+    try {
+      const { S3Client, HeadObjectCommand } = await import('@aws-sdk/client-s3');
+      const s3 = new S3Client({});
+      await s3.send(
+        new HeadObjectCommand({
+          Bucket: bucketName,
+          Key: `workspaces/${workspaceId}/models/${filename}`,
+        })
+      );
+      return true;
+    } catch (err: any) {
+      if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+        return false;
+      }
+      logger.error(`[Jobs API] S3 HeadObject failed for ${filename}:`, err);
+      return false;
+    }
+  } else {
+    const cwd = spec.executor.cwd || '';
+    const pathsToCheck = [
+      path.resolve(process.cwd(), cwd, resolvedRelativePath),
+      path.resolve(process.cwd(), resolvedRelativePath),
+      path.resolve(process.cwd(), '../../', cwd, resolvedRelativePath),
+    ];
+    for (const p of pathsToCheck) {
+      if (fs.existsSync(p)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+/**
  * POST /api/jobs
  * Triggers execution of a background training/simulation pipeline.
  */
@@ -143,7 +192,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 2. Formulate Job Run
+    // 2. Cache Matching Layer: Avoid retraining if parameters match and the file exists in storage
+    if (spec.executor.outputPath) {
+      const pastRuns = await store.listJobRuns(workspaceId);
+      const duplicateRun = pastRuns.find(r => 
+        r.jobType === jobType && 
+        r.status === 'COMPLETED' &&
+        JSON.stringify(r.inputsApplied) === JSON.stringify(inputs)
+      );
+
+      if (duplicateRun) {
+        const fileExists = await checkModelFileExists(workspaceId, spec, inputs);
+        if (fileExists) {
+          logger.info(`[Jobs API] Cache Hit! Reusing existing completed model for inputs:`, inputs);
+          return NextResponse.json({ 
+            success: true, 
+            run: duplicateRun,
+            message: "Reused existing cached model (bypassed retraining)" 
+          }, { status: HTTP_STATUS.OK });
+        }
+      }
+    }
+
+    // 3. Formulate Job Run
     const jobId = 'jr_' + Math.random().toString(36).substring(2, 15);
     const run: JobRun = {
       jobId,
@@ -155,10 +226,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       metrics: {},
     };
 
-    // 3. Save run to the store in PENDING state
+    // 4. Save run to the store in PENDING state
     await store.createJobRun(workspaceId, run);
 
-    // 4. Asynchronously trigger background subprocess execution
+    // 5. Asynchronously trigger background subprocess execution
     JobExecutorService.startLocalJob(workspaceId, spec, run).catch((err) => {
       logger.error(`[Jobs API] Execution failed to launch for job ${jobId}:`, err);
     });

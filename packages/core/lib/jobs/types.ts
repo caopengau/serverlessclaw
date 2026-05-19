@@ -15,6 +15,7 @@ export interface JobExecutorSpec {
   command: string;
   cwd?: string;
   envOverrides?: Record<string, string>;
+  outputPath?: string;
 }
 
 export interface MetricFieldSpec {
