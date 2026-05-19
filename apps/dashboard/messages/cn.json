@@ -670,5 +670,9 @@
   "REGISTER_DEVICE": "注册设备",
   "SYNC_FLEET": "同步机队",
   "CONFIGURE": "配置",
-  "ZOMBIE_LOCKS": "僵尸锁"
+  "ZOMBIE_LOCKS": "僵尸锁",
+  "ML_PIPELINES": "机器学习流水线",
+  "SIMULATOR": "执行模拟器",
+  "TRAINING_SUBTITLE": "管理、监控和运行 LightGBM 模型的再训练任务。",
+  "SIMULATOR_SUBTITLE": "在定制的入场和交易费设置下运行历史数据回测模拟。"
 }

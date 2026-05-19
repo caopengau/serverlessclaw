@@ -670,5 +670,9 @@
   "REGISTER_DEVICE": "Register Device",
   "SYNC_FLEET": "Sync Fleet",
   "CONFIGURE": "Configure",
-  "ZOMBIE_LOCKS": "Zombie Locks"
+  "ZOMBIE_LOCKS": "Zombie Locks",
+  "ML_PIPELINES": "ML Pipelines",
+  "SIMULATOR": "Simulator",
+  "TRAINING_SUBTITLE": "Manage, monitor, and execute LightGBM model retraining jobs.",
+  "SIMULATOR_SUBTITLE": "Execute out-of-sample backtest simulations under custom entry criteria."
 }

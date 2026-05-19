@@ -24,6 +24,7 @@ import {
   Moon,
   Keyboard,
   LogOut,
+  TrendingUp,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -143,6 +144,20 @@ export default function Sidebar() {
       label: t('AGENTS'),
       subtitle: t('AGENTS_SUBTITLE'),
       icon: Users,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
+    },
+    {
+      href: ROUTES.PIPELINES,
+      label: t('ML_PIPELINES'),
+      subtitle: t('TRAINING_SUBTITLE'),
+      icon: Database,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
+    },
+    {
+      href: ROUTES.SIMULATOR,
+      label: t('SIMULATOR'),
+      subtitle: t('SIMULATOR_SUBTITLE'),
+      icon: Activity,
       requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
     },
     {
@@ -345,7 +360,15 @@ export default function Sidebar() {
                 )
               : pathname === item.href;
 
-            const Icon = item.icon;
+            let Icon = item.icon;
+            if (typeof Icon === 'string') {
+              const iconMap: Record<string, React.ComponentType<any>> = {
+                Database: Database,
+                Activity: Activity,
+                TrendingUp: TrendingUp,
+              };
+              Icon = iconMap[Icon] || Activity;
+            }
 
             const navLink = (
               <Link

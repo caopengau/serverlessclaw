@@ -1,0 +1,9 @@
+declare module 'virtual-extensions' {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  export function init(hooks: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    registerSidebar: (ext: any) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    registerComponent: (ext: any) => void;
+  }): void;
+}

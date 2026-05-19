@@ -2,7 +2,13 @@
  * Global Vitest setup for @serverlessclaw/core
  */
 
-import '@testing-library/jest-dom';
+try {
+  const jestDom = '@testing-library/jest-dom';
+  // @ts-ignore
+  await import(jestDom);
+} catch (e) {
+  // Optional in backend Node-only tests
+}
 import { vi } from 'vitest';
 
 (global as unknown as { __CLAW_TEST__: boolean }).__CLAW_TEST__ = true;

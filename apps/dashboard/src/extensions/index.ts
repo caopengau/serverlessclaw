@@ -1,12 +1,10 @@
 /**
- * Dashboard Extension Bridge
+ * Dashboard Extension Bridge (Generic OSS Template)
  *
- * This file serves as the integration point between the generic
- * ServerlessClaw dashboard and domain-specific product extensions.
+ * This file serves as a placeholder for domain-specific product extensions.
+ * In production environments, this file remains empty, or is dynamically overridden
+ * via webpack resolve aliases using custom workspace paths.
  */
-
-import { GoldExPlugin } from '@goldex/core';
-import { PluginManager } from '@claw/core/lib/plugin-manager';
 
 interface ExtensionHooks {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,17 +14,6 @@ interface ExtensionHooks {
 }
 
 export function init({ registerSidebar, registerComponent }: ExtensionHooks) {
-  // Register the GoldEx plugin with the Framework's PluginManager
-  PluginManager.register(GoldExPlugin).catch(err => {
-    console.error('[GoldEx] Failed to register plugin:', err);
-  });
-
-  // Register sidebar extensions from the plugin
-  if (GoldExPlugin.sidebarExtensions) {
-    GoldExPlugin.sidebarExtensions.forEach(ext => {
-      registerSidebar(ext);
-    });
-  }
-
-  console.debug('[GoldEx] Extension bridge initialized with GoldExPlugin.');
+  // No-op for generic OSS framework
+  console.debug('[ServerlessClaw] Generic extension bridge initialized (no-op).');
 }
