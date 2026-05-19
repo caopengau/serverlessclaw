@@ -22,10 +22,7 @@ export default async function RootLayout({
 }>) {
   let initialLocale: 'en' | 'cn' = 'cn';
   try {
-    const locale = await ConfigManager.getTypedConfig<string>(
-      CONFIG_KEYS.ACTIVE_LOCALE,
-      'cn'
-    );
+    const locale = await ConfigManager.getTypedConfig<string>(CONFIG_KEYS.ACTIVE_LOCALE, 'cn');
     initialLocale = (locale === 'en' ? 'en' : 'cn') as 'en' | 'cn';
   } catch (err) {
     console.error('[RootLayout] Failed to fetch initial locale:', err);

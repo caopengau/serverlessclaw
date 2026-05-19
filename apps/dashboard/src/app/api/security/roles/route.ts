@@ -8,19 +8,19 @@ import { SecurityRegistry } from '@claw/core/lib/registry/SecurityRegistry';
 export async function GET() {
   try {
     const roles = SecurityRegistry.getAllUserRoles();
-    const roleMap = roles.reduce((acc, role) => {
-      acc[role] = SecurityRegistry.getRolePermissions(role);
-      return acc;
-    }, {} as Record<string, string[]>);
+    const roleMap = roles.reduce(
+      (acc, role) => {
+        acc[role] = SecurityRegistry.getRolePermissions(role);
+        return acc;
+      },
+      {} as Record<string, string[]>
+    );
 
     return NextResponse.json({
       success: true,
       roles: roleMap,
     });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: (error as Error).message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }
 }
