@@ -1,7 +1,5 @@
 'use client';
 
-/* eslint-disable react/no-unstable-nested-components */
-
 import React from 'react';
 import { useParams } from 'next/navigation';
 import { useExtensions } from '@/components/Providers/ExtensionProvider';

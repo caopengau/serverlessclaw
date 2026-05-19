@@ -5,7 +5,7 @@
 try {
   const jestDom = '@testing-library/jest-dom';
   await import(jestDom);
-} catch (_e) {
+} catch {
   // Optional in backend Node-only tests
 }
 import { vi } from 'vitest';
