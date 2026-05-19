@@ -14,7 +14,9 @@ interface ExtensionHooks {
 }
 
 export function init({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   registerSidebar: _registerSidebar,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   registerComponent: _registerComponent,
 }: ExtensionHooks) {
   // No-op for generic OSS framework

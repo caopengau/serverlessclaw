@@ -356,6 +356,7 @@ export default function Sidebar() {
                 )
               : pathname === item.href;
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let Icon: any = item.icon;
             if (typeof Icon === 'string') {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any

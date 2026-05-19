@@ -9,6 +9,7 @@ export default function ExtensionPage() {
   const id = params.id as string;
   const { dynamicComponents } = useExtensions();
 
+  // eslint-disable-next-line react-hooks/static-components
   const ActiveComponent = dynamicComponents.get(id);
 
   if (!ActiveComponent) {
