@@ -131,6 +131,10 @@ export enum EventType {
   PULSE_PONG = 'pulse_pong',
   /** Internal notification was created. */
   NOTIFICATION_CREATED = 'notification.created',
+  /** Chat message received from an external platform. */
+  CHAT_MESSAGE_RECEIVED = 'chat_message_received',
+  /** High-risk tool execution requires human approval. */
+  HITL_APPROVAL_REQUESTED = 'hitl_approval_requested',
 }
 
 /**

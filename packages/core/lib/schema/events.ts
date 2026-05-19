@@ -289,6 +289,9 @@ export type ProactiveHeartbeatPayloadInferred = z.infer<typeof PROACTIVE_HEARTBE
 /** Zod-inferred type for BridgeEvent detail (matches BRIDGE_DETAIL_PAYLOAD_SCHEMA after transform). */
 export type BridgeDetailPayload = z.infer<typeof BRIDGE_DETAIL_PAYLOAD_SCHEMA>;
 
+/** Zod-inferred type for ChatMessageReceivedEvent (matches CHAT_MESSAGE_RECEIVED_SCHEMA runtime output). */
+export type ChatMessageReceivedPayload = z.infer<typeof CHAT_MESSAGE_RECEIVED_SCHEMA>;
+
 /** Schema for DLQ routing events. */
 export const DLQ_ROUTE_SCHEMA = BASE_EVENT_SCHEMA.extend({
   /** Category of the event for routing. */
@@ -317,6 +320,28 @@ export const PULSE_EVENT_SCHEMA = BASE_EVENT_SCHEMA.extend({
   status: z.enum(['ping', 'pong']).default('ping'),
 });
 
+/** Schema for incoming chat messages. */
+export const CHAT_MESSAGE_RECEIVED_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  /** Original user identifier from the platform. */
+  userId: z.string(),
+  /** The channel or chat session identifier. */
+  sessionId: z.string(),
+  /** Platform source (e.g., slack, telegram, cli). */
+  platform: z.string(),
+  /** Text content of the message. */
+  text: z.string(),
+  /** Extracted attachments. */
+  attachments: z.array(ATTACHMENT_SCHEMA).default([]),
+  /** Workspace ID if applicable. */
+  workspaceId: z.string().optional(),
+  /** Team ID if applicable. */
+  teamId: z.string().optional(),
+  /** Staff ID if applicable. */
+  staffId: z.string().optional(),
+  /** Additional metadata parsed by the adapter. */
+  metadata: z.record(z.string(), z.unknown()).default({}),
+});
+
 /** Schema for orchestration signals. */
 export const ORCHESTRATION_SIGNAL_SCHEMA = z.object({
   /** Trace ID for correlation. */
@@ -327,6 +352,20 @@ export const ORCHESTRATION_SIGNAL_SCHEMA = z.object({
   signal: z.string(),
   /** Optional signal metadata. */
   metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+/** Schema for HITL approval requests. */
+export const HITL_APPROVAL_REQUESTED_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  /** Identifier of the agent requesting approval. */
+  agentId: z.string(),
+  /** The tool name that requires approval. */
+  toolName: z.string(),
+  /** The specific tool call identifier. */
+  toolCallId: z.string(),
+  /** The arguments passed to the tool. */
+  args: z.record(z.string(), z.unknown()),
+  /** The reason why approval is required. */
+  reason: z.string().optional(),
 });
 
 /**
@@ -377,6 +416,8 @@ export const EVENT_SCHEMA_MAP = {
   [EventType.DLQ_ROUTE as string]: DLQ_ROUTE_SCHEMA,
   [EventType.PULSE_PING as string]: PULSE_EVENT_SCHEMA,
   [EventType.PULSE_PONG as string]: PULSE_EVENT_SCHEMA,
+  [EventType.CHAT_MESSAGE_RECEIVED as string]: CHAT_MESSAGE_RECEIVED_SCHEMA,
+  [EventType.HITL_APPROVAL_REQUESTED as string]: HITL_APPROVAL_REQUESTED_SCHEMA,
 } as const;
 
 /** Keys of the EVENT_SCHEMA_MAP (for type-safe event type lookups). */

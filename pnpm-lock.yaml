@@ -370,6 +370,9 @@ importers:
       '@serverlessclaw/integration-github':
         specifier: workspace:*
         version: link:../integration-github
+      '@serverlessclaw/integration-voltx':
+        specifier: workspace:*
+        version: link:../integration-voltx
       archiver:
         specifier: ^7.0.1
         version: 7.0.1
@@ -435,6 +438,16 @@ importers:
 
   packages/integration-github: {}
 
+  packages/integration-voltx:
+    dependencies:
+      '@serverlessclaw/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+    devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
+
   packages/primitives:
     dependencies:
       zod:
@@ -453,6 +466,16 @@ importers:
       vitest:
         specifier: ^4.1.2
         version: 4.1.5(@types/node@24.12.3)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(jsdom@29.1.1)(vite@8.0.12(@types/node@24.12.3)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
+
+  packages/sdk:
+    dependencies:
+      '@serverlessclaw/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
 
   packages/ui:
     dependencies:

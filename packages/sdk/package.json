@@ -1,0 +1,17 @@
+{
+  "name": "@serverlessclaw/sdk",
+  "version": "1.0.0",
+  "description": "SDK for building ServerlessClaw ChatOps plugins",
+  "main": "./src/index.ts",
+  "type": "module",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@serverlessclaw/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}
