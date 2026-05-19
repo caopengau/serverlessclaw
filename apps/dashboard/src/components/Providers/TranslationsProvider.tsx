@@ -1,14 +1,18 @@
 'use client';
-
 import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import en from '../../../messages/en.json';
 import cn from '../../../messages/cn.json';
+import extEn from 'virtual-messages-en';
+import extCn from 'virtual-messages-cn';
 import { CONFIG_KEYS } from '@claw/core/lib/constants';
 import { logger } from '@claw/core/lib/logger';
 
 export type Messages = typeof en;
 export type Locale = 'en' | 'cn';
 export type TranslationKey = keyof Messages;
+
+const mergedEn = { ...en, ...extEn };
+const mergedCn = { ...cn, ...extCn };
 
 interface TranslationsContextType {
   t: (key: string) => string;
@@ -32,7 +36,10 @@ export const TranslationsProvider: React.FC<{
   initialLocale?: Locale;
 }> = ({ children, initialLocale = 'cn' }) => {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
-  const messages = useMemo<Messages>(() => (locale === 'cn' ? (cn as Messages) : en), [locale]);
+  const messages = useMemo<Messages>(
+    () => (locale === 'cn' ? (mergedCn as Messages) : (mergedEn as Messages)),
+    [locale]
+  );
 
   // Sync with localStorage on mount (Client-side only)
   useEffect(() => {
@@ -77,6 +84,12 @@ export const TranslationsProvider: React.FC<{
   };
 
   const t = (key: string): string => {
+    if (key === 'DASHBOARD_TITLE' && process.env.NEXT_PUBLIC_APP_TITLE) {
+      return process.env.NEXT_PUBLIC_APP_TITLE;
+    }
+    if (key === 'LOGIN_TITLE' && process.env.NEXT_PUBLIC_APP_TITLE) {
+      return `${process.env.NEXT_PUBLIC_APP_TITLE} Auth`;
+    }
     return (messages as Record<string, string>)[key] ?? key;
   };
 

@@ -23,6 +23,17 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './apps/dashboard/src'),
       '@claw/core': path.resolve(__dirname, './packages/core'),
+      '^react$': path.resolve(__dirname, '../node_modules/react'),
+      '^react-dom$': path.resolve(__dirname, '../node_modules/react-dom'),
+      'virtual-extensions': path.resolve(__dirname, './apps/dashboard/src/extensions/index.ts'),
+      'virtual-messages-en': path.resolve(
+        __dirname,
+        './apps/dashboard/src/extensions/messages/en.json'
+      ),
+      'virtual-messages-cn': path.resolve(
+        __dirname,
+        './apps/dashboard/src/extensions/messages/cn.json'
+      ),
     },
     // Ensure TSX files are transformed for the web environment (jsdom)
     browser: {
