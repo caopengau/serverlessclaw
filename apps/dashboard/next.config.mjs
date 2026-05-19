@@ -38,7 +38,7 @@ const nextConfig = {
     '@serverlessclaw/core',
     '@serverlessclaw/ui',
     '@serverlessclaw/hooks',
-    ...(process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS ? [process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[0]] : ['@goldex/core'])
+    ...(process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS ? [process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[0]] : [])
   ].filter(pkg => {
     try {
       require.resolve(pkg + '/package.json');
@@ -74,13 +74,29 @@ const nextConfig = {
       ? path.resolve(__dirname, '../../../' + process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS)
       : path.resolve(__dirname, './src/extensions/index.ts');
 
+    const extensionDir = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS
+      ? path.resolve(__dirname, '../../../', process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS, '../..')
+      : null;
+
+    const messagesEnPath =
+      extensionDir && fs.existsSync(path.join(extensionDir, 'messages/en.json'))
+        ? path.join(extensionDir, 'messages/en.json')
+        : path.resolve(__dirname, './src/extensions/messages/en.json');
+
+    const messagesCnPath =
+      extensionDir && fs.existsSync(path.join(extensionDir, 'messages/cn.json'))
+        ? path.join(extensionDir, 'messages/cn.json')
+        : path.resolve(__dirname, './src/extensions/messages/cn.json');
+
     console.log('[NextConfig] resolved extensionPath:', extensionPath);
-    console.log('[NextConfig] NEXT_PUBLIC_ACTIVE_EXTENSIONS:', process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS);
+    console.log('[NextConfig] resolved messagesEnPath:', messagesEnPath);
 
     // Ensure cross-package resolution works for workspace packages
     config.resolve.alias = {
       ...config.resolve.alias,
       'virtual-extensions': extensionPath,
+      'virtual-messages-en': messagesEnPath,
+      'virtual-messages-cn': messagesCnPath,
       '@serverlessclaw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),
       '@serverlessclaw/core/lib': path.resolve(__dirname, '../../framework/packages/core/lib'),
       '@claw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),

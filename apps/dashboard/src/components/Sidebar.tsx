@@ -136,7 +136,12 @@ export default function Sidebar() {
     },
     ...sidebarExtensions
       .filter((e) => !e.section || e.section === 'OPERATIONS')
-      .map((e) => ({ ...e, activePaths: [e.href] })),
+      .map((e) => ({
+        ...e,
+        label: t(e.label),
+        subtitle: e.subtitle ? t(e.subtitle) : undefined,
+        activePaths: [e.href],
+      })),
 
     { label: t('INTELLIGENCE'), type: 'header' },
     {
@@ -144,20 +149,6 @@ export default function Sidebar() {
       label: t('AGENTS'),
       subtitle: t('AGENTS_SUBTITLE'),
       icon: Users,
-      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
-    },
-    {
-      href: ROUTES.PIPELINES,
-      label: t('ML_PIPELINES'),
-      subtitle: t('TRAINING_SUBTITLE'),
-      icon: Database,
-      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
-    },
-    {
-      href: ROUTES.SIMULATOR,
-      label: t('SIMULATOR'),
-      subtitle: t('SIMULATOR_SUBTITLE'),
-      icon: Activity,
       requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
     },
     {
@@ -183,7 +174,12 @@ export default function Sidebar() {
     },
     ...sidebarExtensions
       .filter((e) => e.section === 'INTELLIGENCE')
-      .map((e) => ({ ...e, activePaths: [e.href] })),
+      .map((e) => ({
+        ...e,
+        label: t(e.label),
+        subtitle: e.subtitle ? t(e.subtitle) : undefined,
+        activePaths: [e.href],
+      })),
 
     { label: t('OBSERVABILITY'), type: 'header' },
     {

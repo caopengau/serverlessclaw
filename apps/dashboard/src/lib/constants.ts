@@ -92,8 +92,6 @@ export const UI_STRINGS = {
   WORKSPACES: 'WORKSPACES',
   CONSENSUS: 'CONSENSUS',
   TUNING: 'TUNING',
-  PIPELINES: 'ML_PIPELINES',
-  SIMULATOR: 'SIMULATOR',
   NODE_STATUS: 'CORE_SYNC',
   SYSTEM_ONLINE: 'LINK_ESTABLISHED',
   SYSTEM_OFFLINE: 'LINK_INTERRUPTED',
@@ -119,6 +117,4 @@ export const ROUTES = {
   WORKSPACES: '/workspaces',
   COLLABORATION: '/collaboration',
   TUNING: '/tuning',
-  PIPELINES: '/pipelines',
-  SIMULATOR: '/simulator',
 } as const;
