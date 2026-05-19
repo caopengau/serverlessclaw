@@ -143,7 +143,5 @@ v
 ## Operational Safeguards
 
 - **Multi-Tenant Isolation**: All repairs utilize `workspaceId` to ensure the metabolism of one tenant never leaks into or deletes another's memory.
-- **Codebase Audit Boundaries**: Codebase-wide scans (AIReady MCP or Native Fallback) are restricted to the **GLOBAL** maintenance scope. They are skipped during workspace-specific maintenance runs to prevent redundant filesystem overhead and potential metadata leakage across tenants.
-- **Path Traversal Hardening**: Native codebase scans use strict path sanitization, restricting audits to the Lambda's task root and preventing traversal into parent or system directories.
 - **Atomic State Integrity**: Registry pruning and memory culling use **Field-Level Atomic Filtering** via `ConfigManager.atomicRemoveFromMapList`. This ensures that maintenance tasks never overwrite active agent configurations, even in highly concurrent swarm environments.
 ```

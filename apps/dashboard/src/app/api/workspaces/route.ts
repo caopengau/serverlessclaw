@@ -2,9 +2,6 @@ import { ApiError, requireEnum, requireFields, withApiHandler } from '@/lib/api-
 import type { InviteMemberInput, MemberType, WorkspaceRole } from '@claw/core/lib/types/workspace';
 import { logger } from '@claw/core/lib/logger';
 
-import { getUserId } from '@/lib/auth-utils';
-import { NextRequest } from 'next/server';
-
 export const dynamic = 'force-dynamic';
 
 interface WorkspaceData {
@@ -49,33 +46,16 @@ async function fetchWorkspacesFromConfig(id?: string): Promise<WorkspaceData[]> 
   return workspaces;
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
-    const userId = getUserId(req);
     const url = new URL(req.url);
     const id = url.searchParams.get('id');
 
-    const { getIdentityManager } = await import('@claw/core/lib/session/identity');
-    const identityManager = await getIdentityManager();
-    const user = await identityManager.getUser(userId);
-
-    if (!user) {
-      return Response.json({ workspaces: [] }, { status: 401 });
-    }
-
     const workspaces = await fetchWorkspacesFromConfig(id || undefined);
 
-    // Filter workspaces by membership (Principle 11)
-    // Global admins/owners can see all
-    const { UserRole } = await import('@claw/core/lib/session/identity/types');
-    const filtered = workspaces.filter((w) => {
-      if (user.role === UserRole.OWNER || user.role === UserRole.ADMIN) return true;
-      return user.workspaceIds.includes(w.workspaceId);
-    });
-
     if (id) {
-      if (filtered.length === 0) return Response.json({ workspace: null });
-      const w = filtered[0];
+      if (workspaces.length === 0) return Response.json({ workspace: null });
+      const w = workspaces[0];
       return Response.json({
         workspace: {
           id: w.workspaceId,
@@ -90,7 +70,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Map to the format expected by the frontend
-    const formatted = filtered.map((w) => ({
+    const formatted = workspaces.map((w) => ({
       id: w.workspaceId,
       name: w.name,
       ownerId: w.ownerId,
@@ -106,27 +86,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const POST = withApiHandler(async (body: Record<string, unknown>, req: NextRequest) => {
-  const currentUserId = getUserId(req);
-  const { getIdentityManager, Permission } = await import('@claw/core/lib/session/identity');
-  const identityManager = await getIdentityManager();
-
+export const POST = withApiHandler(async (body: Record<string, unknown>) => {
   // Handle member management actions
   if (body.action === 'invite') {
     requireFields(body, 'workspaceId', 'memberId', 'role');
     const workspaceId = asNonEmptyString(body.workspaceId, 'workspaceId');
     const memberId = asNonEmptyString(body.memberId, 'memberId');
-
-    // Verify permission (Principle 11)
-    const hasPermission = await identityManager.hasPermission(
-      currentUserId,
-      Permission.WORKSPACE_MEMBERS,
-      workspaceId
-    );
-    if (!hasPermission) {
-      throw new ApiError('Unauthorized workspace management', 403);
-    }
-
     const role = body.role;
     requireEnum(role, WORKSPACE_ROLES, 'role');
     const memberType = body.type ?? 'human';
@@ -151,17 +116,6 @@ export const POST = withApiHandler(async (body: Record<string, unknown>, req: Ne
     requireFields(body, 'workspaceId', 'memberId', 'role');
     const workspaceId = asNonEmptyString(body.workspaceId, 'workspaceId');
     const memberId = asNonEmptyString(body.memberId, 'memberId');
-
-    // Verify permission (Principle 11)
-    const hasPermission = await identityManager.hasPermission(
-      currentUserId,
-      Permission.WORKSPACE_MEMBERS,
-      workspaceId
-    );
-    if (!hasPermission) {
-      throw new ApiError('Unauthorized workspace management', 403);
-    }
-
     const role = body.role;
     requireEnum(role, WORKSPACE_ROLES, 'role');
 
@@ -175,16 +129,6 @@ export const POST = withApiHandler(async (body: Record<string, unknown>, req: Ne
     const workspaceId = asNonEmptyString(body.workspaceId, 'workspaceId');
     const memberId = asNonEmptyString(body.memberId, 'memberId');
 
-    // Verify permission (Principle 11)
-    const hasPermission = await identityManager.hasPermission(
-      currentUserId,
-      Permission.WORKSPACE_MEMBERS,
-      workspaceId
-    );
-    if (!hasPermission) {
-      throw new ApiError('Unauthorized workspace management', 403);
-    }
-
     const { removeMember } = await import('@claw/core/lib/memory/workspace-operations');
     await removeMember(workspaceId, 'dashboard', memberId);
     return { success: true };
@@ -194,16 +138,6 @@ export const POST = withApiHandler(async (body: Record<string, unknown>, req: Ne
   requireFields(body, 'name', 'ownerId');
   const name = asNonEmptyString(body.name, 'name');
   const ownerId = asNonEmptyString(body.ownerId, 'ownerId');
-
-  // Any authenticated user can create a workspace (they become the owner)
-  // But they should only be able to create it for themselves (ownerId must match currentUserId)
-  if (ownerId !== currentUserId) {
-    const user = await identityManager.getUser(currentUserId);
-    const { UserRole } = await import('@claw/core/lib/session/identity/types');
-    if (user?.role !== UserRole.OWNER && user?.role !== UserRole.ADMIN) {
-      throw new ApiError('Cannot create workspace for another user', 403);
-    }
-  }
 
   const { createWorkspace } = await import('@claw/core/lib/memory/workspace-operations');
   const workspace = await createWorkspace({

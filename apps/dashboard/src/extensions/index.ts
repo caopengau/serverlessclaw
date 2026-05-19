@@ -1,9 +1,15 @@
 /**
- * Dashboard Extension Bridge (Generic OSS Template)
+ * Dashboard Extension Bridge
  *
- * This file serves as a placeholder for domain-specific product extensions.
- * In production environments, this file remains empty, or is dynamically overridden
- * via webpack resolve aliases using custom workspace paths.
+ * This file serves as the integration point between the generic
+ * ServerlessClaw dashboard and domain-specific product extensions.
+ *
+ * To add product-specific UI (sidebar links, components, etc.),
+ * implement the init() function below.
+ *
+ * Note: In production builds, this file should remain generic.
+ * Domain-specific logic should be injected via dependencies or
+ * build-time configuration.
  */
 
 interface ExtensionHooks {
@@ -13,12 +19,11 @@ interface ExtensionHooks {
   registerComponent: (ext: any) => void;
 }
 
-export function init({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  registerSidebar: _registerSidebar,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  registerComponent: _registerComponent,
-}: ExtensionHooks) {
-  // No-op for generic OSS framework
-  console.debug('[ServerlessClaw] Generic extension bridge initialized (no-op).');
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function init({ registerSidebar, registerComponent }: ExtensionHooks) {
+  // Generic OSS implementation is empty.
+  // Product-specific logic (e.g. Spoke) should be registered here
+  // by importing from domain packages.
+
+  console.debug('[Framework] Extension bridge initialized (Generic).');
 }

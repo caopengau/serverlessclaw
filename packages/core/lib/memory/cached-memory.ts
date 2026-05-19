@@ -156,8 +156,8 @@ export class CachedMemory implements IMemory {
   ): Promise<any> {
     return this.insights.addMemory(scopeId, category, content, metadata, scope);
   }
-  async saveDistilledRecoveryLog(traceId: string, task: string, scope?: Scope): Promise<void> {
-    return this.underlying.saveDistilledRecoveryLog(traceId, task, scope);
+  async saveDistilledRecoveryLog(traceId: string, task: string): Promise<void> {
+    return this.underlying.saveDistilledRecoveryLog(traceId, task);
   }
   async searchInsightsForPreferences(userId: string, scope?: Scope): Promise<any> {
     return this.insights.searchInsightsForPreferences(userId, scope);

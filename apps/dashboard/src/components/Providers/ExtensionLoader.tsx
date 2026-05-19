@@ -17,7 +17,7 @@ export function ExtensionLoader() {
     async function loadExtensions() {
       try {
         // Attempt to load from the conventional extension point
-        const extension = await import('virtual-extensions');
+        const extension = await import('../../extensions');
 
         if (extension && typeof extension.init === 'function') {
           extension.init({

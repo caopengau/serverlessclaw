@@ -9,17 +9,7 @@ import { SharedContext, getDomainConfig, AGENT_CONFIG, getValidSecrets } from '.
  */
 export function createDashboard(
   ctx: SharedContext,
-  options: {
-    pathPrefix?: string;
-    extensionSource?: string;
-    theme?: {
-      primaryColor?: string;
-      primaryColorDark?: string;
-      accentColor?: string;
-      accentColorDark?: string;
-      appTitle?: string;
-    };
-  } = {}
+  options: { pathPrefix?: string; extensionSource?: string } = {}
 ): { dashboard: sst.aws.Nextjs } {
   const prefix = options.pathPrefix ?? '';
   const extSource = options.extensionSource ?? '';
@@ -71,15 +61,6 @@ export function createDashboard(
       IOT_AUTHORIZER: ctx.realtime?.authorizer || '',
       DASHBOARD_PASSWORD: process.env.DASHBOARD_PASSWORD || '',
       AWS_PROFILE: '', // Clear profile to avoid conflict warning as SST injects static credentials
-      NEXT_PUBLIC_PRIMARY_COLOR:
-        options.theme?.primaryColor || process.env.NEXT_PUBLIC_PRIMARY_COLOR || '',
-      NEXT_PUBLIC_PRIMARY_COLOR_DARK:
-        options.theme?.primaryColorDark || process.env.NEXT_PUBLIC_PRIMARY_COLOR_DARK || '',
-      NEXT_PUBLIC_ACCENT_COLOR:
-        options.theme?.accentColor || process.env.NEXT_PUBLIC_ACCENT_COLOR || '',
-      NEXT_PUBLIC_ACCENT_COLOR_DARK:
-        options.theme?.accentColorDark || process.env.NEXT_PUBLIC_ACCENT_COLOR_DARK || '',
-      NEXT_PUBLIC_APP_TITLE: options.theme?.appTitle || process.env.NEXT_PUBLIC_APP_TITLE || '',
     },
     architecture: 'arm64',
     buildCommand: `mkdir -p src/extensions/hub && find src/extensions/hub -mindepth 1 ! -name 'index.ts' -exec rm -rf {} + && ${

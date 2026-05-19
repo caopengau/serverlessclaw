@@ -50,18 +50,6 @@ export default async function AuthLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <head>
-        <style>{`
-          :root {
-            --brand-primary: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#008f5a'};
-            --cyber-blue: ${process.env.NEXT_PUBLIC_ACCENT_COLOR || '#007a8a'};
-          }
-          .dark {
-            --brand-primary: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR_DARK || '#00ffa3'};
-            --cyber-blue: ${process.env.NEXT_PUBLIC_ACCENT_COLOR_DARK || '#00e0ff'};
-          }
-        `}</style>
-      </head>
       <body
         suppressHydrationWarning
         className="min-h-full flex bg-background text-foreground font-mono text-base antialiased"

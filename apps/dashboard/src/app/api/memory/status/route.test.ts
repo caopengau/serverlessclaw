@@ -3,7 +3,6 @@ import { NextRequest } from 'next/server';
 import { POST } from './route';
 
 const mockUpdateGapStatus = vi.fn().mockResolvedValue({ success: true });
-const mockHasPermission = vi.fn().mockResolvedValue(true);
 
 // Mock the core memory module
 vi.mock('@claw/core/lib/memory', () => {
@@ -14,20 +13,20 @@ vi.mock('@claw/core/lib/memory', () => {
   };
 });
 
-// Mock the identity module
-vi.mock('@claw/core/lib/session/identity', () => ({
-  getIdentityManager: vi.fn().mockResolvedValue({
-    hasPermission: mockHasPermission,
-  }),
-  Permission: {
-    AGENT_UPDATE: 'AGENT_UPDATE',
-  },
-}));
-
-// Mock auth-utils
-vi.mock('@/lib/auth-utils', () => ({
-  getUserId: vi.fn().mockReturnValue('test-user'),
-}));
+// Mock the core types module
+vi.mock('@claw/core/lib/types', () => {
+  return {
+    GapStatus: {
+      OPEN: 'OPEN',
+      PLANNED: 'PLANNED',
+      PROGRESS: 'PROGRESS',
+      DEPLOYED: 'DEPLOYED',
+      DONE: 'DONE',
+      FAILED: 'FAILED',
+      ARCHIVED: 'ARCHIVED',
+    },
+  };
+});
 
 // Mock @/lib/constants
 vi.mock('@/lib/constants', () => ({
@@ -35,7 +34,6 @@ vi.mock('@/lib/constants', () => ({
     BAD_REQUEST: 400,
     INTERNAL_SERVER_ERROR: 500,
     OK: 200,
-    FORBIDDEN: 403,
   },
 }));
 

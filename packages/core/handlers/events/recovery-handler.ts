@@ -14,11 +14,10 @@ const memory = new DynamoMemory();
  * @param eventDetail - The event detail containing recovery log information
  */
 export async function handleRecoveryLog(eventDetail: Record<string, unknown>): Promise<void> {
-  const { task, traceId, sessionId, workspaceId } = eventDetail as {
+  const { task, traceId, sessionId } = eventDetail as {
     task: string;
     traceId: string;
     sessionId: string;
-    workspaceId?: string;
   };
 
   logger.info(`[RECOVERY_LOG] Received for traceId=${traceId} | sessionId=${sessionId}`);
@@ -26,8 +25,7 @@ export async function handleRecoveryLog(eventDetail: Record<string, unknown>): P
   // Store distilled recovery log for agent context retrieval (Principle 1)
   if (traceId && task) {
     try {
-      const scope = workspaceId ? { workspaceId } : undefined;
-      await memory.saveDistilledRecoveryLog(traceId as string, task as string, scope);
+      await memory.saveDistilledRecoveryLog(traceId as string, task as string);
       logger.info(`[RECOVERY_LOG] Distilled log saved for traceId=${traceId}`);
     } catch (error) {
       logger.error(`[RECOVERY_LOG] Failed to save distilled log for ${traceId}:`, error);

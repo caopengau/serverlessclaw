@@ -9,15 +9,17 @@ export interface SidebarExtension {
   label: string;
   subtitle?: string;
   href: string;
-  icon: LucideIcon | string;
+  icon: LucideIcon;
   section?: string; // e.g., 'OPERATIONS', 'INTELLIGENCE'
   requiredRoles?: UserRole[];
 }
 
 export interface DynamicComponentExtension {
   type: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  component: React.ComponentType<any>;
+  component: React.ComponentType<{
+    component: unknown;
+    onAction?: (actionId: string, payload?: unknown) => void;
+  }>;
 }
 
 export type LayoutSlot = 'sidebar_top' | 'sidebar_bottom' | 'header_right' | 'main_top';
@@ -30,8 +32,7 @@ export interface LayoutExtension {
 
 interface ExtensionContextType {
   sidebarExtensions: SidebarExtension[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  dynamicComponents: Map<string, React.ComponentType<any>>;
+  dynamicComponents: Map<string, DynamicComponentExtension['component']>;
   layoutExtensions: Map<LayoutSlot, LayoutExtension[]>;
   registerSidebarExtension: (extension: SidebarExtension) => void;
   registerDynamicComponent: (extension: DynamicComponentExtension) => void;
@@ -46,8 +47,9 @@ const ExtensionContext = createContext<ExtensionContextType | undefined>(undefin
  */
 export function ExtensionProvider({ children }: { children: ReactNode }) {
   const [sidebarExtensions, setSidebarExtensions] = useState<SidebarExtension[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [dynamicComponents] = useState<Map<string, React.ComponentType<any>>>(new Map());
+  const [dynamicComponents] = useState<Map<string, DynamicComponentExtension['component']>>(
+    new Map()
+  );
   const [layoutExtensions, setLayoutExtensions] = useState<Map<LayoutSlot, LayoutExtension[]>>(
     new Map()
   );

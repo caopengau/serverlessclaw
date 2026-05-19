@@ -30,8 +30,8 @@
 | [docs/governance/ROADMAP.md](./docs/governance/ROADMAP.md)                       | Understand what's planned, pick the next task                              |
 | [docs/intelligence/STREAMING.md](./docs/intelligence/STREAMING.md)               | Real-time reasoning streaming (MQTT) and signal flow                       |
 | [docs/governance/CONTRIBUTING.md](./docs/governance/CONTRIBUTING.md)             | Understand how to contribute code or update documentation                  |
-| [Extensibility](./packages/core/lib/registry/)                                   | Dynamic Skill and Agent registries for spoke extension                     |
-| [Evolution](./packages/core/lib/safety/evolution-scheduler.ts)                   | Evolution Manager for proposing optimizations and bug fixes                |
+| [Extensibility](./packages/core/lib/registry/)                                    | Dynamic Skill and Agent registries for spoke extension                     |
+| [Evolution](./packages/core/lib/safety/evolution-scheduler.ts)                    | Evolution Manager for proposing optimizations and bug fixes                |
 
 ## System Overview (One Paragraph)
 
@@ -57,18 +57,18 @@ make dev
 >
 > **DIAGRAMS**: For any complex system-level changes (e.g., changing EventBridge routing, adding new agent-to-agent communication, or modifying the core backbone), you **MUST** also update the relevant **ASCII diagrams** in the spoke document using ` ```text ` fenced code blocks.
 
-| Changed File                        | Update This Spoke                                       | Diagram? |
-| ----------------------------------- | ------------------------------------------------------- | :------: |
-| `packages/core/agents/`             | [intelligence/AGENTS.md](./docs/intelligence/AGENTS.md) |   Yes    |
-| `packages/core/tools/`              | [intelligence/TOOLS.md](./docs/intelligence/TOOLS.md)   |   Yes    |
-| `packages/core/handlers/events.ts`  | [interface/EVENTS.md](./docs/interface/EVENTS.md)       |   Yes    |
+| Changed File               | Update This Spoke                                       | Diagram? |
+| -------------------------- | ------------------------------------------------------- | :------: |
+| `packages/core/agents/`     | [intelligence/AGENTS.md](./docs/intelligence/AGENTS.md) |   Yes    |
+| `packages/core/tools/`      | [intelligence/TOOLS.md](./docs/intelligence/TOOLS.md)   |   Yes    |
+| `packages/core/handlers/events.ts` | [interface/EVENTS.md](./docs/interface/EVENTS.md)       |   Yes    |
 | `packages/core/handlers/monitor.ts` | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |   Yes    |
-| `packages/core/lib/types/`          | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |  Struct  |
-| `packages/core/lib/memory/`         | [intelligence/MEMORY.md](./docs/intelligence/MEMORY.md) |   Yes    |
-| `packages/core/lib/providers/`      | [intelligence/LLM.md](./docs/intelligence/LLM.md)       |    No    |
-| `infra/`                            | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |   Yes    |
-| `makefiles/`                        | [governance/DEVOPS.md](./docs/governance/DEVOPS.md)     |    No    |
-| `sst.config.ts`                     | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |   Yes    |
+| `packages/core/lib/types/`  | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |  Struct  |
+| `packages/core/lib/memory/` | [intelligence/MEMORY.md](./docs/intelligence/MEMORY.md) |   Yes    |
+| `packages/core/lib/providers/` | [intelligence/LLM.md](./docs/intelligence/LLM.md)       |    No    |
+| `infra/`                   | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |   Yes    |
+| `makefiles/`               | [governance/DEVOPS.md](./docs/governance/DEVOPS.md)     |    No    |
+| `sst.config.ts`            | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |   Yes    |
 
 ---
 

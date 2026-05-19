@@ -372,8 +372,8 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
 
   getLatestLKGHash(): Promise<string | null>;
 
-  incrementRecoveryAttemptCount(scope?: string | ContextualScope): Promise<number>;
-  resetRecoveryAttemptCount(scope?: string | ContextualScope): Promise<void>;
+  incrementRecoveryAttemptCount(): Promise<number>;
+  resetRecoveryAttemptCount(): Promise<void>;
   saveDistilledRecoveryLog(
     traceId: string,
     log: string,

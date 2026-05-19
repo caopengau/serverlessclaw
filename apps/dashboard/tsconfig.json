@@ -22,9 +22,6 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@serverlessclaw/core": ["../../packages/core/lib/index.ts"],
-      "@serverlessclaw/core/*": ["../../packages/core/*"],
-      "@claw/core": ["../../packages/core/lib/index.ts"],
       "@claw/core/*": ["../../packages/core/*"],
       "@claw/ui": ["../../packages/ui/src/index.ts"],
       "@claw/ui/*": ["../../packages/ui/src/*"],

@@ -94,6 +94,7 @@ describe('MetabolismService', () => {
 
       const findings = await MetabolismService.runMetabolismAudit(mockMemory as any, {
         repair: false,
+        workspaceId: 'default',
       });
 
       expect(findings).toEqual(
@@ -118,6 +119,7 @@ describe('MetabolismService', () => {
 
       const findings = await MetabolismService.runMetabolismAudit(mockMemory as any, {
         repair: false,
+        workspaceId: 'default',
       });
 
       expect(findings).toEqual(
@@ -132,6 +134,7 @@ describe('MetabolismService', () => {
 
       const findings = await MetabolismService.runMetabolismAudit(mockMemory as any, {
         repair: false,
+        workspaceId: 'default',
       });
 
       expect(findings).toEqual(

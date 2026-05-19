@@ -10,9 +10,9 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 
 ### 1. Autonomous Agents (LLM-Powered)
 
-| Agent                    | Host (Tier)  | Responsibilities                                                                                                                                                                          |
-| :----------------------- | :----------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SuperClaw**            | `Standard`   | **Nimble Orchestrator**. See [`packages/core/agents/superclaw.ts`](../../packages/core/agents/superclaw.ts) and [`constants.ts`](../../packages/core/agents/superclaw/constants.ts).      |
+| Agent                    | Host (Tier)  | Responsibilities                                                                                                                                                        |
+| :----------------------- | :----------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SuperClaw**            | `Standard`   | **Nimble Orchestrator**. See [`packages/core/agents/superclaw.ts`](../../packages/core/agents/superclaw.ts) and [`constants.ts`](../../packages/core/agents/superclaw/constants.ts).               |
 | **Coder Agent**          | `High-Power` | Writes code, validates deployments. See [`packages/core/agents/coder.ts`](../../packages/core/agents/coder.ts).                                                                           |
 | **Researcher**           | `High-Power` | Deep exploration. See [RESEARCH.md](./RESEARCH.md) & [`packages/core/agents/researcher.ts`](../../packages/core/agents/researcher.ts).                                                    |
 | **Strategic Planner**    | `High-Power` | **Technical Auditor**. See [`packages/core/agents/strategic-planner.ts`](../../packages/core/agents/strategic-planner.ts).                                                                |

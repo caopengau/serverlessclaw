@@ -30,9 +30,9 @@ Last Updated: 2026-05-18
 | **B**       | Evolution Cycle     | Hand → Shield → Scales      | 14          | 2026-05-17  |
 | **C**       | Identity Journey    | Brain → Spine → Shield      | 13          | 2026-05-17  |
 | **D**       | Trust Loop          | Eye → Scales → Spine        | 17          | 2026-05-18  |
-| **E**       | Recovery Path       | Shield → Spine → Brain      | 16          | 2026-05-18  |
-| **F**       | Metabolic Loop      | Metabolism ↔ Scales ↔ Spine | 13          | 2026-05-18  |
-| **G**       | Dashboard Integrity | Cross-Silo API Safety       | 5           | 2026-05-18  |
+| **E**       | Recovery Path       | Shield → Spine → Brain      | 15          | 2026-05-16  |
+| **F**       | Metabolic Loop      | Metabolism ↔ Scales ↔ Spine | 12          | 2026-05-17  |
+| **G**       | Dashboard Integrity | Cross-Silo API Safety       | 4           | 2026-05-17  |
 
 ---
 
@@ -40,7 +40,6 @@ Last Updated: 2026-05-18
 
 | Date       | Report                                                  | Silos                                | Perspective | Status/Summary                                                                                                         |
 | :--------- | :------------------------------------------------------ | :----------------------------------- | :---------- | :--------------------------------------------------------------------------------------------------------------------- |
-| 2026-05-18 | `reports/audit-2026-05-18-metabolic-loop.md`            | Metabolism, Scales, Spine            | F           | FIXED: P1 Path traversal in native audit, P1 Redundant codebase scans, P1 N+1 Query in trust repairs.                  |
 | 2026-05-18 | `reports/audit-2026-05-18-trust-loop-race.md`           | Eye, Scales, Spine                   | D           | FIXED: P1 Bypassed Conditional Clamping in ConfigManagerMap, P1 Race Condition in Trust Calibration Clamping.          |
 | 2026-05-17 | `reports/audit-2026-05-17-session-listing-remediation.md` | Brain, Spine, Shield                 | C           | FIXED: P1 GSI Active Session Mismatch (Dual-write), P1 Missing Org Scoping, P1 Lenient Mock.                           |
 | 2026-05-17 | `reports/audit-2026-05-17-evolution-cycle.md`           | Hand, Shield, Scales, Metabolism     | B           | FIXED: P1 Test Runner Config Change Blindness (Silo 7), Audited tool crash calibration & security gates.              |

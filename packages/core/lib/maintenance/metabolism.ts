@@ -45,20 +45,17 @@ export class MetabolismService {
     }
 
     // 2. Delegate to AIReady (AST) MCP if available
-    // Principle 11: Codebase audits are system-wide. Only run during GLOBAL maintenance to avoid redundancy.
-    if (!options.workspaceId) {
-      const { runMcpAudit, runNativeAudit } = await import('./metabolism/audit');
-      const mcpFindings = await runMcpAudit(scope);
-      findings.push(...mcpFindings);
+    const { runMcpAudit, runNativeAudit } = await import('./metabolism/audit');
+    const mcpFindings = await runMcpAudit(scope);
+    findings.push(...mcpFindings);
 
-      // 3. Fallback to native audit if MCP failed or returned no tools
-      const hasMcpFail = mcpFindings.some(
-        (f) => f.recommendation.includes('Ensure AST server') || f.expected === 'MCP audit success'
-      );
-      if (mcpFindings.length === 0 || hasMcpFail) {
-        const nativeFindings = await runNativeAudit(scope);
-        findings.push(...nativeFindings);
-      }
+    // 3. Fallback to native audit if MCP failed or returned no tools
+    const hasMcpFail = mcpFindings.some(
+      (f) => f.recommendation.includes('Ensure AST server') || f.expected === 'MCP audit success'
+    );
+    if (mcpFindings.length === 0 || hasMcpFail) {
+      const nativeFindings = await runNativeAudit(scope);
+      findings.push(...nativeFindings);
     }
 
     return findings;

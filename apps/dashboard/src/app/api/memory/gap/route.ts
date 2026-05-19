@@ -3,10 +3,8 @@
  * Handles the manual creation of capability gaps from the dashboard interface.
  */
 import { z } from 'zod';
-import { withApiHandler, validateBody, ApiError } from '@/lib/api-handler';
+import { withApiHandler, validateBody } from '@/lib/api-handler';
 import type { InsightMetadata } from '@claw/core/lib/types/memory';
-import { getUserId } from '@/lib/auth-utils';
-import { HTTP_STATUS } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,26 +44,11 @@ function toInsightMetadata(metadata?: Record<string, unknown>): InsightMetadata 
  * POST handler for creating a new capability gap from the dashboard.
  */
 export const POST = withApiHandler(async (body, req) => {
-  const userId = getUserId(req);
   const { DynamoMemory } = await import('@claw/core/lib/memory');
   const { details, metadata } = validateBody(body, CreateGapSchema);
 
   const workspaceId =
     req.nextUrl.searchParams.get('workspaceId') || req.headers.get('x-workspace-id') || 'default';
-
-  const { getIdentityManager, Permission } = await import('@claw/core/lib/session/identity');
-  const identityManager = await getIdentityManager();
-
-  // Verify workspace access (Principle 11)
-  const hasAccess = await identityManager.hasPermission(
-    userId,
-    Permission.AGENT_UPDATE,
-    workspaceId
-  );
-  if (!hasAccess) {
-    throw new ApiError('Unauthorized workspace access', HTTP_STATUS.FORBIDDEN);
-  }
-
   const memory = new DynamoMemory();
   const gapId = Date.now().toString();
 
