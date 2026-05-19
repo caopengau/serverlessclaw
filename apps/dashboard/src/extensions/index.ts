@@ -13,7 +13,10 @@ interface ExtensionHooks {
   registerComponent: (ext: any) => void;
 }
 
-export function init({ registerSidebar: _registerSidebar, registerComponent: _registerComponent }: ExtensionHooks) {
+export function init({
+  registerSidebar: _registerSidebar,
+  registerComponent: _registerComponent,
+}: ExtensionHooks) {
   // No-op for generic OSS framework
   console.debug('[ServerlessClaw] Generic extension bridge initialized (no-op).');
 }
