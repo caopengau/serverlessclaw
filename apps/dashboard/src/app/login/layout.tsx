@@ -1,4 +1,17 @@
 import type { Metadata } from 'next';
+import { Inter, JetBrains_Mono } from 'next/font/google';
+import '../../globals.css';
+
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: '--font-jetbrains-mono',
+  subsets: ['latin'],
+});
+
 import { Toaster } from 'sonner';
 import { TranslationsProvider } from '@/components/Providers/TranslationsProvider';
 import { ConfigManager } from '@claw/core/lib/registry/config';
@@ -32,23 +45,46 @@ export default async function AuthLayout({
   }
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-      <ExtensionProvider>
-        <TranslationsProvider initialLocale={initialLocale}>
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              className: 'cyber-toast',
-              classNames: {
-                success: 'cyber-toast-success',
-                error: 'cyber-toast-error',
-                description: 'cyber-toast-description',
-              },
-            }}
-          />
-          <div className="flex-1 overflow-y-auto">{children}</div>
-        </TranslationsProvider>
-      </ExtensionProvider>
-    </ThemeProvider>
+    <html
+      lang={initialLocale}
+      suppressHydrationWarning
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+    >
+      <head>
+        <style>{`
+          :root {
+            --brand-primary: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#008f5a'};
+            --cyber-blue: ${process.env.NEXT_PUBLIC_ACCENT_COLOR || '#007a8a'};
+          }
+          .dark {
+            --brand-primary: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR_DARK || '#00ffa3'};
+            --cyber-blue: ${process.env.NEXT_PUBLIC_ACCENT_COLOR_DARK || '#00e0ff'};
+          }
+        `}</style>
+      </head>
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex bg-background text-foreground font-mono text-base antialiased"
+      >
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <ExtensionProvider>
+            <TranslationsProvider initialLocale={initialLocale}>
+              <Toaster
+                position="bottom-right"
+                toastOptions={{
+                  className: 'cyber-toast',
+                  classNames: {
+                    success: 'cyber-toast-success',
+                    error: 'cyber-toast-error',
+                    description: 'cyber-toast-description',
+                  },
+                }}
+              />
+              <div className="flex-1 overflow-y-auto">{children}</div>
+            </TranslationsProvider>
+          </ExtensionProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }

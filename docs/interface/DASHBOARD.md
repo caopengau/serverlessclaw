@@ -154,12 +154,12 @@ The dashboard connects to AWS IoT using a WebSocket `wss://.../mqtt` URL returne
 
 ## 🔌 Extension Architecture (Spoke Injection)
 
-The dashboard implements a "Hub-and-Spoke" UI model, allowing domain-specific projects (like GoldEx) to inject custom pages, sidebar items, and components without modifying the core framework.
+The dashboard implements a "Hub-and-Spoke" UI model, allowing domain-specific projects (like VoltX) to inject custom pages, sidebar items, and components without modifying the core framework.
 
 ### Extension Signal Flow (ASCII)
 
 ```text
-[ Dashboard Hub ]           [ Extension Loader ]           [ Domain Spoke (GoldEx) ]
+[ Dashboard Hub ]           [ Extension Loader ]           [ Domain Spoke ]
        |                           |                             |
        |--- (Mount) -------------->|                             |
        |                           |--- (Dynamic Import) ------->| (extensions/index.ts)
@@ -170,15 +170,6 @@ The dashboard implements a "Hub-and-Spoke" UI model, allowing domain-specific pr
        |                           |                             |
 [ Sidebar/Layouts Update ] <-------|                             |
 ```
-
-### Domain Spoke UI Examples (GoldEx Simulator)
-
-Domain-injected pages seamlessly integrate with the dashboard's design system. For example, the **GoldEx Strategy Simulator** (`goldex-simulator`) injects:
-1. **Dynamic KPIs**: Best Return, Win Rate, and Trade Count derived from historical job runs.
-2. **Multi-Run Strategy Comparison**: A Recharts-based BarChart visualizing cumulative returns indexed by threshold (T%).
-3. **Tabbed Real-time / Visualization Console**:
-   - **Simulation Logs**: Live terminal-style streaming of Python inference output via MQTT.
-   - **Equity Curve**: A Recharts AreaChart visualizing the simulated account balance curve synthesized from run metrics.
 
 ### 1. Sidebar Extensions
 

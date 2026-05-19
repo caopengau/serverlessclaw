@@ -1,6 +1,10 @@
 import { logger } from '../../logger';
 import { UserRole, Permission, AccessControlEntry, AgentRole } from './types';
-import { SecurityRegistry } from '../../registry/SecurityRegistry';
+import {
+  ROLE_PERMISSIONS,
+  WORKSPACE_SCOPED_PERMISSIONS,
+  AGENT_ROLE_PERMISSIONS,
+} from './constants';
 import { IdentityBase } from './base';
 
 /**
@@ -11,14 +15,16 @@ export class AccessOps extends IdentityBase {
    * Check if a user has specific permission.
    */
   hasPermissionSync(userRole: UserRole, permission: Permission): boolean {
-    return SecurityRegistry.hasPermission(userRole, permission);
+    const rolePermissions = ROLE_PERMISSIONS[userRole];
+    return rolePermissions.includes(permission);
   }
 
   /**
    * Check if an agent has specific permission.
    */
   hasAgentPermissionSync(agentRoles: AgentRole[], permission: Permission): boolean {
-    return SecurityRegistry.hasAgentPermission(agentRoles, permission);
+    if (!agentRoles || agentRoles.length === 0) return false;
+    return agentRoles.some((role) => AGENT_ROLE_PERMISSIONS[role]?.includes(permission));
   }
 
   /**
@@ -88,6 +94,6 @@ export class AccessOps extends IdentityBase {
    * Check if permission is workspace scoped.
    */
   isWorkspaceScoped(permission: Permission): boolean {
-    return SecurityRegistry.isWorkspaceScoped(permission);
+    return WORKSPACE_SCOPED_PERMISSIONS.has(permission);
   }
 }

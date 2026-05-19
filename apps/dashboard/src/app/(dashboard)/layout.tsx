@@ -1,6 +1,18 @@
+import { Inter, JetBrains_Mono } from 'next/font/google';
+import '../../globals.css';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { AUTH } from '@/lib/constants';
+
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: '--font-jetbrains-mono',
+  subsets: ['latin'],
+});
 
 import Sidebar from '@/components/Sidebar';
 import ChatBubble from '@/components/Chat/ChatBubble';
@@ -82,50 +94,73 @@ export default async function RootLayout({
   const messages = (initialLocale === 'cn' ? mergedCn : mergedEn) as any;
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-      <ExtensionProvider>
-        <ExtensionLoader />
-        <TranslationsProvider initialLocale={initialLocale}>
-          <UserProvider>
-            <TenantProvider>
-              <RealtimeProvider>
-                <PresenceProvider>
-                  <UICommandProvider>
-                    <PageContextProvider>
-                      <GlobalModals />
-                      <CommandPalette />
-                      <a
-                        href="#main-content"
-                        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-cyber-green focus:text-black"
-                      >
-                        {messages.LAYOUT_SKIP_TO_CONTENT}
-                      </a>
-                      <Toaster
-                        position="bottom-right"
-                        toastOptions={{
-                          className: 'cyber-toast',
-                          classNames: {
-                            success: 'cyber-toast-success',
-                            error: 'cyber-toast-error',
-                            description: 'cyber-toast-description',
-                          },
-                        }}
-                      />
-                      <div className="flex h-screen w-full overflow-hidden">
-                        <Sidebar />
-                        <div className="flex-1 flex flex-col min-w-0 relative">
-                          <MainLayout>{children}</MainLayout>
-                          <ChatBubble />
-                        </div>
-                      </div>
-                    </PageContextProvider>
-                  </UICommandProvider>
-                </PresenceProvider>
-              </RealtimeProvider>
-            </TenantProvider>
-          </UserProvider>
-        </TranslationsProvider>
-      </ExtensionProvider>
-    </ThemeProvider>
+    <html
+      lang={initialLocale}
+      suppressHydrationWarning
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+    >
+      <head>
+        <style>{`
+          :root {
+            --brand-primary: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#008f5a'};
+            --cyber-blue: ${process.env.NEXT_PUBLIC_ACCENT_COLOR || '#007a8a'};
+          }
+          .dark {
+            --brand-primary: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR_DARK || '#00ffa3'};
+            --cyber-blue: ${process.env.NEXT_PUBLIC_ACCENT_COLOR_DARK || '#00e0ff'};
+          }
+        `}</style>
+      </head>
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex bg-background text-foreground font-mono text-base antialiased"
+      >
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <ExtensionProvider>
+            <ExtensionLoader />
+            <TranslationsProvider initialLocale={initialLocale}>
+              <UserProvider>
+                <TenantProvider>
+                  <RealtimeProvider>
+                    <PresenceProvider>
+                      <UICommandProvider>
+                        <PageContextProvider>
+                          <GlobalModals />
+                          <CommandPalette />
+                          <a
+                            href="#main-content"
+                            className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-cyber-green focus:text-black"
+                          >
+                            {messages.LAYOUT_SKIP_TO_CONTENT}
+                          </a>
+                          <Toaster
+                            position="bottom-right"
+                            toastOptions={{
+                              className: 'cyber-toast',
+                              classNames: {
+                                success: 'cyber-toast-success',
+                                error: 'cyber-toast-error',
+                                description: 'cyber-toast-description',
+                              },
+                            }}
+                          />
+                          <div className="flex h-screen w-full overflow-hidden">
+                            <Sidebar />
+                            <div className="flex-1 flex flex-col min-w-0 relative">
+                              <MainLayout>{children}</MainLayout>
+                              <ChatBubble />
+                            </div>
+                          </div>
+                        </PageContextProvider>
+                      </UICommandProvider>
+                    </PresenceProvider>
+                  </RealtimeProvider>
+                </TenantProvider>
+              </UserProvider>
+            </TranslationsProvider>
+          </ExtensionProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }

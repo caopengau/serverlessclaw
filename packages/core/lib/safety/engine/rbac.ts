@@ -1,7 +1,5 @@
 import { SafetyTier, SafetyEvaluationResult, UserRole } from '../../types/agent';
-import { Permission } from '../../types/security';
 import { CLASS_C_ACTIONS, CLASS_D_ACTIONS } from '../../constants/safety';
-import { SecurityRegistry } from '../../registry/SecurityRegistry';
 
 /**
  * Validates static policies (Class D blocks).
@@ -38,7 +36,7 @@ export async function validateRBAC(
   ctx: {
     agentId: string;
     userId?: string;
-    userRole?: UserRole | string;
+    userRole?: UserRole;
     workspaceId?: string;
   },
   tier: SafetyTier,
@@ -50,38 +48,40 @@ export async function validateRBAC(
     reason: string
   ) => Promise<SafetyEvaluationResult>
 ): Promise<SafetyEvaluationResult> {
-  const role = ctx.userRole || 'viewer';
+  const role = ctx.userRole;
 
-  // 1. Class C Check (Infrastructural/Sensitive)
+  if (ctx.userId === 'SYSTEM') {
+    if (!ctx.workspaceId || ctx.workspaceId === 'global') {
+      return handleViolation(
+        ctx,
+        tier,
+        action,
+        'system_rbac_unscoped',
+        `SYSTEM action '${action}' rejected: Missing mandatory workspaceId for background task.`
+      );
+    }
+    return { allowed: true, requiresApproval: false };
+  }
+
   if (CLASS_C_ACTIONS.map((a) => a.toLowerCase()).includes(action.toLowerCase())) {
-    const hasInfraAccess =
-      SecurityRegistry.hasPermission(role, Permission.ACTION_INFRA) ||
-      SecurityRegistry.hasPermission(role, Permission.MISSION_COMMAND);
-
-    if (!hasInfraAccess) {
+    if (role !== UserRole.OWNER && role !== UserRole.ADMIN) {
       return handleViolation(
         ctx,
         tier,
         action,
         'rbac_class_c_denied',
-        `Class C action '${action}' requires elevated permissions (ACTION_INFRA or MISSION_COMMAND). Current role: ${role}.`
+        `Class C action '${action}' requires OWNER or ADMIN role. Current role: ${role}.`
       );
     }
   }
 
-  // 2. Class B Check (Standard Agentic Action)
-  // Non-viewers (Member, Admin, Owner, or custom with AgentInvoke) can perform Class B.
-  const canInvoke =
-    SecurityRegistry.hasPermission(role, Permission.AGENT_INVOKE) ||
-    SecurityRegistry.hasPermission(role, Permission.TASK_CREATE);
-
-  if (!canInvoke) {
+  if (role === UserRole.VIEWER || role === undefined) {
     return handleViolation(
       ctx,
       tier,
       action,
       'rbac_viewer_denied',
-      `Action '${action}' denied for role '${role}'. Role lacks AGENT_INVOKE or TASK_CREATE permissions.`
+      `Action '${action}' denied for VIEWER role or missing role. Viewers have read-only access.`
     );
   }
 

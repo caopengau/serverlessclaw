@@ -115,30 +115,11 @@ Writes to the following resources are blocked by default and require **Manual Ap
 
 ---
 
-## 🏢 Organizational RBAC (Phase 15: Policy as Plugin)
+## 🏢 Organizational RBAC (Phase 15)
 
-Serverless Claw implements a non-bypassable, **extensible Role-Based Access Control (RBAC)** layer. While the framework provides a "Canonical Core" of roles, it is designed to be extended by domain-specific plugins.
+Serverless Claw implements a non-bypassable **Role-Based Access Control (RBAC)** layer within the Safety Engine to enforce organizational hierarchy.
 
-### RBAC Architecture (Policy as Plugin)
-
-```mermaid
-graph TD
-    A[Plugin: GoldEx] -->|onInit| B(SecurityRegistry)
-    C[Plugin: Voltx] -->|onInit| B
-    
-    B -->|Register Roles/Perms| D{Enforcement Engine}
-    
-    E[User/Agent Request] --> D
-    D -->|Match Permission| F[Allowed]
-    D -->|No Match| G[Denied]
-    
-    subgraph "Core Framework"
-    B
-    D
-    end
-```
-
-### 1. User Roles (Framework Defaults)
+### 1. User Roles
 
 | Role       | Level | Description                                                                  |
 | :--------- | :---: | :--------------------------------------------------------------------------- |
@@ -147,21 +128,13 @@ graph TD
 | **MEMBER** |   2   | Standard access. Can interact with agents and perform Class B tool tasks.    |
 | **VIEWER** |   1   | Read-only access. Can view dashboard and traces, but cannot trigger agents.  |
 
-### 2. Custom Role Extension
-Plugins can register new roles (e.g., `TRADER`, `OPERATOR`) or add granular permissions to existing roles using the `SecurityRegistry`:
+### 2. Role-Gated Action Classes
 
-```typescript
-SecurityRegistry.registerRolePermissions('trader', [
-  Permission.AGENT_INVOKE,
-  'goldex:trade_execute'
-]);
-```
+RBAC rules are enforced as **Hard Security Blocks** (non-bypassable by trust):
 
-### 3. Role-Gated Action Classes
-RBAC rules are enforced as **Hard Security Blocks**:
-- **Class C (Infrastructural)**: Restricted to roles with `ACTION_INFRA` or `MISSION_COMMAND` (Default: OWNER/ADMIN).
-- **Class B (Agentic)**: Restricted to roles with `AGENT_INVOKE` or `TASK_CREATE` (Default: non-VIEWER).
-- **Class D (Hard Block)**: Permanently blocked for **ALL ROLES**, protecting core system integrity.
+- **Class C (Infrastructural)**: Restricted to **OWNER** and **ADMIN** roles. Includes deployments, configuration shifts, and sensitive resource modifications.
+- **Class B (Agentic)**: Restricted to **non-VIEWER** roles. Includes most tool executions (file writes, commands) and agent-driven swarms.
+- **Class D (Hard Block)**: Permanently blocked for **ALL ROLES**, including Owners. This prevents accidental or malicious self-destruction of the core system.
 
 ### 3. Identity Propagation
 
