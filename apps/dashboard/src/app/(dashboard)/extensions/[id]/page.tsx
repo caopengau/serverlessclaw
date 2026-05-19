@@ -20,5 +20,5 @@ export default function ExtensionPage() {
     );
   }
 
-  return <Component component={null} />;
+  return <Component />;
 }
