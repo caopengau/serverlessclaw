@@ -4,7 +4,6 @@
 
 try {
   const jestDom = '@testing-library/jest-dom';
-  // @ts-expect-error - dynamic import of optional test dependency
   await import(jestDom);
 } catch (_e) {
   // Optional in backend Node-only tests
