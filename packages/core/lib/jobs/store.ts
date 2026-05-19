@@ -1,5 +1,5 @@
 import { BaseMemoryProvider } from '../memory/base';
-import { JobSpec, JobRun, JobStatus } from './types';
+import { JobSpec, JobRun } from './types';
 import { logger } from '../logger';
 
 export class JobStore extends BaseMemoryProvider {

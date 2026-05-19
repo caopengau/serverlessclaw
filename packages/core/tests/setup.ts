@@ -4,9 +4,9 @@
 
 try {
   const jestDom = '@testing-library/jest-dom';
-  // @ts-ignore
+  // @ts-expect-error - dynamic import of optional test dependency
   await import(jestDom);
-} catch (e) {
+} catch (_e) {
   // Optional in backend Node-only tests
 }
 import { vi } from 'vitest';

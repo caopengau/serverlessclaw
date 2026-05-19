@@ -16,7 +16,7 @@ export class MetricsParser {
           const cleanVal = match[1].replace(/[%,$]/g, '').trim();
           extracted[field.key] = this.castType(cleanVal, field.format);
         }
-      } catch (err) {
+      } catch (_err) {
         // Silently capture regex compile or match errors to prevent process halts
       }
     }
