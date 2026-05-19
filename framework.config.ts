@@ -24,8 +24,8 @@ export interface IFrameworkConfig {
 
 export const frameworkConfig: IFrameworkConfig = {
   brand: {
-    name: process.env.NEXT_PUBLIC_APP_NAME || 'NexusCenter',
-    shortName: process.env.NEXT_PUBLIC_APP_SHORT_NAME || 'Nexus',
+    name: process.env.NEXT_PUBLIC_APP_NAME || 'ClawCenter',
+    shortName: process.env.NEXT_PUBLIC_APP_SHORT_NAME || 'Claw',
     logo: process.env.NEXT_PUBLIC_APP_LOGO || '/icon.png',
     favicon: '/favicon.ico',
   },

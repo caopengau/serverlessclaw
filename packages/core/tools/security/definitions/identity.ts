@@ -1,4 +1,4 @@
-import { Permission } from '../../../../lib/session/identity/types';
+import { Permission } from '../../../lib/session/identity/types';
 
 export const identitySchema = {
   getUser: {
