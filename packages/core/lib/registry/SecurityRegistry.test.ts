@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SecurityRegistry } from './SecurityRegistry';
-import { UserRole, Permission, AgentRole } from '../session/identity/types';
+import { UserRole, Permission } from '../session/identity/types';
 
 describe('SecurityRegistry', () => {
   beforeEach(() => {
