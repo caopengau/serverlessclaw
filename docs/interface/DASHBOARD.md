@@ -174,6 +174,7 @@ The dashboard implements a "Hub-and-Spoke" UI model, allowing domain-specific pr
 ### Domain Spoke UI Examples (GoldEx Simulator)
 
 Domain-injected pages seamlessly integrate with the dashboard's design system. For example, the **GoldEx Strategy Simulator** (`goldex-simulator`) injects:
+
 1. **Dynamic KPIs**: Best Return, Win Rate, and Trade Count derived from historical job runs.
 2. **Multi-Run Strategy Comparison**: A Recharts-based BarChart visualizing cumulative returns indexed by threshold (T%).
 3. **Tabbed Real-time / Visualization Console**:

@@ -195,21 +195,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // 2. Cache Matching Layer: Avoid retraining if parameters match and the file exists in storage
     if (spec.executor.outputPath) {
       const pastRuns = await store.listJobRuns(workspaceId);
-      const duplicateRun = pastRuns.find(r => 
-        r.jobType === jobType && 
-        r.status === 'COMPLETED' &&
-        JSON.stringify(r.inputsApplied) === JSON.stringify(inputs)
+      const duplicateRun = pastRuns.find(
+        (r) =>
+          r.jobType === jobType &&
+          r.status === 'COMPLETED' &&
+          JSON.stringify(r.inputsApplied) === JSON.stringify(inputs)
       );
 
       if (duplicateRun) {
         const fileExists = await checkModelFileExists(workspaceId, spec, inputs);
         if (fileExists) {
           logger.info(`[Jobs API] Cache Hit! Reusing existing completed model for inputs:`, inputs);
-          return NextResponse.json({ 
-            success: true, 
-            run: duplicateRun,
-            message: "Reused existing cached model (bypassed retraining)" 
-          }, { status: HTTP_STATUS.OK });
+          return NextResponse.json(
+            {
+              success: true,
+              run: duplicateRun,
+              message: 'Reused existing cached model (bypassed retraining)',
+            },
+            { status: HTTP_STATUS.OK }
+          );
         }
       }
     }

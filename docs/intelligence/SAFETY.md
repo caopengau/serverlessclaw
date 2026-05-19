@@ -125,13 +125,13 @@ Serverless Claw implements a non-bypassable, **extensible Role-Based Access Cont
 graph TD
     A[Plugin: GoldEx] -->|onInit| B(SecurityRegistry)
     C[Plugin: Voltx] -->|onInit| B
-    
+
     B -->|Register Roles/Perms| D{Enforcement Engine}
-    
+
     E[User/Agent Request] --> D
     D -->|Match Permission| F[Allowed]
     D -->|No Match| G[Denied]
-    
+
     subgraph "Core Framework"
     B
     D
@@ -148,17 +148,20 @@ graph TD
 | **VIEWER** |   1   | Read-only access. Can view dashboard and traces, but cannot trigger agents.  |
 
 ### 2. Custom Role Extension
+
 Plugins can register new roles (e.g., `TRADER`, `OPERATOR`) or add granular permissions to existing roles using the `SecurityRegistry`:
 
 ```typescript
 SecurityRegistry.registerRolePermissions('trader', [
   Permission.AGENT_INVOKE,
-  'goldex:trade_execute'
+  'goldex:trade_execute',
 ]);
 ```
 
 ### 3. Role-Gated Action Classes
+
 RBAC rules are enforced as **Hard Security Blocks**:
+
 - **Class C (Infrastructural)**: Restricted to roles with `ACTION_INFRA` or `MISSION_COMMAND` (Default: OWNER/ADMIN).
 - **Class B (Agentic)**: Restricted to roles with `AGENT_INVOKE` or `TASK_CREATE` (Default: non-VIEWER).
 - **Class D (Hard Block)**: Permanently blocked for **ALL ROLES**, protecting core system integrity.
