@@ -1,8 +1,8 @@
 import { MetricsParser } from './parser';
-import { MetricsSchema } from './types';
+import { MetricFieldSpec } from './types';
 
 describe('Jobs MetricsParser', () => {
-  const schema: MetricsSchema[] = [
+  const schema: MetricFieldSpec[] = [
     {
       key: 'total_trades',
       label: 'Total Trades Volume',
