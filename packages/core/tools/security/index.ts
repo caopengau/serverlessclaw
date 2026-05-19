@@ -1,4 +1,4 @@
-import { ITool, ToolResult } from '../../lib/types/index';
+import { ITool, ToolResult, ToolType } from '../../lib/types/index';
 import { getIdentityManager } from '../../lib/session/identity/manager';
 import { SecurityRegistry } from '../../lib/registry/SecurityRegistry';
 import { identitySchema } from './definitions/identity';
@@ -21,8 +21,11 @@ export async function getSecurityTools(): Promise<Record<string, ITool>> {
  * Tool to retrieve user identity and roles.
  */
 export const getUserIdentity: ITool = {
-...
-identitySchema.getUser,
+  ...identitySchema.getUser,
+  parameters: identitySchema.getUser.parameters as any,
+  requiredPermissions: identitySchema.getUser.requiredPermissions as any,
+  type: ToolType.FUNCTION,
+  connectionProfile: [],
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
     try {
       const manager = await getIdentityManager();
@@ -52,7 +55,11 @@ identitySchema.getUser,
  */
 export const updateUserRole: ITool = {
   ...identitySchema.updateUserRole,
-  execute: async (args: Record<string, unknown>, context: any): Promise<ToolResult> => {
+  parameters: identitySchema.updateUserRole.parameters as any,
+  requiredPermissions: identitySchema.updateUserRole.requiredPermissions as any,
+  type: ToolType.FUNCTION,
+  connectionProfile: [],
+  execute: async (args: Record<string, unknown>, context?: any): Promise<ToolResult> => {
     try {
       const manager = await getIdentityManager();
       const callerId = context?.userId || 'SYSTEM'; // Fallback to SYSTEM if no context
@@ -90,6 +97,10 @@ export const updateUserRole: ITool = {
  */
 export const checkPermission: ITool = {
   ...identitySchema.checkPermission,
+  parameters: identitySchema.checkPermission.parameters as any,
+  requiredPermissions: identitySchema.checkPermission.requiredPermissions as any,
+  type: ToolType.FUNCTION,
+  connectionProfile: [],
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
     const isAllowed = SecurityRegistry.hasPermission(args.role as string, args.permission as string);
     return {
@@ -106,7 +117,11 @@ export const checkPermission: ITool = {
  */
 export const proposeAccessControl: ITool = {
   ...identitySchema.proposeAccessControl,
-  execute: async (args: Record<string, unknown>, context: any): Promise<ToolResult> => {
+  parameters: identitySchema.proposeAccessControl.parameters as any,
+  requiredPermissions: identitySchema.proposeAccessControl.requiredPermissions as any,
+  type: ToolType.FUNCTION,
+  connectionProfile: [],
+  execute: async (args: Record<string, unknown>, context?: any): Promise<ToolResult> => {
     try {
       const manager = await getIdentityManager();
       const entry = {
@@ -129,3 +144,4 @@ export const proposeAccessControl: ITool = {
     }
   },
 };
+

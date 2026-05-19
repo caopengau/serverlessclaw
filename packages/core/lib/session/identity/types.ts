@@ -1,5 +1,7 @@
-import { UserRole, Permission, AgentRole, AccessControlEntry } from '../../types/security';
-export { UserRole, Permission, AgentRole, AccessControlEntry };
+import { UserRole, Permission, AgentRole } from '../../types/security';
+import type { AccessControlEntry } from '../../types/security';
+export { UserRole, Permission, AgentRole };
+export type { AccessControlEntry };
 
 /**
  * User identity.

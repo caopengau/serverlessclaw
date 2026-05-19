@@ -60,4 +60,4 @@ export const identitySchema = {
     requiredPermissions: [Permission.WORKSPACE_POLICY_UPDATE],
     sensitive: true,
   },
-};
+} as const;
