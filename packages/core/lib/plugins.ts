@@ -27,4 +27,11 @@ export async function initializePlugins() {
   } catch {
     // Ignore if github integration is not present
   }
+
+  try {
+    const { voltxPlugin } = await import('@serverlessclaw/integration-voltx');
+    await PluginManager.register(voltxPlugin);
+  } catch {
+    // Ignore if voltx integration is not present
+  }
 }

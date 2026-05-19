@@ -6,6 +6,7 @@ import {
   IAgentConfig,
   TraceSource,
   Attachment,
+  EventType,
 } from '../../types/index';
 import { logger } from '../../logger';
 import { AgentProcessOptions } from '../options';
@@ -352,6 +353,26 @@ export async function handleProcess(
     }
 
     await tracer.endTrace(responseText);
+
+    if (paused && result.asyncWait && result.pauseMessage?.startsWith('APPROVAL_REQUIRED')) {
+      const toolCallId = result.pauseMessage.split(':')[1];
+      const pendingTool = result.tool_calls?.find((tc) => tc.id === toolCallId);
+
+      if (pendingTool) {
+        const { emitEvent } = await import('../../utils/bus');
+        await emitEvent(agent.config?.id || 'agent', EventType.HITL_APPROVAL_REQUESTED, {
+          traceId,
+          agentId: agent.config?.id,
+          toolName: pendingTool.function.name,
+          toolCallId: pendingTool.id,
+          args: JSON.parse(pendingTool.function.arguments),
+          reason: result.responseText,
+          workspaceId,
+          teamId,
+          staffId,
+        }).catch((err) => logger.error('[AGENT] Failed to emit HITL approval event:', err));
+      }
+    }
 
     return { responseText, traceId, attachments, thought: finalThought };
   } catch (error) {

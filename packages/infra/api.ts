@@ -135,6 +135,23 @@ export function configureApiRoutes(
     },
   });
 
+  // ChatOps Generic Webhook
+  api.route('POST /webhook/chatops', {
+    handler: `${prefix}packages/core/handlers/chat-webhook.handler`,
+    nodejs: { loader: NODEJS_LOADERS },
+    link: [bus, configTable, memoryTable, ...validSecrets],
+    permissions: [...apiPermissions],
+    architecture: LAMBDA_ARCHITECTURE,
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.MEDIUM,
+    environment: {
+      AGENT_BUS_NAME: bus.name,
+    },
+    logging: {
+      retention: LOG_RETENTION_PERIOD,
+    },
+  });
+
   // Health Probe
   api.route('GET /health', {
     handler: `${prefix}packages/core/handlers/health.handler`,

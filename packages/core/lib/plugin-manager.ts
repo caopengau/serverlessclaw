@@ -1,6 +1,21 @@
 import { IAgentConfig, ITool, IMemory, IProvider, MCPServerConfig } from './types';
 import { logger } from './logger';
 
+export interface WebhookConfig {
+  path: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  handler:
+    | string
+    | ((payload: Record<string, unknown>, context: Record<string, unknown>) => Promise<unknown>);
+}
+
+export interface ApprovalPolicy {
+  approvers: string[];
+  timeoutSeconds?: number;
+  messageTemplate?: string;
+  requiredCount?: number;
+}
+
 export interface ClawPlugin {
   id: string;
   agents?: Record<string, IAgentConfig>;
@@ -9,8 +24,10 @@ export interface ClawPlugin {
   prompts?: Record<string, string>;
   memoryProviders?: Record<string, IMemory>;
   llmProviders?: Record<string, IProvider>;
-  sidebarExtensions?: any[];
-  layoutExtensions?: any[];
+  webhooks?: Record<string, WebhookConfig>;
+  approvalPolicies?: Record<string, ApprovalPolicy>;
+  sidebarExtensions?: unknown[];
+  layoutExtensions?: unknown[];
   onInit?: () => Promise<void>;
 }
 
@@ -99,6 +116,26 @@ export class PluginManager {
       }
     }
     return providers;
+  }
+
+  static getRegisteredWebhooks(): Record<string, WebhookConfig> {
+    const webhooks: Record<string, WebhookConfig> = {};
+    for (const plugin of this.plugins.values()) {
+      if (plugin.webhooks) {
+        Object.assign(webhooks, plugin.webhooks);
+      }
+    }
+    return webhooks;
+  }
+
+  static getRegisteredApprovalPolicies(): Record<string, ApprovalPolicy> {
+    const policies: Record<string, ApprovalPolicy> = {};
+    for (const plugin of this.plugins.values()) {
+      if (plugin.approvalPolicies) {
+        Object.assign(policies, plugin.approvalPolicies);
+      }
+    }
+    return policies;
   }
 
   static async initialize() {

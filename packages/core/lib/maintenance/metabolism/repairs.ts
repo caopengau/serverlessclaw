@@ -97,16 +97,17 @@ export async function executeRepairs(
 
     const { PromotionManager } = await import('../../lifecycle/promotion-manager');
 
+    // Anti-Pattern 19: Fetch threshold once outside the loop (Fix N+1 query)
+    const lowTrustThreshold = await ConfigManager.getTypedConfig('low_trust_threshold', 20, {
+      workspaceId,
+    });
+
     for (const [agentId, config] of Object.entries(allAgents)) {
       if (AgentRegistry.isBackboneAgent(agentId)) continue;
 
       const trustScore = config.trustScore ?? 100;
 
       // Case A: Critically Low Trust -> Disable (Mitigation)
-      const lowTrustThreshold = await ConfigManager.getTypedConfig('low_trust_threshold', 20, {
-        workspaceId,
-      });
-
       if (config.enabled !== false && trustScore < lowTrustThreshold) {
         const disabled = await AgentRegistry.disableAgentIfTrustLow(agentId, lowTrustThreshold, {
           workspaceId,

@@ -43,11 +43,11 @@ export class MemorySystem {
     if (hash) MemoryCaches.global.set('lkg_hash', hash);
     return hash;
   }
-  async incrementRecoveryAttemptCount() {
-    return this.underlying.incrementRecoveryAttemptCount();
+  async incrementRecoveryAttemptCount(scope?: string | ContextualScope) {
+    return this.underlying.incrementRecoveryAttemptCount(scope);
   }
-  async resetRecoveryAttemptCount() {
-    return this.underlying.resetRecoveryAttemptCount();
+  async resetRecoveryAttemptCount(scope?: string | ContextualScope) {
+    return this.underlying.resetRecoveryAttemptCount(scope);
   }
   async listByPrefix(p: string) {
     return this.underlying.listByPrefix(p);

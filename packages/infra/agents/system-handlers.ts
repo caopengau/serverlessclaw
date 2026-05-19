@@ -99,6 +99,33 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
     },
   });
 
+  // Chat Router
+  const chatRouter = new sst.aws.Function('ChatRouter', {
+    handler: `${prefix}packages/core/handlers/chat-router.handler`,
+    dev: liveInLocalOnly as any,
+    link: baseLink,
+    permissions: basePermissions,
+    architecture: LAMBDA_ARCHITECTURE,
+    nodejs: { loader: NODEJS_LOADERS },
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.MEDIUM,
+    logging: {
+      retention: LOG_RETENTION_PERIOD,
+    },
+  });
+
+  bus.subscribe('ChatRouterSubscriber', chatRouter.arn, {
+    pattern: {
+      ...tenantFilter,
+      detailType: [EventType.CHAT_MESSAGE_RECEIVED],
+    },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
+    },
+  });
+
   // 8. Notifier
   const notifier = new sst.aws.Function('Notifier', {
     handler: `${prefix}packages/core/handlers/notifier.handler`,
@@ -179,6 +206,7 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
         EventType.TASK_FAILED,
         EventType.RECOVERY_LOG,
         EventType.SYSTEM_HEALTH_REPORT,
+        EventType.HITL_APPROVAL_REQUESTED,
       ],
     },
     transform: {
@@ -211,6 +239,7 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
 
   return {
     eventHandler,
+    chatRouter,
     notifier,
     agentRunner,
     bridge,

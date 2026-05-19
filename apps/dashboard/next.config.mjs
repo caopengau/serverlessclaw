@@ -71,7 +71,6 @@ const nextConfig = {
       test: /\.md$/,
       use: 'raw-loader',
     });
-
     // Resolve extension bridge dynamically based on the active local workspace extension
     const extensionPath = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS
       ? path.resolve(__dirname, '../../../' + process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS)
@@ -92,6 +91,7 @@ const nextConfig = {
         : path.resolve(__dirname, './src/extensions/messages/cn.json');
 
     console.log('[NextConfig] resolved extensionPath:', extensionPath);
+    console.log('[NextConfig] resolved messagesEnPath:', messagesEnPath);
 
     // Ensure cross-package resolution works for workspace packages
     config.resolve.alias = {
@@ -99,8 +99,39 @@ const nextConfig = {
       'virtual-extensions': extensionPath,
       'virtual-messages-en': messagesEnPath,
       'virtual-messages-cn': messagesCnPath,
+      '@serverlessclaw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),
+      '@serverlessclaw/core/lib': path.resolve(__dirname, '../../framework/packages/core/lib'),
+      '@claw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),
     };
-
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+        os: false,
+        stream: false,
+        url: false,
+        string_decoder: false,
+        http: false,
+        https: false,
+        zlib: false,
+        child_process: false,
+      };
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'node:fs': false,
+        'node:fs/promises': false,
+        'node:path': false,
+        'node:stream': false,
+        'node:process': false,
+        'node:url': false,
+        'node:string_decoder': false,
+        'node:crypto': false,
+        'node:os': false,
+        child_process: false,
+      };
+    }
     // Ensure @swc/helpers is resolvable for server-side builds (Lambda)
     if (isServer) {
       config.resolve.alias = {

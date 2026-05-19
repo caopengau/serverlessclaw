@@ -7,3 +7,8 @@ export * from './logger';
 export * from './constants';
 export * from './mcp';
 export * from './memory';
+export * from './jobs/types';
+export * from './jobs/store';
+export * from './jobs/parser';
+export * from './jobs/executor';
+export * from './plugin-manager';

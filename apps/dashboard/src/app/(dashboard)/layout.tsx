@@ -26,6 +26,11 @@ import { CONFIG_KEYS } from '@claw/core/lib/constants';
 
 import en from '../../../messages/en.json';
 import cn from '../../../messages/cn.json';
+import extEn from 'virtual-messages-en';
+import extCn from 'virtual-messages-cn';
+
+const mergedEn = { ...en, ...extEn };
+const mergedCn = { ...cn, ...extCn };
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +40,8 @@ export async function generateMetadata() {
     'cn'
   )) as 'en' | 'cn';
 
-  const messages = initialLocale === 'cn' ? cn : en;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const messages = (initialLocale === 'cn' ? mergedCn : mergedEn) as any;
   const appTitle = process.env.NEXT_PUBLIC_APP_TITLE || messages.DASHBOARD_TITLE;
 
   return {
@@ -84,7 +90,8 @@ export default async function RootLayout({
     console.error('[Dashboard] Failed to fetch initial locale:', err);
   }
 
-  const messages = initialLocale === 'cn' ? cn : en;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const messages = (initialLocale === 'cn' ? mergedCn : mergedEn) as any;
 
   return (
     <html
@@ -96,9 +103,11 @@ export default async function RootLayout({
         <style>{`
           :root {
             --brand-primary: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#008f5a'};
+            --cyber-blue: ${process.env.NEXT_PUBLIC_ACCENT_COLOR || '#007a8a'};
           }
           .dark {
             --brand-primary: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR_DARK || '#00ffa3'};
+            --cyber-blue: ${process.env.NEXT_PUBLIC_ACCENT_COLOR_DARK || '#00e0ff'};
           }
         `}</style>
       </head>

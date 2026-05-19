@@ -47,12 +47,12 @@ export class DynamoMemorySessions extends DynamoMemoryInsights implements IHisto
     return SessionOps.getLatestLKGHash(this);
   }
 
-  async incrementRecoveryAttemptCount(): Promise<number> {
-    return SessionOps.incrementRecoveryAttemptCount(this);
+  async incrementRecoveryAttemptCount(scope?: string | ContextualScope): Promise<number> {
+    return SessionOps.incrementRecoveryAttemptCount(this, scope);
   }
 
-  async resetRecoveryAttemptCount(): Promise<void> {
-    return SessionOps.resetRecoveryAttemptCount(this);
+  async resetRecoveryAttemptCount(scope?: string | ContextualScope): Promise<void> {
+    return SessionOps.resetRecoveryAttemptCount(this, scope);
   }
 
   async saveDistilledRecoveryLog(
