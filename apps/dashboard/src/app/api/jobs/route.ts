@@ -105,7 +105,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 async function checkModelFileExists(
   workspaceId: string,
   spec: JobSpec,
-  inputs: Record<string, any>
+  inputs: Record<string, unknown>
 ): Promise<boolean> {
   const outputPath = spec.executor.outputPath;
   if (!outputPath) return true; // If no output verification configured, skip and proceed
@@ -125,8 +125,9 @@ async function checkModelFileExists(
         })
       );
       return true;
-    } catch (err: any) {
-      if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+    } catch (err) {
+      const s3Error = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+      if (s3Error.name === 'NotFound' || s3Error.$metadata?.httpStatusCode === 404) {
         return false;
       }
       logger.error(`[Jobs API] S3 HeadObject failed for ${filename}:`, err);
