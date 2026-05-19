@@ -106,12 +106,20 @@ export async function runNativeAudit(_scope?: {
 
   try {
     const { ConfigManager } = await import('../../registry/config');
+    const { join } = await import('path');
     const scanPath = await ConfigManager.getTypedConfig('metabolism_scan_path', '.', {
       workspaceId: _scope?.workspaceId,
     });
-    const corePath = scanPath.startsWith('/') ? scanPath : `${process.cwd()}/${scanPath}`;
+    // Principle 11: Harden against path traversal. Restrict to current working directory.
+    const sanitizedPath = scanPath.replace(/\.\./g, '');
+    const corePath = join(process.cwd(), sanitizedPath);
+
+    // Ensure corePath is still within process.cwd()
+    if (!corePath.startsWith(process.cwd())) {
+      throw new Error('Invalid scan path: must be within current directory');
+    }
+
     const { readFile, readdir, stat } = await import('fs/promises');
-    const { join } = await import('path');
 
     const scanDir = async (dir: string, depth: number = 0): Promise<string[]> => {
       const maxDepth = await ConfigManager.getTypedConfig('audit_scan_depth', 3, {

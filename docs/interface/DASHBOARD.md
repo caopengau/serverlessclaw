@@ -26,16 +26,21 @@ To ensure a consistent "in-command" experience, the Mission Control interface im
 
 The dashboard enforces strict logical separation between tenants to prevent data leakage and unauthorized cross-workspace operations.
 
-### API Hardening & Scoping
+### API Hardening & Scoping (Hardened Pattern)
 
-All dashboard API routes (`/api/...`) implement mandatory isolation layers:
+All dashboard API routes (`/api/...`) implement mandatory isolation layers following a standardized **Extract → Verify → Scope** pattern:
 
-1.  **Identity Verification**: Extracts the `userId` from the session cookie and explicitly blacklists the `SYSTEM` identity to prevent spoofing of internal agent credentials.
-2.  **Permission Gating**: Every request is verified against the `IdentityManager` to ensure the user has the required permission (e.g., `AGENT_VIEW`, `AGENT_DELETE`) for the specific `workspaceId`.
-3.  **Mandatory Scoping**: Data retrieval and mutation are partitioned via `workspaceId`.
+1.  **Identity Extraction**: Extracts the `userId` from the session cookie using `getUserId()` and explicitly blacklists the `SYSTEM` identity.
+2.  **Workspace Identification**: Resolves `workspaceId` using a prioritized lookup cascade:
+    - `searchParams.get('workspaceId')` (Direct URL override)
+    - `request.headers.get('x-workspace-id')` (CLI / Header-based override)
+    - `cookies().get('workspaceId')` (Frontend persistent context)
+    - Fallback to `'default'` if unprovided.
+3.  **Permission Gating**: Every request is verified against the `IdentityManager` to ensure the user has the required permission for the specific `workspaceId` (e.g., `AGENT_VIEW`, `EVOLUTION_APPROVE`, `WORKSPACE_MEMBERS`).
+4.  **Mandatory Scoping**: Data retrieval and mutation are strictly partitioned via `workspaceId`.
     - **Memory/Config**: Lookups use the `WS#${workspaceId}#` prefix.
-    - **Scans/Queries**: DynamoDB `ScanCommand` and `QueryCommand` calls include a `FilterExpression` on the `workspaceId` field.
-    - **Global Actions**: Potentially destructive global actions (e.g., "Purge All Traces") are strictly scoped to the user's active workspace.
+    - **Scans/Queries**: DynamoDB `ScanCommand` and `QueryCommand` calls include a `FilterExpression` on the `workspaceId` field, or ideally use GSIs scoped by `workspaceId`.
+    - **Global Actions**: Global actions (e.g., "Purge All Traces") are strictly scoped to the user's active workspace. Global listing (e.g., `GET /api/workspaces`) is filtered by explicit user membership.
 
 ### Drift Detection & Consistency
 

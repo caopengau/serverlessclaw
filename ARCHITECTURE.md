@@ -405,39 +405,33 @@ To ensure enterprise-grade multi-tenancy and prevent privilege escalation, the s
              +----( hasAccess )---> [ Render Page Content ]
 ```
 
-### Agent Access Verification Flow
+### Dashboard API Access Verification Flow (Perspective G)
 
 ```ascii
-      [ Chat Client POST /api/chat ]
-                    |
-                    v
-          [ Resolve Primary Agent ]
-                    |
-                    v
-    [ IdentityManager.hasPermission ]
-       ( Check Permission.AGENT_INVOKE )
-                    |
-        +-----------+-----------+
-        |                       |
-     [ Denied ]             [ Allowed ]
-        |                       |
-        v                       v
- [ Return 403 Forbidden ]  [ IdentityManager.hasResourceAccess ]
-                           ( Evaluate Agent ACL & Custom ACE )
-                                |
-                    +-----------+-----------+
-                    |                       |
-               [ ACE Found ]         [ No ACE Found ]
-                    |                       |
-             ( Check Allowed )         ( Is Backbone? )
-             (  Users/Roles  )              |
-                    |            +----------+----------+
-            +-------+-------+    |                     |
-            |               | [ Yes, Allowed ]    [ No, Denied ]
-         [ Allow ]      [ Deny ] |                     |
-            |               |    v                     v
-            v               +---------> [ Return 403 Forbidden ]
-     [ Stream Agent ]
+      [ Dashboard API Request ]
+                |
+                v
+      [ Extract userId & workspaceId ]
+       ( Cookies / Headers / Params )
+                |
+                v
+     [ Blacklist SYSTEM Identity ]
+                |
+        +-------+-------+
+        |               |
+   [ SYSTEM ]      [ HUMAN ]
+        |               |
+ [ Deny (401) ]         v
+               [ IdentityManager.hasPermission ]
+                ( Check Workspace Access )
+                        |
+            +-----------+-----------+
+            |                       |
+       [ Denied ]               [ Allowed ]
+            |                       |
+            v                       v
+    [ Return 403 Forbidden ]  [ Execute Scoped Handler ]
+                              ( DynamoDB query with WSID )
 ```
 
 ---
