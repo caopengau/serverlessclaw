@@ -17,19 +17,26 @@ export const TOOLS: Record<string, ITool> = {};
 export async function initializeTools(): Promise<Record<string, ITool>> {
   if (Object.keys(TOOLS).length > 0) return TOOLS;
 
-  const [{ getKnowledgeTools }, { getCollaborationTools }, { getInfraTools }, { getSystemTools }] =
-    await Promise.all([
-      import('./knowledge'),
-      import('./collaboration'),
-      import('./infra'),
-      import('./system'),
-    ]);
+  const [
+    { getKnowledgeTools },
+    { getCollaborationTools },
+    { getInfraTools },
+    { getSystemTools },
+    { getSecurityTools },
+  ] = await Promise.all([
+    import('./knowledge'),
+    import('./collaboration'),
+    import('./infra'),
+    import('./system'),
+    import('./security'),
+  ]);
 
-  const [knowledge, collaboration, infra, system] = await Promise.all([
+  const [knowledge, collaboration, infra, system, security] = await Promise.all([
     getKnowledgeTools(),
     getCollaborationTools(),
     getInfraTools(),
     getSystemTools(),
+    getSecurityTools(),
   ]);
 
   const { PluginManager } = await import('../lib/plugin-manager');
@@ -40,6 +47,7 @@ export async function initializeTools(): Promise<Record<string, ITool>> {
     ...collaboration,
     ...infra,
     ...system,
+    ...security,
     ...pluginTools,
   });
 
