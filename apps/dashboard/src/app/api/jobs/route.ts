@@ -31,7 +31,9 @@ function loadJobsConfig(): JobSpec[] {
         const raw = fs.readFileSync(filePath, 'utf-8');
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          logger.info(`[Jobs API] Successfully loaded ${parsed.length} specifications from config: ${filePath}`);
+          logger.info(
+            `[Jobs API] Successfully loaded ${parsed.length} specifications from config: ${filePath}`
+          );
           return parsed as JobSpec[];
         }
       } catch (err) {
@@ -40,7 +42,9 @@ function loadJobsConfig(): JobSpec[] {
     }
   }
 
-  logger.warn('[Jobs API] No jobs.config.json found in candidate paths. Running with empty specifications.');
+  logger.warn(
+    '[Jobs API] No jobs.config.json found in candidate paths. Running with empty specifications.'
+  );
   return [];
 }
 
@@ -57,7 +61,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // Verify workspace access and task viewing permission
     const { getIdentityManager, Permission } = await import('@claw/core/lib/session/identity');
     const identityManager = await getIdentityManager();
-    
+
     const hasPermission = await identityManager.hasPermission(
       userId,
       Permission.TASK_CREATE, // Use TASK_CREATE as gate for pipeline actions
@@ -84,7 +88,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({
       specs,
-      runs
+      runs,
     });
   } catch (error) {
     logger.error('[Jobs API] GET Error:', error);
@@ -115,7 +119,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Verify workspace access
     const { getIdentityManager, Permission } = await import('@claw/core/lib/session/identity');
     const identityManager = await getIdentityManager();
-    
+
     const hasPermission = await identityManager.hasPermission(
       userId,
       Permission.TASK_CREATE,
@@ -148,7 +152,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       createdAt: new Date().toISOString(),
       triggeredBy: userId,
       inputsApplied: inputs,
-      metrics: {}
+      metrics: {},
     };
 
     // 3. Save run to the store in PENDING state
@@ -159,10 +163,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       logger.error(`[Jobs API] Execution failed to launch for job ${jobId}:`, err);
     });
 
-    return NextResponse.json(
-      { success: true, run },
-      { status: HTTP_STATUS.CREATED }
-    );
+    return NextResponse.json({ success: true, run }, { status: HTTP_STATUS.CREATED });
   } catch (error) {
     logger.error('[Jobs API] POST Error:', error);
     return NextResponse.json(

@@ -13,64 +13,67 @@ export class JobExecutorService {
    */
   static async startLocalJob(workspaceId: string, spec: JobSpec, run: JobRun): Promise<void> {
     const store = JobStore.getInstance();
-    
+
     // 1. Resolve the command with inputs applied
     const rawCmd = spec.executor.command;
     const formattedCmd = this.injectInputs(rawCmd, run.inputsApplied);
-    
+
     logger.info(`[JobExecutor] Spawning job ${run.jobId} command: "${formattedCmd}"`);
-    
+
     // 2. Set the status of the run to RUNNING
     run.status = 'RUNNING';
     run.startedAt = new Date().toISOString();
     await store.updateJobRun(workspaceId, run, {
       status: 'RUNNING',
-      startedAt: run.startedAt
+      startedAt: run.startedAt,
     });
 
     // 3. Resolve execution CWD and environment variables
     const baseCwd = spec.executor.cwd || '';
     // Resolve absolute path for workspace alignment if needed
-    const executionCwd = baseCwd.startsWith('/')
-      ? baseCwd
-      : `${process.cwd()}/${baseCwd}`;
-      
+    const executionCwd = baseCwd.startsWith('/') ? baseCwd : `${process.cwd()}/${baseCwd}`;
+
     // Spawn standard shell process
     const child = spawn(formattedCmd, {
       shell: true,
       cwd: executionCwd,
       env: {
         ...process.env,
-        ...this.injectEnv(spec.executor.envOverrides || {}, run.inputsApplied)
-      }
+        ...this.injectEnv(spec.executor.envOverrides || {}, run.inputsApplied),
+      },
     });
 
     let stdoutBuffer = '';
-    
+
     // Handler to stream logs and scan metrics line by line
     const handleOutput = (data: Buffer) => {
       const text = data.toString();
       stdoutBuffer += text;
-      
+
       // Publish raw log chunk to realtime
       const logTopic = `workspaces/${workspaceId}/jobs/${run.jobId}/logs`;
       publishToRealtime(logTopic, { text }).catch((err) => {
         logger.error(`[JobExecutor] Realtime log publish failed:`, err);
       });
-      
+
       // Parse output for metrics on the fly
       const parsedMetrics = MetricsParser.scan(text, spec.metricsSchema);
       if (Object.keys(parsedMetrics).length > 0) {
-        logger.info(`[JobExecutor] Extracted real-time metrics for job ${run.jobId}:`, parsedMetrics);
+        logger.info(
+          `[JobExecutor] Extracted real-time metrics for job ${run.jobId}:`,
+          parsedMetrics
+        );
         run.metrics = {
           ...run.metrics,
-          ...parsedMetrics
+          ...parsedMetrics,
         };
-        store.updateJobRun(workspaceId, run, {
-          metrics: run.metrics
-        }).catch((err) => {
-          logger.error(`[JobExecutor] Failed to update metrics in db:`, err);
-        });
+        store
+          .updateJobRun(workspaceId, run, {
+            metrics: run.metrics,
+          })
+          .catch((err) => {
+            logger.error(`[JobExecutor] Failed to update metrics in db:`, err);
+          });
       }
     };
 
@@ -81,22 +84,24 @@ export class JobExecutorService {
       const finalStatus: JobStatus = code === 0 ? 'COMPLETED' : 'FAILED';
       run.status = finalStatus;
       run.completedAt = new Date().toISOString();
-      
-      logger.info(`[JobExecutor] Job ${run.jobId} closed with exit code ${code}. Final status: ${finalStatus}`);
-      
+
+      logger.info(
+        `[JobExecutor] Job ${run.jobId} closed with exit code ${code}. Final status: ${finalStatus}`
+      );
+
       // Perform a final scan of the entire buffer for any late-emitted metrics
       const finalMetrics = MetricsParser.scan(stdoutBuffer, spec.metricsSchema);
       run.metrics = {
         ...run.metrics,
-        ...finalMetrics
+        ...finalMetrics,
       };
-      
+
       await store.updateJobRun(workspaceId, run, {
         status: finalStatus,
         completedAt: run.completedAt,
-        metrics: run.metrics
+        metrics: run.metrics,
       });
-      
+
       // Broadcast job status change completion signal
       const statusTopic = `workspaces/${workspaceId}/jobs/${run.jobId}/status`;
       publishToRealtime(statusTopic, { status: finalStatus, metrics: run.metrics }).catch((err) => {

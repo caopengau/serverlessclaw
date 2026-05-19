@@ -38,8 +38,10 @@ const nextConfig = {
     '@serverlessclaw/core',
     '@serverlessclaw/ui',
     '@serverlessclaw/hooks',
-    ...(process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS ? [process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[0]] : [])
-  ].filter(pkg => {
+    ...(process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS
+      ? [process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[0]]
+      : []),
+  ].filter((pkg) => {
     try {
       require.resolve(pkg + '/package.json');
       return true;
@@ -127,7 +129,7 @@ const nextConfig = {
         'node:string_decoder': false,
         'node:crypto': false,
         'node:os': false,
-        'child_process': false,
+        child_process: false,
       };
     }
     // Ensure @swc/helpers is resolvable for server-side builds (Lambda)

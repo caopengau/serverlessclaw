@@ -451,6 +451,7 @@ To ground agent actions and safety boundaries in the caller's identity, Serverle
 3. **Context Assembly**: The `AgentAssembler` compiles the final system prompt by dynamically injecting the `[ACTIVE_USER_CONTEXT]` block:
    ```markdown
    [ACTIVE_USER_CONTEXT]:
+
    - USER_ID: <userId>
    - DISPLAY_NAME: <displayName>
    - ROLE: <role>
@@ -461,6 +462,7 @@ To ground agent actions and safety boundaries in the caller's identity, Serverle
 ### 🖥️ Human-to-Agent Access Control Roster UI
 
 The `/security` page of the dashboard exposes the human access roster to administrators:
+
 - **RBAC Matrix Control**: Allows administrators to toggle workspace permission scopes (`agent:invoke`, `agent:config`, `agent:roster-invite`) dynamically.
 - **Custom ACL/ACE Ledger**: Supports hot-registering explicit Access Control Entries (ACE) via an elegant glassmorphic creation modal to map custom workspace agents to roles or distinct users.
 

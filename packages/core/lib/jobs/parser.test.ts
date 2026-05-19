@@ -7,20 +7,20 @@ describe('Jobs MetricsParser', () => {
       key: 'total_trades',
       label: 'Total Trades Volume',
       format: 'integer',
-      regexPattern: 'Total Trades Executed:\\s+([\\d,]+)'
+      regexPattern: 'Total Trades Executed:\\s+([\\d,]+)',
     },
     {
       key: 'win_rate',
       label: 'Trading Win Rate',
       format: 'percentage',
-      regexPattern: 'Win Rate:\\s+(\\d+\\.\\d+)%'
+      regexPattern: 'Win Rate:\\s+(\\d+\\.\\d+)%',
     },
     {
       key: 'cumulative_return',
       label: 'Cumulative Net Return',
       format: 'percentage',
-      regexPattern: 'Cumulative Net Return:\\s+([+-]?\\d+\\.\\d+)%'
-    }
+      regexPattern: 'Cumulative Net Return:\\s+([+-]?\\d+\\.\\d+)%',
+    },
   ];
 
   it('correctly extracts integer and percentage values from subprocess stdout streams', () => {
@@ -41,7 +41,7 @@ Average Return per Trade: +0.0000%
     expect(metrics).toEqual({
       total_trades: 14601,
       win_rate: 50.15,
-      cumulative_return: 0.5234
+      cumulative_return: 0.5234,
     });
   });
 
@@ -57,7 +57,7 @@ Cumulative Net Return:   -1.4500%
     expect(metrics).toEqual({
       total_trades: 1234,
       win_rate: 44.5,
-      cumulative_return: -1.45
+      cumulative_return: -1.45,
     });
   });
 
