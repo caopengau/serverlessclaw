@@ -139,7 +139,7 @@ export const proposeAccessControl: ITool = {
   requiredPermissions: identitySchema.proposeAccessControl.requiredPermissions as any,
   type: ToolType.FUNCTION,
   connectionProfile: [],
-  execute: async (args: Record<string, unknown>, context?: any): Promise<ToolResult> => {
+  execute: async (args: Record<string, unknown>, _context?: any): Promise<ToolResult> => {
     try {
       const manager = await getIdentityManager();
       const entry = {
