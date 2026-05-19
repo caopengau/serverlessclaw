@@ -32,7 +32,12 @@ export const getUserIdentity: ITool = {
       const user = await manager.getUser(args.userId as string, undefined, args.orgId as string);
 
       if (!user) {
-        return { text: `User ${args.userId} not found.`, images: [], metadata: { status: 'not_found' }, ui_blocks: [] };
+        return {
+          text: `User ${args.userId} not found.`,
+          images: [],
+          metadata: { status: 'not_found' },
+          ui_blocks: [],
+        };
       }
 
       const permissions = SecurityRegistry.getRolePermissions(user.role);
@@ -45,7 +50,12 @@ export const getUserIdentity: ITool = {
       };
     } catch (e) {
       logger.error('[SecurityTool] getUserIdentity failed:', e);
-      return { text: `Error: ${(e as Error).message}`, images: [], metadata: { status: 'error' }, ui_blocks: [] };
+      return {
+        text: `Error: ${(e as Error).message}`,
+        images: [],
+        metadata: { status: 'error' },
+        ui_blocks: [],
+      };
     }
   },
 };
@@ -87,7 +97,12 @@ export const updateUserRole: ITool = {
         };
       }
     } catch (e) {
-      return { text: `Error: ${(e as Error).message}`, images: [], metadata: { status: 'error' }, ui_blocks: [] };
+      return {
+        text: `Error: ${(e as Error).message}`,
+        images: [],
+        metadata: { status: 'error' },
+        ui_blocks: [],
+      };
     }
   },
 };
@@ -102,7 +117,10 @@ export const checkPermission: ITool = {
   type: ToolType.FUNCTION,
   connectionProfile: [],
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
-    const isAllowed = SecurityRegistry.hasPermission(args.role as string, args.permission as string);
+    const isAllowed = SecurityRegistry.hasPermission(
+      args.role as string,
+      args.permission as string
+    );
     return {
       text: `Permission '${args.permission}' is ${isAllowed ? 'GRANTED' : 'DENIED'} for role '${args.role}'.`,
       images: [],
@@ -140,8 +158,12 @@ export const proposeAccessControl: ITool = {
         ui_blocks: [],
       };
     } catch (e) {
-      return { text: `Error: ${(e as Error).message}`, images: [], metadata: { status: 'error' }, ui_blocks: [] };
+      return {
+        text: `Error: ${(e as Error).message}`,
+        images: [],
+        metadata: { status: 'error' },
+        ui_blocks: [],
+      };
     }
   },
 };
-

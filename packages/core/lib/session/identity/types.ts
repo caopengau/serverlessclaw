@@ -67,5 +67,4 @@ export interface AuthResult {
   session?: Session;
   /** Error message if failed. */
   error?: string;
-  }
-
+}

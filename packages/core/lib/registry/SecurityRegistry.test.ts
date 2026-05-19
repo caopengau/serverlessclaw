@@ -4,7 +4,7 @@ import { UserRole, Permission, AgentRole } from '../session/identity/types';
 
 describe('SecurityRegistry', () => {
   beforeEach(() => {
-    // Note: Since these are static, we might need a reset method if we want clean state, 
+    // Note: Since these are static, we might need a reset method if we want clean state,
     // but for unit tests we can just use unique names for custom roles.
   });
 
@@ -18,7 +18,7 @@ describe('SecurityRegistry', () => {
     const CUSTOM_PERM = 'test:custom_action';
 
     SecurityRegistry.registerRolePermissions(CUSTOM_ROLE, [CUSTOM_PERM]);
-    
+
     expect(SecurityRegistry.hasPermission(CUSTOM_ROLE, CUSTOM_PERM)).toBe(true);
     expect(SecurityRegistry.hasPermission(CUSTOM_ROLE, Permission.AGENT_VIEW)).toBe(false);
   });

@@ -61,8 +61,8 @@ describe('SafetyEngine Dynamic RBAC', () => {
   it('allows custom role Class C actions if granted ACTION_INFRA', async () => {
     const CUSTOM_ROLE = 'infra-lead';
     SecurityRegistry.registerRolePermissions(CUSTOM_ROLE, [
-        Permission.AGENT_INVOKE,
-        Permission.ACTION_INFRA 
+      Permission.AGENT_INVOKE,
+      Permission.ACTION_INFRA,
     ]);
 
     const result = await engine.evaluateAction(config, 'deployment', {

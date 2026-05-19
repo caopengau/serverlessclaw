@@ -22,8 +22,12 @@ export class SecurityRegistry {
   static registerRolePermissions(role: UserRole | string, permissions: (Permission | string)[]) {
     const roleKey = role.toString();
     const existing = this.customRolePermissions[roleKey] || [];
-    this.customRolePermissions[roleKey] = [...new Set([...existing, ...permissions.map(p => p.toString())])];
-    logger.info(`[SecurityRegistry] Registered ${permissions.length} permissions for role: ${roleKey}`);
+    this.customRolePermissions[roleKey] = [
+      ...new Set([...existing, ...permissions.map((p) => p.toString())]),
+    ];
+    logger.info(
+      `[SecurityRegistry] Registered ${permissions.length} permissions for role: ${roleKey}`
+    );
   }
 
   /**
@@ -35,8 +39,12 @@ export class SecurityRegistry {
   ) {
     const roleKey = role.toString();
     const existing = this.customAgentRolePermissions[roleKey] || [];
-    this.customAgentRolePermissions[roleKey] = [...new Set([...existing, ...permissions.map(p => p.toString())])];
-    logger.info(`[SecurityRegistry] Registered ${permissions.length} permissions for agent role: ${roleKey}`);
+    this.customAgentRolePermissions[roleKey] = [
+      ...new Set([...existing, ...permissions.map((p) => p.toString())]),
+    ];
+    logger.info(
+      `[SecurityRegistry] Registered ${permissions.length} permissions for agent role: ${roleKey}`
+    );
   }
 
   /**
@@ -60,7 +68,7 @@ export class SecurityRegistry {
 
     // 2. Check static core permissions
     const staticPermissions = ROLE_PERMISSIONS[roleKey as UserRole];
-    if (staticPermissions?.map(p => p.toString()).includes(permKey)) {
+    if (staticPermissions?.map((p) => p.toString()).includes(permKey)) {
       return true;
     }
 
@@ -70,7 +78,10 @@ export class SecurityRegistry {
   /**
    * Checks if any of the agent roles have the required permission.
    */
-  static hasAgentPermission(roles: (AgentRole | string)[], permission: Permission | string): boolean {
+  static hasAgentPermission(
+    roles: (AgentRole | string)[],
+    permission: Permission | string
+  ): boolean {
     const permKey = permission.toString();
 
     return roles.some((role) => {
@@ -83,7 +94,7 @@ export class SecurityRegistry {
 
       // Check static
       const staticPermissions = AGENT_ROLE_PERMISSIONS[roleKey as AgentRole];
-      if (staticPermissions?.map(p => p.toString()).includes(permKey)) {
+      if (staticPermissions?.map((p) => p.toString()).includes(permKey)) {
         return true;
       }
 

@@ -54,9 +54,10 @@ export async function validateRBAC(
 
   // 1. Class C Check (Infrastructural/Sensitive)
   if (CLASS_C_ACTIONS.map((a) => a.toLowerCase()).includes(action.toLowerCase())) {
-    const hasInfraAccess = SecurityRegistry.hasPermission(role, Permission.ACTION_INFRA) || 
-                          SecurityRegistry.hasPermission(role, Permission.MISSION_COMMAND);
-    
+    const hasInfraAccess =
+      SecurityRegistry.hasPermission(role, Permission.ACTION_INFRA) ||
+      SecurityRegistry.hasPermission(role, Permission.MISSION_COMMAND);
+
     if (!hasInfraAccess) {
       return handleViolation(
         ctx,
@@ -70,8 +71,9 @@ export async function validateRBAC(
 
   // 2. Class B Check (Standard Agentic Action)
   // Non-viewers (Member, Admin, Owner, or custom with AgentInvoke) can perform Class B.
-  const canInvoke = SecurityRegistry.hasPermission(role, Permission.AGENT_INVOKE) || 
-                    SecurityRegistry.hasPermission(role, Permission.TASK_CREATE);
+  const canInvoke =
+    SecurityRegistry.hasPermission(role, Permission.AGENT_INVOKE) ||
+    SecurityRegistry.hasPermission(role, Permission.TASK_CREATE);
 
   if (!canInvoke) {
     return handleViolation(
