@@ -40,6 +40,7 @@ export async function generateMetadata() {
     'cn'
   )) as 'en' | 'cn';
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const messages = (initialLocale === 'cn' ? mergedCn : mergedEn) as any;
   const appTitle = process.env.NEXT_PUBLIC_APP_TITLE || messages.DASHBOARD_TITLE;
 
@@ -89,6 +90,7 @@ export default async function RootLayout({
     console.error('[Dashboard] Failed to fetch initial locale:', err);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const messages = (initialLocale === 'cn' ? mergedCn : mergedEn) as any;
 
   return (

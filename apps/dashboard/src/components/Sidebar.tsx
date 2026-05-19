@@ -356,8 +356,9 @@ export default function Sidebar() {
                 )
               : pathname === item.href;
 
-            let Icon = item.icon;
+            let Icon: any = item.icon;
             if (typeof Icon === 'string') {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const iconMap: Record<string, React.ComponentType<any>> = {
                 Database: Database,
                 Activity: Activity,

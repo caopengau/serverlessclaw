@@ -9,9 +9,9 @@ export default function ExtensionPage() {
   const id = params.id as string;
   const { dynamicComponents } = useExtensions();
 
-  const Component = dynamicComponents.get(id);
+  const ActiveComponent = dynamicComponents.get(id);
 
-  if (!Component) {
+  if (!ActiveComponent) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-2 text-zinc-400">
         <span className="text-lg font-semibold">Extension Page Not Loaded</span>
@@ -22,5 +22,5 @@ export default function ExtensionPage() {
     );
   }
 
-  return <Component />;
+  return <ActiveComponent />;
 }
