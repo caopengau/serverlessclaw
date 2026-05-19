@@ -461,13 +461,17 @@ PluginManager.register(productPlugin);
 **What**: External input adapters allowing `userId` or `sessionId` values that contain internal system prefixes (like `CONV#`).
 **Risk**: Bypassing RBAC checks by masquerading as `SYSTEM` or other privileged identities when the prefix is stripped by internal normalization utilities (e.g., `normalizeBaseUserId`).
 **Pattern**:
+
 ```typescript
 // ❌ WRONG (InboundMessage from external source)
-{ userId: "CONV#SYSTEM#evil" } // normalizeBaseUserId results in "SYSTEM" 💥
+{
+  userId: 'CONV#SYSTEM#evil';
+} // normalizeBaseUserId results in "SYSTEM" 💥
 
 // ✅ CORRECT (Sanitization at the Hard Shell)
 if (userId.includes('#')) {
   userId = userId.replace(/#/g, '_');
 }
 ```
+
 **Occurrences**: Fixed in `normalizeMessage` (Audit 2026-05-17).

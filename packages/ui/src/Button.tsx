@@ -23,6 +23,7 @@ const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
+  const LoaderIcon = Loader2 as any;
   const variantStyles = {
     primary: THEME.CLASSES.BUTTON_PRIMARY,
     danger: THEME.CLASSES.BUTTON_DANGER,
@@ -52,7 +53,7 @@ const Button: React.FC<ButtonProps> = ({
       `}
       disabled={loading || disabled}
     >
-      {loading && <Loader2 size={16} className="animate-spin" />}
+      {loading && <LoaderIcon size={16} className="animate-spin" />}
       {!loading && icon}
       <span className={loading ? 'opacity-0' : ''}>{children}</span>
     </button>

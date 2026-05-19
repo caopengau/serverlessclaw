@@ -449,18 +449,22 @@ To ground agent actions and safety boundaries in the caller's identity, Serverle
 1. **Identity Extraction**: The chat API endpoint (`apps/dashboard/src/app/api/chat/route.ts`) resolves the caller's identity using `identityManager.getUser(userId)` and constructs an `activeUser` options block.
 2. **Pipelines Propagation**: The options block is fully preserved through streaming and background execution chains (`handleStream` and `handleProcess`).
 3. **Context Assembly**: The `AgentAssembler` compiles the final system prompt by dynamically injecting the `[ACTIVE_USER_CONTEXT]` block:
+
    ```markdown
    [ACTIVE_USER_CONTEXT]:
+
    - USER_ID: <userId>
    - DISPLAY_NAME: <displayName>
    - ROLE: <role>
    - WORKSPACE_MEMBERSHIP: <workspaceIds>
    ```
+
    This ensures LLM models adapt their language and behavior to the exact privilege tier and personality of the caller (e.g., welcoming administrators vs restricting general members from executing high-risk activities).
 
 ### 🖥️ Human-to-Agent Access Control Roster UI
 
 The `/security` page of the dashboard exposes the human access roster to administrators:
+
 - **RBAC Matrix Control**: Allows administrators to toggle workspace permission scopes (`agent:invoke`, `agent:config`, `agent:roster-invite`) dynamically.
 - **Custom ACL/ACE Ledger**: Supports hot-registering explicit Access Control Entries (ACE) via an elegant glassmorphic creation modal to map custom workspace agents to roles or distinct users.
 

@@ -24,6 +24,7 @@ import {
   Moon,
   Keyboard,
   LogOut,
+  TrendingUp,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -135,7 +136,12 @@ export default function Sidebar() {
     },
     ...sidebarExtensions
       .filter((e) => !e.section || e.section === 'OPERATIONS')
-      .map((e) => ({ ...e, activePaths: [e.href] })),
+      .map((e) => ({
+        ...e,
+        label: t(e.label),
+        subtitle: e.subtitle ? t(e.subtitle) : undefined,
+        activePaths: [e.href],
+      })),
 
     { label: t('INTELLIGENCE'), type: 'header' },
     {
@@ -168,7 +174,12 @@ export default function Sidebar() {
     },
     ...sidebarExtensions
       .filter((e) => e.section === 'INTELLIGENCE')
-      .map((e) => ({ ...e, activePaths: [e.href] })),
+      .map((e) => ({
+        ...e,
+        label: t(e.label),
+        subtitle: e.subtitle ? t(e.subtitle) : undefined,
+        activePaths: [e.href],
+      })),
 
     { label: t('OBSERVABILITY'), type: 'header' },
     {
@@ -345,7 +356,17 @@ export default function Sidebar() {
                 )
               : pathname === item.href;
 
-            const Icon = item.icon;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let Icon: any = item.icon;
+            if (typeof Icon === 'string') {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const iconMap: Record<string, React.ComponentType<any>> = {
+                Database: Database,
+                Activity: Activity,
+                TrendingUp: TrendingUp,
+              };
+              Icon = iconMap[Icon] || Activity;
+            }
 
             const navLink = (
               <Link
