@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 const mockSetGap = vi.fn().mockResolvedValue(undefined);
+const mockHasPermission = vi.fn().mockResolvedValue(true);
 
 vi.mock('@claw/core/lib/memory', () => ({
   DynamoMemory: class {
@@ -9,8 +10,21 @@ vi.mock('@claw/core/lib/memory', () => ({
   },
 }));
 
+vi.mock('@claw/core/lib/session/identity', () => ({
+  getIdentityManager: vi.fn().mockResolvedValue({
+    hasPermission: mockHasPermission,
+  }),
+  Permission: {
+    AGENT_UPDATE: 'AGENT_UPDATE',
+  },
+}));
+
+vi.mock('@/lib/auth-utils', () => ({
+  getUserId: vi.fn().mockReturnValue('test-user'),
+}));
+
 vi.mock('@/lib/constants', () => ({
-  HTTP_STATUS: { BAD_REQUEST: 400, INTERNAL_SERVER_ERROR: 500 },
+  HTTP_STATUS: { BAD_REQUEST: 400, INTERNAL_SERVER_ERROR: 500, FORBIDDEN: 403 },
 }));
 
 describe('Memory Gap API Route', () => {

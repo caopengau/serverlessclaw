@@ -60,12 +60,16 @@ export class MemoryDelegator {
     return hash;
   }
 
-  async incrementRecoveryAttemptCount(): Promise<number> {
-    return this.underlying.incrementRecoveryAttemptCount();
+  async incrementRecoveryAttemptCount(
+    scope?: string | import('../../types/memory').ContextualScope
+  ): Promise<number> {
+    return this.underlying.incrementRecoveryAttemptCount(scope);
   }
 
-  async resetRecoveryAttemptCount(): Promise<void> {
-    await this.underlying.resetRecoveryAttemptCount();
+  async resetRecoveryAttemptCount(
+    scope?: string | import('../../types/memory').ContextualScope
+  ): Promise<void> {
+    await this.underlying.resetRecoveryAttemptCount(scope);
   }
 
   async listByPrefix(prefix: string): Promise<Record<string, unknown>[]> {
