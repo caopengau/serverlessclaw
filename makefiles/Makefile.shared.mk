@@ -1,9 +1,9 @@
 ###############################################################################
-# Makefile.shared: Common macros, variables, and environment configuration
+# Makefile.shared: Common macros, variables, and environment configuration (FRAMEWORK)
 ###############################################################################
 
-ifndef _SHARED_MK_INCLUDED
-_SHARED_MK_INCLUDED := 1
+ifndef _FRAMEWORK_SHARED_MK_INCLUDED
+_FRAMEWORK_SHARED_MK_INCLUDED := 1
 
 # Explicitly use bash for all shell commands to ensure macro robustness
 SHELL := /bin/bash
