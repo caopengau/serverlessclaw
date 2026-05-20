@@ -74,6 +74,7 @@ export class SuperClaw extends Agent {
       resource?: string;
       traceId?: string;
       userId?: string;
+      userRole?: string;
       workspaceId?: string;
     }
   ): Promise<boolean> {
@@ -98,6 +99,7 @@ export class SuperClaw extends Agent {
       resource?: string;
       traceId?: string;
       userId?: string;
+      userRole?: string;
       workspaceId?: string;
     }
   ) {
