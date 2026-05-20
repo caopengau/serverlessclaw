@@ -22,7 +22,7 @@ test.describe('Mission Dashboard', () => {
     await page.waitForLoadState('networkidle');
 
     // Just verify page loaded successfully
-    await expect(page).toHaveTitle(/VoltX|Hub|神经/i);
+    await expect(page).toHaveTitle(/Hub|神经/i);
   });
 
   test('quick actions are available', async ({ page }) => {
