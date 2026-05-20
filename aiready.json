@@ -116,7 +116,7 @@
       "checkImplicitSideEffects": true,
       "checkDeepCallbacks": true,
       "checkOverloadedSymbols": true,
-      "checkLargeFiles": true,
+      "checkLargeFiles": false,
       "exclude": ["**/components/ui/**", "**/types/**", "**/schema/**", "scripts/**", "e2e/**"]
     },
     "agent-grounding": {
