@@ -178,8 +178,11 @@ function verifyBoundaryIsolation(): Finding[] {
 
   frameworkFiles.forEach((file) => {
     if (file.includes('node_modules') || file.includes('.test.') || file.includes('.d.ts')) return;
+    const relativeFile = relative(process.cwd(), file).replaceAll('\\', '/');
     // Skip paths that are intentionally product-specific (e.g. integration packages)
-    if (excludedPaths.some((excluded) => file.startsWith(excluded))) return;
+    if (excludedPaths.some((excluded) => relativeFile.startsWith(excluded.replaceAll('\\', '/')))) {
+      return;
+    }
     const content = readFileSync(file, 'utf-8');
     const lines = content.split('\n');
 

@@ -5,8 +5,8 @@
  */
 
 export function init(hubConfig: {
-  registerSidebarHook: (config: unknown) => void;
-  registerComponentHook: (config: unknown) => void;
+  registerSidebar: (config: unknown) => void;
+  registerComponent: (config: unknown) => void;
 }) {
   // Generic hub initialization.
   console.debug('[Hub] Extension hub ready.', hubConfig);

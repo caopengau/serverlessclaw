@@ -1,5 +1,29 @@
 import { PluginManager } from './plugin-manager';
 
+function parseOptionalPluginModules(): string[] {
+  const modules = process.env.CLAW_OPTIONAL_PLUGIN_MODULES;
+  if (!modules) return [];
+
+  return modules
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+}
+
+async function registerPluginModule(modulePath: string) {
+  const integrationModule = await import(modulePath);
+  const pluginExport = Object.values(integrationModule).find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'id' in (candidate as Record<string, unknown>)
+  );
+
+  if (pluginExport) {
+    await PluginManager.register(pluginExport as Parameters<typeof PluginManager.register>[0]);
+  }
+}
+
 /**
  * Hub for all internal monorepo plugins.
  * Projects like 'product' or specialized integrations can register their
@@ -28,16 +52,11 @@ export async function initializePlugins() {
     // Ignore if github integration is not present
   }
 
-  try {
-    // Dynamically resolve integration name via char codes to keep framework source clean.
-    // Resolves to the product integration package at runtime.
-    const suffix = String.fromCharCode(118, 111, 108, 116, 120);
-    const integrationModule = await import(`@serverlessclaw/integration-${suffix}`);
-    const integrationPlugin = integrationModule[`${suffix}Plugin`];
-    if (integrationPlugin) {
-      await PluginManager.register(integrationPlugin);
+  for (const modulePath of parseOptionalPluginModules()) {
+    try {
+      await registerPluginModule(modulePath);
+    } catch {
+      // Ignore if optional integration module is not present in this build.
     }
-  } catch {
-    // Ignore if product integration is not present
   }
 }
