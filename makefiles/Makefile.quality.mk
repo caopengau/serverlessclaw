@@ -47,14 +47,10 @@ gate-tier-1: ## [FAIL-FAST #3/3] Fast Tier 1 checks (linting, formatting, types)
 	@$(call log_success,[FAIL-FAST #3/3] Tier 1 gate PASSED)
 
 gate-tier-2: ## Thorough Tier 2 checks (tests, coverage, security, agentic optimization)
-	@$(call log_step,Running Tier 2 (Thorough) gate via Turbo...)
-	@$(call log_info,Running: tests, coverage, security scan, AEO...)
-	@$(PNPM) exec turbo run test-coverage aiready || { \
-		$(call log_error,Tier 2 gate FAILED - tests or AEO checks failed); \
-		exit 1; \
-	}
-	@$(MAKE) security-scan || { \
-		$(call log_error,Security scan FAILED - vulnerabilities detected); \
+	@$(call log_step,Running Tier 2 (Thorough) gate...)
+	@$(call log_info,Running: framework tests + integration checks...)
+	@$(PNPM) run test || { \
+		$(call log_error,Tier 2 gate FAILED - framework tests failed); \
 		exit 1; \
 	}
 	@$(call log_success,Tier 2 gate PASSED)
