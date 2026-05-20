@@ -370,9 +370,6 @@ importers:
       '@serverlessclaw/integration-github':
         specifier: workspace:*
         version: link:../integration-github
-      '@serverlessclaw/integration-voltx':
-        specifier: workspace:*
-        version: link:../integration-voltx
       archiver:
         specifier: ^7.0.1
         version: 7.0.1
