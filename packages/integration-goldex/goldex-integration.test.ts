@@ -2,7 +2,7 @@
  * GoldEx Plugin Integration Test
  * Validates that the goldexPlugin loads correctly within the framework
  * Includes trading-specific safety gate validation
- * 
+ *
  * Run: CLAW_OPTIONAL_PLUGIN_MODULES=@serverlessclaw/integration-goldex pnpm test
  */
 
@@ -59,7 +59,7 @@ describe('GoldEx Framework Integration', () => {
 
     const analyzeToolId = 'analyze_gold_signal';
     expect(goldexPlugin.tools).toHaveProperty(analyzeToolId);
-    
+
     const analyzeTool = goldexPlugin.tools[analyzeToolId];
     expect(analyzeTool.description).toBeDefined();
     expect(analyzeTool.requiresApproval).toBe(false); // Market analysis doesn't need approval
@@ -86,11 +86,10 @@ describe('GoldEx Framework Integration', () => {
   it('should register with PluginManager if loaded via environment', async () => {
     // This test validates the environment-driven loading mechanism
     const envVar = process.env.CLAW_OPTIONAL_PLUGIN_MODULES;
-    
+
     if (!envVar || !envVar.includes('@serverlessclaw/integration-goldex')) {
       console.log(
-        '⚠️  Not running PluginManager test: ' +
-        'CLAW_OPTIONAL_PLUGIN_MODULES not set for GoldEx'
+        '⚠️  Not running PluginManager test: ' + 'CLAW_OPTIONAL_PLUGIN_MODULES not set for GoldEx'
       );
       return;
     }
@@ -125,13 +124,13 @@ describe('GoldEx Plugin Safety Compliance', () => {
 
     // Get all trading tools (exclude analysis)
     const tradingTools = ['execute_trade', 'manage_position'];
-    
+
     for (const toolId of tradingTools) {
       const tool = goldexPlugin.tools[toolId];
       if (!tool) {
         throw new Error(`Required trading tool missing: ${toolId}`);
       }
-      
+
       expect(tool.requiresApproval).toBe(true);
     }
   });
@@ -181,7 +180,7 @@ describe('GoldEx Trading Scenario Validation', () => {
     // Market analysis should be available read-only
     const analyzeTool = goldexPlugin.tools['analyze_gold_signal'];
     expect(analyzeTool.requiresApproval).toBe(false);
-    
+
     // Agents should reference this tool
     const hftAgent = goldexPlugin.agents['goldex-hft-agent'];
     if (hftAgent.tools) {
@@ -194,7 +193,7 @@ describe('GoldEx Trading Scenario Validation', () => {
 
     const executeTool = goldexPlugin.tools['execute_trade'];
     expect(executeTool.requiresApproval).toBe(true);
-    
+
     const hftAgent = goldexPlugin.agents['goldex-hft-agent'];
     if (hftAgent.tools && hftAgent.tools.includes('execute_trade')) {
       // Agent can use trading tool, but framework will enforce approval
