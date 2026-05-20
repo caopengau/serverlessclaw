@@ -26,9 +26,8 @@ BOLD       := $(shell printf '\033[1m')
 # Dynamically resolve package manager
 PNPM := $(shell command -v pnpm 2>/dev/null || echo npm)
 
-# Use the workspace-local SST binary for deterministic behavior.
-# Prerequisite: run `pnpm install` so this binary exists.
-SST := ./node_modules/.bin/sst
+# Use globally installed SST command (available via Homebrew)
+SST := sst
 
 # Detect scripts directory (subtree aware)
 SCRIPTS_DIR := $(shell if [ -f "scripts/ci/check-aws-account.sh" ]; then echo "scripts"; else echo "framework/scripts"; fi)
