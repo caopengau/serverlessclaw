@@ -50,6 +50,8 @@ export default defineConfig({
         'packages/core/**/*.ts',
         'packages/infra/**/*.ts',
         'apps/dashboard/src/**/*.{ts,tsx}',
+        '../packages/goldex-core/src/**/*.ts',
+        '../apps/goldex-trading/src/**/*.ts',
       ],
       exclude: [
         '**/*.test.ts',
