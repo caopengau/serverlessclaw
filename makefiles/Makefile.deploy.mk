@@ -22,7 +22,7 @@ deploy: ## Deploy SST to the environment (default: prod) - WITH FAIL-FAST CHECKS
 		sleep 2; \
 	fi
 	@$(call log_step,Preparing deployment for environment: $(ENV)...)
-	@if ! command -v sst >/dev/null 2>&1; then $(call log_error,SST binary not found. Install sst globally or via pnpm.); exit 1; fi
+	@if [ ! -f "$(SST)" ]; then $(call log_error,SST binary not found at $(SST). Run pnpm install to install dependencies.); exit 1; fi
 	@$(call load_env); \
 	chmod +x ./$(SCRIPTS_DIR)/ci/check-aws-account.sh; \
 	if \

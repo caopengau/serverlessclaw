@@ -26,8 +26,9 @@ BOLD       := $(shell printf '\033[1m')
 # Dynamically resolve package manager
 PNPM := $(shell command -v pnpm 2>/dev/null || echo npm)
 
-# Use globally installed SST command (available via Homebrew)
-SST := sst
+# Use the workspace-local SST binary (ensures version consistency with package.json)
+# Framework package.json specifies sst@4.13.1
+SST := ./node_modules/.bin/sst
 
 # Detect scripts directory (subtree aware)
 SCRIPTS_DIR := $(shell if [ -f "scripts/ci/check-aws-account.sh" ]; then echo "scripts"; else echo "framework/scripts"; fi)
