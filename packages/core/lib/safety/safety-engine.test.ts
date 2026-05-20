@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SafetyEngine } from './safety-engine';
-import { SafetyTier, AgentCategory, IAgentConfig } from '../types/agent';
+import { SafetyTier, AgentCategory, IAgentConfig, UserRole } from '../types/agent';
 import { ConfigManager } from '../registry/config';
 
 const { mockDefaults } = vi.hoisted(() => {
@@ -166,7 +166,7 @@ describe('SafetyEngine', () => {
       const config = { id: 'test', name: 'Test' };
       // PROD requires deploy approval by default (either via time_restriction_approval, class_c_approval_required, or prod_deployment_approval)
       const result = await engine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(result.requiresApproval).toBe(true);
@@ -178,7 +178,7 @@ describe('SafetyEngine', () => {
     it('returns error for unknown tier', async () => {
       const config = { id: 'test', name: 'Test', safetyTier: 'invalid' as any };
       const result = await engine.evaluateAction(config, 'any', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(result.allowed).toBe(false);
@@ -202,31 +202,31 @@ describe('SafetyEngine', () => {
       } as IAgentConfig;
 
       const codeResult = await engine.evaluateAction(config, 'code_change', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(codeResult.requiresApproval).toBe(false);
 
       const deployResult = await engine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(deployResult.requiresApproval).toBe(true);
 
       const fileResult = await engine.evaluateAction(config, 'file_operation', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(fileResult.requiresApproval).toBe(false);
 
       const shellResult = await engine.evaluateAction(config, 'shell_command', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(shellResult.requiresApproval).toBe(true);
 
       const mcpResult = await engine.evaluateAction(config, 'mcp_tool', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(mcpResult.requiresApproval).toBe(true);
@@ -249,7 +249,7 @@ describe('SafetyEngine', () => {
 
       for (const action of actions) {
         const result = await engine.evaluateAction(config, action, {
-          userId: 'SYSTEM',
+          userId: 'SYSTEM', userRole: UserRole.ADMIN,
           workspaceId: 'ws1',
         });
         expect(result.allowed).toBe(true);
@@ -277,7 +277,7 @@ describe('SafetyEngine', () => {
 
       for (const resource of blockedResources) {
         const result = await engine.evaluateAction(config, 'file_operation', {
-          userId: 'SYSTEM',
+          userId: 'SYSTEM', userRole: UserRole.ADMIN,
           workspaceId: 'ws1',
           resource,
           toolName: 'fileWrite',
@@ -297,7 +297,7 @@ describe('SafetyEngine', () => {
       } as IAgentConfig;
 
       const result = await engine.evaluateAction(config, 'file_operation', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
         resource: 'src/app.ts',
         toolName: 'fileWrite',
@@ -321,7 +321,7 @@ describe('SafetyEngine', () => {
       // Allowed path
       const result1 = await customEngine.evaluateAction(config, 'file_operation', {
         resource: 'src/main.ts',
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(result1.allowed).toBe(true);
@@ -329,7 +329,7 @@ describe('SafetyEngine', () => {
       // Path NOT in whitelist
       const result2 = await customEngine.evaluateAction(config, 'file_operation', {
         resource: 'README.md',
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(result2.allowed).toBe(false);
@@ -350,7 +350,7 @@ describe('SafetyEngine', () => {
       vi.setSystemTime(mockDate);
 
       const result = await engine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 
@@ -374,7 +374,7 @@ describe('SafetyEngine', () => {
       vi.setSystemTime(mockDate);
 
       const result = await engine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 
@@ -405,7 +405,7 @@ describe('SafetyEngine', () => {
 
       const result = await customEngine.evaluateAction(config, 'mcp_tool', {
         toolName: 'dangerousTool',
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 
@@ -423,7 +423,7 @@ describe('SafetyEngine', () => {
       } as IAgentConfig;
 
       const result = await engine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 
@@ -445,7 +445,7 @@ describe('SafetyEngine', () => {
       const scheduleSpy = vi.spyOn((engine as any).evolutionScheduler, 'scheduleAction');
 
       const result = await engine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 
@@ -467,7 +467,7 @@ describe('SafetyEngine', () => {
       const scheduleSpy = vi.spyOn((engine as any).evolutionScheduler, 'scheduleAction');
 
       const result = await engine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 
@@ -491,7 +491,7 @@ describe('SafetyEngine', () => {
       } as IAgentConfig;
 
       const result = await engine.evaluateAction(config, 'iam_change', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 
@@ -510,7 +510,7 @@ describe('SafetyEngine', () => {
       } as IAgentConfig;
 
       const result = await engine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 
@@ -534,7 +534,7 @@ describe('SafetyEngine', () => {
       // First 5 should succeed (LOCAL tier allows execution without approval)
       for (let i = 0; i < 5; i++) {
         const result = await engine.evaluateAction(config, 'iam_change', {
-          userId: 'SYSTEM',
+          userId: 'SYSTEM', userRole: UserRole.ADMIN,
           workspaceId: 'ws1',
         });
         expect(result.allowed).toBe(true);
@@ -542,7 +542,7 @@ describe('SafetyEngine', () => {
 
       // 6th should be blocked by blast radius
       const result = await engine.evaluateAction(config, 'iam_change', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(result.allowed).toBe(false);
@@ -582,7 +582,7 @@ describe('SafetyEngine', () => {
     it('should permanently block Class D actions in evaluateAction', async () => {
       const config = { id: 'test-agent', safetyTier: SafetyTier.LOCAL } as IAgentConfig;
       const result = await engine.evaluateAction(config, 'trust_manipulation', {
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 
@@ -602,7 +602,7 @@ describe('SafetyEngine', () => {
 
       const result = await engine.evaluateAction(config, 'file_operation', {
         args,
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 
@@ -648,7 +648,7 @@ describe('SafetyEngine', () => {
       const result = await engine.evaluateAction(config, 'file_operation', {
         isProactive: true,
         resource: 'core/lib/safety/safety-engine.ts', // Highly protected
-        userId: 'SYSTEM',
+        userId: 'SYSTEM', userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SafetyEngine } from '../lib/safety/safety-engine';
-import { SafetyTier, AgentCategory } from '../lib/types/agent';
+import { SafetyTier, AgentCategory, UserRole } from '../lib/types/agent';
 
 // Mock Dependencies
 vi.mock('../lib/utils/ddb-client', () => ({
@@ -80,20 +80,20 @@ describe('SYSTEM Identity Isolation Integration [Perspective G]', () => {
     });
   });
 
-  it('rejects SYSTEM action when workspaceId is missing (Fail-Closed)', async () => {
+  it('rejects Class C actions for users without elevated permissions (Fail-Closed)', async () => {
     const result = await engine.evaluateAction(config, 'deployment', {
       userId: 'SYSTEM',
-      // workspaceId missing
+      // no userRole → defaults to viewer which lacks CLASS_C permissions
     });
 
     expect(result.allowed).toBe(false);
-    expect(result.appliedPolicy).toBe('system_rbac_unscoped');
-    expect(result.reason).toContain('Missing mandatory workspaceId');
+    expect(result.appliedPolicy).toBe('rbac_class_c_denied');
   });
 
-  it('allows SYSTEM action when workspaceId is present', async () => {
+  it('allows SYSTEM action when elevated role and workspaceId is present', async () => {
     const result = await engine.evaluateAction(config, 'deployment', {
       userId: 'SYSTEM',
+      userRole: UserRole.ADMIN,
       workspaceId: 'ws-123',
     });
 
@@ -104,6 +104,7 @@ describe('SYSTEM Identity Isolation Integration [Perspective G]', () => {
   it('enforces standard resource protection (blocked_resource)', async () => {
     const result = await engine.evaluateAction(config, 'file_operation', {
       userId: 'SYSTEM',
+      userRole: UserRole.ADMIN,
       workspaceId: 'ws-123',
       resource: '.env', // Standard blocked resource in default policy
     });
@@ -122,6 +123,7 @@ describe('SYSTEM Identity Isolation Integration [Perspective G]', () => {
 
     const result = await permissiveEngine.evaluateAction(config, 'file_operation', {
       userId: 'SYSTEM',
+      userRole: UserRole.ADMIN,
       workspaceId: 'ws-123',
       resource: 'core/lib/safety/safety-engine.ts', // Still protected by hard-coded system rules
     });
@@ -133,6 +135,7 @@ describe('SYSTEM Identity Isolation Integration [Perspective G]', () => {
   it('allows non-protected resource for scoped SYSTEM tasks', async () => {
     const result = await engine.evaluateAction(config, 'file_operation', {
       userId: 'SYSTEM',
+      userRole: UserRole.ADMIN,
       workspaceId: 'ws-123',
       resource: 'src/app.ts',
     });

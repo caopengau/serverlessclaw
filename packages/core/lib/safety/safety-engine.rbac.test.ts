@@ -87,20 +87,21 @@ describe('SafetyEngine RBAC [Phase 15]', () => {
     expect(result.appliedPolicy).toBe('class_d_blocked');
   });
 
-  it('allows background SYSTEM tasks to skip RBAC when scoped to workspace', async () => {
+  it('allows Class C actions for ADMIN role with workspaceId', async () => {
     const result = await engine.evaluateAction(config, 'deployment', {
       userId: 'SYSTEM',
+      userRole: UserRole.ADMIN,
       workspaceId: 'ws1',
     });
     expect(result.allowed).toBe(true);
   });
 
-  it('rejects background SYSTEM tasks when missing workspaceId', async () => {
+  it('rejects Class C actions for users without elevated permissions', async () => {
     const result = await engine.evaluateAction(config, 'deployment', {
       userId: 'SYSTEM',
     });
     expect(result.allowed).toBe(false);
-    expect(result.appliedPolicy).toBe('system_rbac_unscoped');
+    expect(result.appliedPolicy).toBe('rbac_class_c_denied');
   });
 
   it('requires RBAC even if agent has high trust (Non-Bypassable)', async () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SuperClaw } from './superclaw';
-import { SafetyTier, ReasoningProfile, AgentCategory } from '../lib/types/index';
+import { SafetyTier, ReasoningProfile, AgentCategory, UserRole } from '../lib/types/index';
 
 // Mock the prompts to return actual strings
 vi.mock('../lib/prompts/loader', () => ({
@@ -101,7 +101,7 @@ describe('SuperClaw', () => {
         } as any;
         expect(
           await superclaw.requiresApproval(config, 'deployment', {
-            userId: 'SYSTEM',
+            userId: 'SYSTEM', userRole: UserRole.ADMIN,
             workspaceId: 'ws1',
           })
         ).toBe(true);
@@ -117,7 +117,7 @@ describe('SuperClaw', () => {
         } as any;
         expect(
           await superclaw.requiresApproval(config, 'deployment', {
-            userId: 'SYSTEM',
+            userId: 'SYSTEM', userRole: UserRole.ADMIN,
             workspaceId: 'ws1',
           })
         ).toBe(false);
@@ -134,7 +134,7 @@ describe('SuperClaw', () => {
           safetyTier: SafetyTier.PROD,
         } as any;
         const result = await superclaw.evaluateAction(config, 'deployment', {
-          userId: 'SYSTEM',
+          userId: 'SYSTEM', userRole: UserRole.ADMIN,
           workspaceId: 'ws1',
         });
         expect(result.allowed).toBe(false);
@@ -155,7 +155,7 @@ describe('SuperClaw', () => {
         } as any;
         expect(
           await superclaw.requiresApproval(config, 'deployment', {
-            userId: 'SYSTEM',
+            userId: 'SYSTEM', userRole: UserRole.ADMIN,
             workspaceId: 'ws1',
           })
         ).toBe(false);
@@ -175,7 +175,7 @@ describe('SuperClaw', () => {
         } as any;
         const result = await superclaw.evaluateAction(config, 'mcp_tool', {
           toolName: 'sensitive_tool',
-          userId: 'SYSTEM',
+          userId: 'SYSTEM', userRole: UserRole.ADMIN,
           workspaceId: 'ws1',
         });
         expect(result.requiresApproval).toBe(true);
