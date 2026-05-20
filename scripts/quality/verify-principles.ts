@@ -162,11 +162,13 @@ function verifyBoundaryIsolation(): Finding[] {
   const configPath = join(process.cwd(), '.framework-guardrails.json');
   let forbiddenPackages: string[] = [];
   let forbiddenKeywords: string[] = [];
+  let excludedPaths: string[] = [];
 
   try {
     const config = JSON.parse(readFileSync(configPath, 'utf-8'));
     forbiddenPackages = config.isolation?.forbiddenPackages || [];
     forbiddenKeywords = config.isolation?.forbiddenKeywords || [];
+    excludedPaths = config.isolation?.excludedPaths || [];
   } catch {
     // No config found, skip boundary checks or use defaults
     return [];
@@ -176,6 +178,8 @@ function verifyBoundaryIsolation(): Finding[] {
 
   frameworkFiles.forEach((file) => {
     if (file.includes('node_modules') || file.includes('.test.') || file.includes('.d.ts')) return;
+    // Skip paths that are intentionally product-specific (e.g. integration packages)
+    if (excludedPaths.some((excluded) => file.startsWith(excluded))) return;
     const content = readFileSync(file, 'utf-8');
     const lines = content.split('\n');
 
