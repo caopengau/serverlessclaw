@@ -19,10 +19,7 @@ import {
   CONTEXT_WINDOWS,
   OPENROUTER_REASONING_MAP,
 } from './openrouter-config';
-import {
-  applyModelSpecificConfig,
-  convertToOpenRouterMessage,
-} from './openrouter-helpers';
+import { applyModelSpecificConfig, convertToOpenRouterMessage } from './openrouter-helpers';
 import { OpenRouterResponse } from './openrouter-types';
 
 /**
