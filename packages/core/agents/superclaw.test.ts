@@ -101,7 +101,8 @@ describe('SuperClaw', () => {
         } as any;
         expect(
           await superclaw.requiresApproval(config, 'deployment', {
-            userId: 'SYSTEM', userRole: UserRole.ADMIN,
+            userId: 'SYSTEM',
+            userRole: UserRole.ADMIN,
             workspaceId: 'ws1',
           })
         ).toBe(true);
@@ -117,7 +118,8 @@ describe('SuperClaw', () => {
         } as any;
         expect(
           await superclaw.requiresApproval(config, 'deployment', {
-            userId: 'SYSTEM', userRole: UserRole.ADMIN,
+            userId: 'SYSTEM',
+            userRole: UserRole.ADMIN,
             workspaceId: 'ws1',
           })
         ).toBe(false);
@@ -134,7 +136,8 @@ describe('SuperClaw', () => {
           safetyTier: SafetyTier.PROD,
         } as any;
         const result = await superclaw.evaluateAction(config, 'deployment', {
-          userId: 'SYSTEM', userRole: UserRole.ADMIN,
+          userId: 'SYSTEM',
+          userRole: UserRole.ADMIN,
           workspaceId: 'ws1',
         });
         expect(result.allowed).toBe(false);
@@ -155,7 +158,8 @@ describe('SuperClaw', () => {
         } as any;
         expect(
           await superclaw.requiresApproval(config, 'deployment', {
-            userId: 'SYSTEM', userRole: UserRole.ADMIN,
+            userId: 'SYSTEM',
+            userRole: UserRole.ADMIN,
             workspaceId: 'ws1',
           })
         ).toBe(false);
@@ -175,7 +179,8 @@ describe('SuperClaw', () => {
         } as any;
         const result = await superclaw.evaluateAction(config, 'mcp_tool', {
           toolName: 'sensitive_tool',
-          userId: 'SYSTEM', userRole: UserRole.ADMIN,
+          userId: 'SYSTEM',
+          userRole: UserRole.ADMIN,
           workspaceId: 'ws1',
         });
         expect(result.requiresApproval).toBe(true);

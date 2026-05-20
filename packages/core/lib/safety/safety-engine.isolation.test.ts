@@ -52,7 +52,8 @@ describe('SafetyEngine Multi-tenant Isolation', () => {
     // Initially, LOCAL allows everything
     const res1 = await engine.evaluateAction(config, 'shell_command', {
       workspaceId: 'ws1',
-      userId: 'SYSTEM', userRole: UserRole.ADMIN,
+      userId: 'SYSTEM',
+      userRole: UserRole.ADMIN,
     });
     expect(res1.allowed).toBe(true);
 
@@ -62,14 +63,16 @@ describe('SafetyEngine Multi-tenant Isolation', () => {
     // ws1 should now be blocked (requires approval)
     const res2 = await engine.evaluateAction(config, 'shell_command', {
       workspaceId: 'ws1',
-      userId: 'SYSTEM', userRole: UserRole.ADMIN,
+      userId: 'SYSTEM',
+      userRole: UserRole.ADMIN,
     });
     expect(res2.requiresApproval).toBe(true);
 
     // ws2 should STILL be allowed (isolation check)
     const res3 = await engine.evaluateAction(config, 'shell_command', {
       workspaceId: 'ws2',
-      userId: 'SYSTEM', userRole: UserRole.ADMIN,
+      userId: 'SYSTEM',
+      userRole: UserRole.ADMIN,
     });
     expect(res3.allowed).toBe(true);
     expect(res3.requiresApproval).toBe(false);

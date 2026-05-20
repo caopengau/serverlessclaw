@@ -110,7 +110,8 @@ describe('Safety Engine Integration', () => {
 
       // deployment should require approval in PROD
       const result = await engine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM', userRole: UserRole.ADMIN,
+        userId: 'SYSTEM',
+        userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(result.requiresApproval).toBe(true);
@@ -134,7 +135,8 @@ describe('Safety Engine Integration', () => {
 
       for (const action of actions) {
         const result = await engine.evaluateAction(config, action, {
-          userId: 'SYSTEM', userRole: UserRole.ADMIN,
+          userId: 'SYSTEM',
+          userRole: UserRole.ADMIN,
           workspaceId: 'ws1',
         });
         expect(result.allowed).toBe(true);
@@ -154,7 +156,8 @@ describe('Safety Engine Integration', () => {
       };
 
       const result = await engine.evaluateAction(config, 'file_operation', {
-        userId: 'SYSTEM', userRole: UserRole.ADMIN,
+        userId: 'SYSTEM',
+        userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
         resource: '.env.production',
         toolName: 'fileWrite',
@@ -175,7 +178,8 @@ describe('Safety Engine Integration', () => {
       };
 
       const result = await engine.evaluateAction(config, 'file_operation', {
-        userId: 'SYSTEM', userRole: UserRole.ADMIN,
+        userId: 'SYSTEM',
+        userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
         resource: 'src/components/Button.tsx',
         toolName: 'fileWrite',
@@ -210,19 +214,22 @@ describe('Safety Engine Integration', () => {
       };
 
       const result1 = await testEngine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM', userRole: UserRole.ADMIN,
+        userId: 'SYSTEM',
+        userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(result1.allowed).toBe(true);
 
       const result2 = await testEngine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM', userRole: UserRole.ADMIN,
+        userId: 'SYSTEM',
+        userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(result2.allowed).toBe(true);
 
       const result3 = await testEngine.evaluateAction(config, 'deployment', {
-        userId: 'SYSTEM', userRole: UserRole.ADMIN,
+        userId: 'SYSTEM',
+        userRole: UserRole.ADMIN,
         workspaceId: 'ws1',
       });
       expect(result3.allowed).toBe(false);
