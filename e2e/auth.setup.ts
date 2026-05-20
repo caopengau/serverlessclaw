@@ -20,7 +20,8 @@ function extractDomainFromUrl(urlString: string): string {
 }
 
 setup('authenticate', async ({ request, browserName }, _testInfo) => {
-  const baseUrl = request.url('').replace(/\/$/, ''); // Get baseURL from request context
+  // Get baseURL from environment or use fallback from playwright config
+  const baseUrl = process.env.BASE_URL || 'http://localhost:7777';
   const domain = extractDomainFromUrl(baseUrl);
   const password = process.env.DASHBOARD_PASSWORD || 'test-password';
   const userId = 'dashboard-user'; // Default userId for E2E tests
