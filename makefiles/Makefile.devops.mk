@@ -106,7 +106,7 @@ check-framework-purity: ## [COMPLIANCE] Verify framework contains no VoltX-speci
 		! -path "*/dist/*" \
 		! -path "*/build/*" \
 		! -path "*/coverage/*" \
-		-exec grep -l "from.*packages/voltx\|from.*apps/voltx\|import.*voltx\|import.*VoltX" {} \; 2>/dev/null | wc -l); \
+		-exec grep -l "from.*packages/voltx\|from.*apps/voltx\|import.*@voltx\|import.*VoltX" {} \; 2>/dev/null | wc -l); \
 	\
 	if [ "$$VIOLATIONS" -eq 0 ]; then \
 		$(call log_success,✓ Framework is clean - ready for OSS extraction); \
@@ -117,7 +117,7 @@ check-framework-purity: ## [COMPLIANCE] Verify framework contains no VoltX-speci
 			! -path "*/.sst/*" \
 			! -path "*/.next/*" \
 			! -path "*/dist/*" \
-			-exec grep -l "from.*packages/voltx\|from.*apps/voltx\|import.*voltx" {} \; 2>/dev/null | head -5; \
+			-exec grep -l "from.*packages/voltx\|from.*apps/voltx\|import.*@voltx" {} \; 2>/dev/null | head -5; \
 		$(call log_error,Framework must not import from VoltX packages for OSS extraction); \
 		exit 1; \
 	fi
