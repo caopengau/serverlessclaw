@@ -10,7 +10,7 @@ SHELL := /bin/bash
 
 # Ensure Node.js and workspace binaries are in the path
 ROOT_DIR := $(shell git rev-parse --show-toplevel 2>/dev/null || pwd)
-export PATH := $(ROOT_DIR)/node_modules/.bin:/Users/pengcao/.nvm/versions/node/v24.15.0/bin:$(PATH)
+export PATH := $(ROOT_DIR)/node_modules/.bin:$(PATH)
 
 # Colors
 RED        := $(shell printf '\033[0;31m')
@@ -182,7 +182,7 @@ sync-status: ## Show sync remote safety status and commit/file differences
 		$(call log_success,Framework files are in sync with $$REMOTE); \
 	fi; \
 	if [ "$$AHEAD" -gt 0 ]; then \
-		$(call log_info,VoltX is ahead of $$REMOTE by $$AHEAD commits in framework/); \
+		$(call log_info,Current repository is ahead of $$REMOTE by $$AHEAD commits in framework/); \
 	fi
 
 sync-downstream: ## Pull latest framework subtree (Remote: SUBTREE_OFFICIAL_REMOTE or SYNC_DOWNSTREAM_REMOTE)
