@@ -10,7 +10,7 @@ SHELL := /bin/bash
 
 # Ensure Node.js and workspace binaries are in the path
 ROOT_DIR := $(shell git rev-parse --show-toplevel 2>/dev/null || pwd)
-export PATH := $(ROOT_DIR)/node_modules/.bin:/Users/pengcao/.nvm/versions/node/v24.15.0/bin:$(PATH)
+export PATH := $(ROOT_DIR)/node_modules/.bin:$(PATH)
 
 # Colors
 RED        := $(shell printf '\033[0;31m')
@@ -132,10 +132,20 @@ check-tools: ## Verify that required tools (node, pnpm) are installed and in PAT
 	@command -v pnpm >/dev/null 2>&1 || { $(call log_error,pnpm is missing); exit 1; }
 	@$(call log_success,All required tools (node, pnpm) are available.)
 
-.PHONY: show-env verify-up-to-date pull sync sync-downstream sync-upstream sync-status
+.PHONY: show-env verify-up-to-date verify-framework-sync pull sync sync-downstream sync-upstream sync-status
 
 verify-up-to-date: ## Verify local branch is up to date with remote
 	@$(call verify_up_to_date)
+
+verify-framework-sync: ## [AI-GUARD] Check if framework subtree needs a sync from official upstream
+	@$(call log_step,Checking for framework updates from official upstream...); \
+	git fetch $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH) --quiet 2>/dev/null || true; \
+	BEHIND=$$(git rev-list --count HEAD..$(SUBTREE_OFFICIAL_REMOTE)/$(SUBTREE_BRANCH) -- framework/ 2>/dev/null || echo 0); \
+	if [ "$$BEHIND" -gt 0 ]; then \
+		$(call log_warning,Framework is behind official upstream by $$BEHIND commits. Consider running 'make f-sync-down'.); \
+	else \
+		$(call log_success,Framework is in sync with official upstream.); \
+	fi
 
 # --- SYNC ---
 # Repo boundary policy:
@@ -173,7 +183,7 @@ sync-status: ## Show sync remote safety status and commit/file differences
 		$(call log_success,Framework files are in sync with $$REMOTE); \
 	fi; \
 	if [ "$$AHEAD" -gt 0 ]; then \
-		$(call log_info,VoltX is ahead of $$REMOTE by $$AHEAD commits in framework/); \
+		$(call log_info,Current repository is ahead of $$REMOTE by $$AHEAD commits in framework/); \
 	fi
 
 sync-downstream: ## Pull latest framework subtree (Remote: SUBTREE_OFFICIAL_REMOTE or SYNC_DOWNSTREAM_REMOTE)

@@ -33,7 +33,27 @@ test.describe('Capabilities / Tools & Skills', () => {
 
   test('navigation from sidebar to capabilities works', async ({ page }) => {
     await page.goto('/');
-    await page.click('a[href="/capabilities"]');
+    // Wait for sidebar to be loaded and interactive
+    await page.waitForLoadState('networkidle');
+    // Add a small delay to ensure sidebar is rendered
+    await page.waitForTimeout(500);
+
+    // Try to find the capabilities link with better error context
+    const capabilitiesLink = page.locator('a[href="/capabilities"]');
+
+    // Check if link exists and is visible
+    if (!(await capabilitiesLink.count())) {
+      // Log page content for debugging
+      const body = await page.locator('body').innerHTML();
+      console.error(`[E2E] Capabilities link not found. Page contains: ${body.substring(0, 500)}`);
+      throw new Error('Capabilities link (a[href="/capabilities"]) not found on home page');
+    }
+
+    // Wait for link to be visible and clickable
+    await capabilitiesLink.waitFor({ state: 'visible', timeout: 5000 });
+    await capabilitiesLink.click({ timeout: 5000 });
+
+    // Verify navigation succeeded
     await expect(page).toHaveURL('/capabilities');
   });
 });

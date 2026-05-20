@@ -159,8 +159,8 @@ export function ChatSidebar({
                 variant="ghost"
                 size="sm"
                 onClick={() => onNewChat()}
-                className="w-10 h-10 p-0 flex items-center justify-center text-cyber-green hover:bg-cyber-green/10 rounded-xl border border-transparent hover:border-cyber-green/30 transition-all"
-                icon={<Plus size={18} />}
+                className="w-12 h-12 p-0 flex items-center justify-center text-cyber-green hover:bg-cyber-green/10 rounded-xl border border-transparent hover:border-cyber-green/30 transition-all"
+                icon={<Plus size={24} />}
               />
             </CyberTooltip>
           </div>

@@ -5,8 +5,9 @@ test.describe('Nerve Center (Unified Observability)', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/observability');
-    // Ensure the hub is loaded
-    await expect(page.getByText(/Nerve Center Hub|神经中枢|Nerve Center/i).first()).toBeVisible({
+    // Wait for tabs to load (they're the primary UI elements)
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('tab', { name: /Infra Pulse|结构脉搏/i }).first()).toBeVisible({
       timeout: 15000,
     });
   });
@@ -83,8 +84,24 @@ test.describe('Nerve Center (Unified Observability)', () => {
 
   test('navigation from sidebar to observability works', async ({ page }) => {
     await page.goto('/');
-    // Use the side navigation
-    await page.locator('a[href="/observability"]').first().click();
+    // Wait for sidebar to be loaded and interactive
+    await page.waitForLoadState('networkidle');
+    // Add a small delay to ensure sidebar is rendered
+    await page.waitForTimeout(500);
+
+    // Try to find the observability link with better error context
+    const observabilityLink = page.locator('a[href="/observability"]').first();
+
+    // Check if link exists and is visible
+    if (!(await observabilityLink.count())) {
+      throw new Error('Observability link (a[href="/observability"]) not found on home page');
+    }
+
+    // Wait for link to be visible and clickable
+    await observabilityLink.waitFor({ state: 'visible', timeout: 5000 });
+    await observabilityLink.click({ timeout: 5000 });
+
+    // Verify navigation succeeded
     await expect(page).toHaveURL(/\/observability/);
   });
 });

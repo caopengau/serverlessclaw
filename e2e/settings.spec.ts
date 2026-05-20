@@ -24,7 +24,24 @@ test.describe('Settings', () => {
 
   test('navigation from sidebar to settings works', async ({ page }) => {
     await page.goto('/');
-    await page.click('a[href="/settings"]');
+    // Wait for sidebar to be loaded and interactive
+    await page.waitForLoadState('networkidle');
+    // Add a small delay to ensure sidebar is rendered
+    await page.waitForTimeout(500);
+
+    // Try to find the settings link with better error context
+    const settingsLink = page.locator('a[href="/settings"]');
+
+    // Check if link exists and is visible
+    if (!(await settingsLink.count())) {
+      throw new Error('Settings link (a[href="/settings"]) not found on home page');
+    }
+
+    // Wait for link to be visible and clickable
+    await settingsLink.waitFor({ state: 'visible', timeout: 5000 });
+    await settingsLink.click({ timeout: 5000 });
+
+    // Verify navigation succeeded
     await expect(page).toHaveURL('/settings');
   });
 });
