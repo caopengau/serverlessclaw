@@ -1,0 +1,16 @@
+{
+  "name": "@serverlessclaw/integration-goldex",
+  "version": "1.0.0",
+  "description": "GoldEx High-Frequency Trading System Integration Plugin",
+  "main": "./src/index.ts",
+  "type": "module",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@serverlessclaw/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}
