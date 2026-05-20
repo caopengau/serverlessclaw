@@ -1,3 +1,65 @@
+/**
+ * ChatContent - Main Chat Interface with Multi-Agent Support
+ *
+ * Core chat dashboard component integrating message management, agent selection,
+ * session control, and collaborative features with Mission Control HUD.
+ *
+ * @module components/Chat/ChatContent
+ * @requires Next.js - React framework, routing
+ * @requires Lucide - Icon library
+ *
+ * @features
+ * - Real-time chat messaging with WebSocket support
+ * - Multi-agent collaboration (SuperClaw + configurable agents)
+ * - Mission Control Mode toggle for enhanced visibility
+ * - Session management (create, delete, archive)
+ * - File upload with drag-and-drop (Paperclip UX)
+ * - Context intelligence panel (search, knowledge base)
+ * - Thinking mode toggle (expose reasoning steps)
+ * - Keyboard shortcuts (Cmd+/, Cmd+Shift+/, etc.)
+ * - Dark mode with cyber aesthetic
+ *
+ * @state
+ * UI Controls:
+ * - input: string - Current message input
+ * - isLoading: boolean - Message send in progress
+ * - activeSessionId: string - Current session ID
+ * - mounted: boolean - Hydration state
+ * - isShaking: boolean - Shake animation on error
+ * - isDragging: boolean - File drag-over state
+ * - showThinking: boolean - Expose reasoning in UI
+ * - activeTab: 'messages' | 'context' - Current panel
+ *
+ * Session Management:
+ * - showDeleteConfirm: boolean - Delete confirmation modal
+ * - sessionToDelete: string - Session pending deletion
+ * - isEditingTitle: boolean - Title edit mode
+ * - editedTitle: string - New title input
+ *
+ * Multi-Agent:
+ * - currentAgentId: string - Currently active agent
+ * - isAgentSelectorOpen: boolean - Agent selector modal
+ * - activeCollaborators: string[] - Active agents in session
+ * - collaborationId: string - Collaboration session ID
+ *
+ * Context & Intelligence:
+ * - isContextPanelOpen: boolean - Intelligence panel visible
+ * - searchQuery: string - Context search input
+ *
+ * Mission Control:
+ * - missionControlMode: boolean - Enhanced display mode (persisted)
+ * - isChatSidebarCollapsed: boolean - Sidebar collapsed state (persisted)
+ *
+ * @interactions
+ * - Send messages with Cmd+Enter
+ * - Open agent selector with Cmd+K
+ * - Toggle context panel with Cmd+Shift+P
+ * - File upload via Paperclip or drag-drop
+ * - Delete sessions with confirmation
+ * - Navigate sessions in sidebar
+ * - Toggle thinking mode to see reasoning
+ * - Mission Control HUD for multi-agent awareness
+ */
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
