@@ -37,11 +37,13 @@ test.describe('Evolution Pipeline', () => {
   test('navigation from sidebar to pipeline works', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+    // Add a small delay to ensure sidebar is rendered
+    await page.waitForTimeout(500);
 
     // Click the Pipeline link in the sidebar
     const pipelineLink = page.locator('a[href="/pipeline"]');
-    await expect(pipelineLink).toBeVisible({ timeout: 10000 });
-    await pipelineLink.click();
+    await pipelineLink.waitFor({ state: 'visible', timeout: 5000 });
+    await pipelineLink.click({ timeout: 5000 });
 
     await expect(page).toHaveURL('/pipeline');
   });

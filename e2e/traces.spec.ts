@@ -42,7 +42,24 @@ test.describe('Traces', () => {
 
   test('navigation from sidebar to traces works', async ({ page }) => {
     await page.goto('/');
-    await page.locator('a[href="/trace"]').first().click();
+    // Wait for sidebar to be loaded and interactive
+    await page.waitForLoadState('networkidle');
+    // Add a small delay to ensure sidebar is rendered
+    await page.waitForTimeout(500);
+
+    // Try to find the trace link with better error context
+    const traceLink = page.locator('a[href="/trace"]').first();
+
+    // Check if link exists and is visible
+    if (!(await traceLink.count())) {
+      throw new Error('Trace link (a[href="/trace"]) not found on home page');
+    }
+
+    // Wait for link to be visible and clickable
+    await traceLink.waitFor({ state: 'visible', timeout: 5000 });
+    await traceLink.click({ timeout: 5000 });
+
+    // Verify navigation succeeded
     await expect(page).toHaveURL('/trace');
   });
 });

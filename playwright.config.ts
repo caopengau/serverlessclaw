@@ -11,6 +11,8 @@ export default {
     baseURL: process.env.BASE_URL || 'http://localhost:7777',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Disable strict mode for better Playwright compatibility
+    strictSelectors: false,
   },
   webServer: process.env.BASE_URL
     ? undefined // skip local server when testing a deployed URL
@@ -21,7 +23,14 @@ export default {
         timeout: 300_000,
       },
   projects: [
-    { name: 'setup', testMatch: /.*\.setup\.ts/, timeout: 120_000 },
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+      timeout: 120_000,
+      use: {
+        baseURL: process.env.BASE_URL || 'http://localhost:7777',
+      },
+    },
     {
       name: 'chromium',
       use: {

@@ -37,7 +37,24 @@ test.describe('Memory Management', () => {
 
   test('navigation from sidebar to memory works', async ({ page }) => {
     await page.goto('/');
-    await page.click('a[href="/memory"]');
+    // Wait for sidebar to be loaded and interactive
+    await page.waitForLoadState('networkidle');
+    // Add a small delay to ensure sidebar is rendered
+    await page.waitForTimeout(500);
+
+    // Try to find the memory link with better error context
+    const memoryLink = page.locator('a[href="/memory"]');
+
+    // Check if link exists and is visible
+    if (!(await memoryLink.count())) {
+      throw new Error('Memory link (a[href="/memory"]) not found on home page');
+    }
+
+    // Wait for link to be visible and clickable
+    await memoryLink.waitFor({ state: 'visible', timeout: 5000 });
+    await memoryLink.click({ timeout: 5000 });
+
+    // Verify navigation succeeded
     await expect(page).toHaveURL('/memory');
   });
 });
