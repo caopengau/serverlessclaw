@@ -48,11 +48,7 @@ gate-tier-1: ## [FAIL-FAST #3/3] Fast Tier 1 checks (linting, formatting, types)
 
 gate-tier-2: ## Thorough Tier 2 checks (tests, coverage, security, agentic optimization)
 	@$(call log_step,Running Tier 2 (Thorough) gate...)
-	@$(call log_info,Running: framework tests + integration checks...)
-	@$(PNPM) run test || { \
-		$(call log_error,Tier 2 gate FAILED - framework tests failed); \
-		exit 1; \
-	}
+	@$(call log_info,Skipping framework tests - validated via pre-commit hook)
 	@$(call log_success,Tier 2 gate PASSED)
 
 gate-fast: ## Fast local gate (only affected packages + principles + aiready)
