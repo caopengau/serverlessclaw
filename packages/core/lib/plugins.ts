@@ -29,7 +29,8 @@ export async function initializePlugins() {
   }
 
   try {
-    const { voltxPlugin } = await import('@serverlessclaw/integration-voltx');
+    const suffix = 'voltx';
+    const { voltxPlugin } = await import(`@serverlessclaw/integration-${suffix}`);
     await PluginManager.register(voltxPlugin);
   } catch {
     // Ignore if voltx integration is not present
