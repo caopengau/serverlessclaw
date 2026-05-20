@@ -39,7 +39,7 @@ verify-devops-standards: ## [VERIFICATION] Verify DevOps configuration and stand
 	fi; \
 	\
 	$(call log_info,Verifying .env files not in git...); \
-	if git ls-files .env* 2>/dev/null | grep -q ".env"; then \
+	if git ls-files .env .env.* 2>/dev/null | grep -v ".env.example" | grep -q ".env"; then \
 		$(call log_error,.env files found in git (security risk)); \
 		exit 1; \
 	else \
