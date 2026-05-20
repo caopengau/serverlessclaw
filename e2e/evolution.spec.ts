@@ -26,12 +26,13 @@ test.describe('Evolution Pipeline', () => {
 
     // Should display metric cards - just verify any content renders
     // Metric cards may not always have specific text depending on data
-    await expect(page.locator('[class*="card"], [class*="metric"], [class*="stat"]').first())
-      .toBeTruthy({ timeout: 15000 })
-      .catch(() => {
-        // Fallback: just verify page is loaded
-        return expect(page.locator('body')).toBeTruthy();
-      });
+    const cards = page.locator('[class*="card"], [class*="metric"], [class*="stat"]').first();
+    if (await cards.count()) {
+      await expect(cards).toBeVisible({ timeout: 15000 });
+    } else {
+      // Fallback: just verify page is loaded
+      await expect(page).toHaveURL('/pipeline');
+    }
   });
 
   test('navigation from sidebar to pipeline works', async ({ page }) => {

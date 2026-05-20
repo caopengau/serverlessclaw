@@ -6,7 +6,7 @@ test.describe('Chat Flow', () => {
   test('renders chat page at /chat', async ({ page }) => {
     await page.goto('/chat');
     // Increased timeout for initial session registry sync
-    await expect(page.locator('textarea')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('textarea').first()).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: /SEND|发送/i }).first()).toBeVisible();
   });
 

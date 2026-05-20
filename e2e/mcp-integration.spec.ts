@@ -14,7 +14,7 @@ test.describe('MCP Integration (Capabilities)', () => {
     if (await mcpTab.count()) {
       await mcpTab.first().click();
       // Page should have content
-      await expect(page.locator('body')).toBeTruthy({ timeout: 5000 });
+      await expect(page.locator('body')).toBeVisible({ timeout: 5000 });
     } else {
       // Just verify capabilities page loaded
       await expect(page).toHaveURL('/capabilities');
