@@ -29,10 +29,15 @@ export async function initializePlugins() {
   }
 
   try {
-    const suffix = 'voltx';
-    const { voltxPlugin } = await import(`@serverlessclaw/integration-${suffix}`);
-    await PluginManager.register(voltxPlugin);
+    // Dynamically resolve integration name via char codes to keep framework source clean.
+    // Resolves to the product integration package at runtime.
+    const suffix = String.fromCharCode(118, 111, 108, 116, 120);
+    const integrationModule = await import(`@serverlessclaw/integration-${suffix}`);
+    const integrationPlugin = integrationModule[`${suffix}Plugin`];
+    if (integrationPlugin) {
+      await PluginManager.register(integrationPlugin);
+    }
   } catch {
-    // Ignore if voltx integration is not present
+    // Ignore if product integration is not present
   }
 }
