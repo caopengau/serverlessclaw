@@ -5,8 +5,9 @@ test.describe('Nerve Center (Unified Observability)', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/observability');
-    // Ensure the hub is loaded
-    await expect(page.getByText(/Nerve Center Hub|神经中枢|Nerve Center/i).first()).toBeVisible({
+    // Wait for tabs to load (they're the primary UI elements)
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('tab', { name: /Infra Pulse|结构脉搏/i }).first()).toBeVisible({
       timeout: 15000,
     });
   });

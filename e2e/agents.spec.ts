@@ -39,7 +39,7 @@ test.describe('Agents Configuration', () => {
     await page.waitForTimeout(500);
 
     // Try to find the agents link with better error context
-    const agentsLink = page.locator('a[href="/agents"]');
+    const agentsLink = page.locator('a[href="/agents"]').first();
 
     // Check if link exists and is visible
     if (!(await agentsLink.count())) {
