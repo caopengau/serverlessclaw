@@ -28,7 +28,8 @@ PNPM := $(shell command -v pnpm 2>/dev/null || echo npm)
 
 # Use the workspace-local SST binary (ensures version consistency with package.json)
 # Framework package.json specifies sst@4.13.1
-SST := ./node_modules/.bin/sst
+# Important: Use framework/ prefix when this Makefile is included from root
+SST := $(shell if [ -f "framework/node_modules/.bin/sst" ]; then echo "framework/node_modules/.bin/sst"; elif [ -f "./node_modules/.bin/sst" ]; then echo "./node_modules/.bin/sst"; else echo "sst"; fi)
 
 # Detect scripts directory (subtree aware)
 SCRIPTS_DIR := $(shell if [ -f "scripts/ci/check-aws-account.sh" ]; then echo "scripts"; else echo "framework/scripts"; fi)
