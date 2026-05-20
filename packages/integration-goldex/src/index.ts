@@ -1,4 +1,34 @@
-import { ClawPlugin, ITool, IAgentConfig } from '@serverlessclaw/sdk';
+type ITool = {
+  name: string;
+  description: string;
+  type: string;
+  connectionProfile?: string[];
+  requiresApproval?: boolean;
+  sensitive?: boolean;
+  safetyAction?: string;
+  parameters?: Record<string, unknown>;
+  execute: (params: Record<string, unknown>) => Promise<string>;
+};
+
+type IAgentConfig = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  agentType: string;
+  systemPrompt: string;
+  description?: string;
+  category?: string;
+  tools?: string[];
+  provider?: string;
+  model?: string;
+};
+
+type ClawPlugin = {
+  id: string;
+  agents?: Record<string, IAgentConfig>;
+  tools?: Record<string, ITool>;
+  onInit?: () => Promise<void>;
+};
 
 /**
  * GoldEx High-Frequency Trading Agent

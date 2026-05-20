@@ -435,6 +435,16 @@ importers:
 
   packages/integration-github: {}
 
+  packages/integration-goldex:
+    dependencies:
+      '@serverlessclaw/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
+
   packages/primitives:
     dependencies:
       zod:
