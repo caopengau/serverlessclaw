@@ -43,7 +43,7 @@ export const identitySchema = {
         role: { type: 'string', description: 'The user or agent role to check.' },
         permission: {
           type: 'string',
-          description: 'The permission string (e.g. agent:invoke, goldex:trade_execute).',
+          description: 'The permission string (e.g. agent:invoke, data:write).',
         },
       },
       required: ['role', 'permission'],
