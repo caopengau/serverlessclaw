@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Lock, Zap, ArrowRight, ShieldAlert } from 'lucide-react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
@@ -51,12 +52,27 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md p-8 glass-card border-white/10 relative z-10">
         <div className="flex flex-col items-center mb-8 text-center">
-          <div className="w-16 h-16 bg-cyber-green/10 rounded-sm flex items-center justify-center text-cyber-green mb-4 border border-cyber-green/30">
-            <Lock size={32} />
-          </div>
-          <Typography variant="h1" color="primary" glow uppercase className="mb-2">
-            {t('LOGIN_TITLE')}
-          </Typography>
+          {process.env.NEXT_PUBLIC_APP_LOGO_BANNER ? (
+            <div className="mb-6">
+              <Image
+                src={process.env.NEXT_PUBLIC_APP_LOGO_BANNER}
+                alt={process.env.NEXT_PUBLIC_APP_NAME || 'App Logo'}
+                width={220}
+                height={80}
+                className="object-contain"
+                priority
+              />
+            </div>
+          ) : (
+            <>
+              <div className="w-16 h-16 bg-cyber-green/10 rounded-sm flex items-center justify-center text-cyber-green mb-4 border border-cyber-green/30">
+                <Lock size={32} />
+              </div>
+              <Typography variant="h1" color="primary" glow uppercase className="mb-2">
+                {t('LOGIN_TITLE')}
+              </Typography>
+            </>
+          )}
           <Typography variant="mono" color="muted" uppercase>
             {t('LOGIN_RESTRICTED_ACCESS')}
           </Typography>

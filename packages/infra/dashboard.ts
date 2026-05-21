@@ -81,6 +81,7 @@ export function createDashboard(
         options.theme?.accentColorDark || process.env.NEXT_PUBLIC_ACCENT_COLOR_DARK || '',
       NEXT_PUBLIC_APP_TITLE: options.theme?.appTitle || process.env.NEXT_PUBLIC_APP_TITLE || '',
       NEXT_PUBLIC_APP_LOGO: process.env.NEXT_PUBLIC_APP_LOGO || '/icon.png',
+      NEXT_PUBLIC_APP_LOGO_BANNER: process.env.NEXT_PUBLIC_APP_LOGO_BANNER || '',
       ...(options.extensionSource
         ? { NEXT_PUBLIC_ACTIVE_EXTENSIONS: './src/extensions/project/index.tsx' }
         : {}),
@@ -88,7 +89,7 @@ export function createDashboard(
     architecture: 'arm64',
     buildCommand: `mkdir -p src/extensions/project && find src/extensions/ -mindepth 1 -maxdepth 1 ! -name 'index.ts' ! -name 'messages' ! -name 'project' -exec rm -rf {} + && ${
       extSource
-        ? `cp -rL ../../../${extSource}/* src/extensions/project/ && cp -L ../../../${extSource}/jobs.config.json . && `
+        ? `([ -d "../../../${extSource}/public" ] && cp -rL ../../../${extSource}/public/* public/) || true && cp -rL ../../../${extSource}/* src/extensions/project/ && cp -L ../../../${extSource}/jobs.config.json . && `
         : ''
     }npx open-next build && rm -rf .open-next/server-functions/default/.aiready .open-next/server-functions/default/.sst .open-next/server-functions/default/.turbo .open-next/server-functions/default/.github .open-next/server-functions/default/.husky`,
     server: {

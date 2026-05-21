@@ -9,6 +9,7 @@ export interface IFrameworkConfig {
     name: string;
     shortName: string;
     logo: string;
+    logoBanner: string;
     favicon: string;
   };
   theme: {
@@ -27,6 +28,7 @@ export const frameworkConfig: IFrameworkConfig = {
     name: process.env.NEXT_PUBLIC_APP_NAME || 'ClawCenter',
     shortName: process.env.NEXT_PUBLIC_APP_SHORT_NAME || 'Claw',
     logo: process.env.NEXT_PUBLIC_APP_LOGO || '/icon.png',
+    logoBanner: process.env.NEXT_PUBLIC_APP_LOGO_BANNER || '',
     favicon: '/favicon.ico',
   },
   theme: {
