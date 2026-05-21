@@ -26,7 +26,7 @@ describe('Realtime Auth Handler', () => {
   it('handles valid token and returns expected SST authorization structure', async () => {
     const event = { ...baseEvent, token: 'valid-token-12345' };
 
-    const response = (await handler(event, mockContext, () => {})) as any;
+    const response = (await handler(event, mockContext)) as any;
 
     expect(response.isAuthenticated).toBe(true);
     expect(response.principalId).toBeDefined();
@@ -48,7 +48,7 @@ describe('Realtime Auth Handler', () => {
       queryStringParameters: { token: 'valid-token-in-qs' },
     };
 
-    const response = (await handler(event, mockContext, () => {})) as any;
+    const response = (await handler(event, mockContext)) as any;
 
     expect(response.isAuthenticated).toBe(true);
   });
@@ -56,7 +56,7 @@ describe('Realtime Auth Handler', () => {
   it('denies access for short/invalid tokens (returns empty policies)', async () => {
     const event = { ...baseEvent, token: 'short' };
 
-    const response = (await handler(event, mockContext, () => {})) as any;
+    const response = (await handler(event, mockContext)) as any;
 
     expect(response.isAuthenticated).toBe(true);
 
