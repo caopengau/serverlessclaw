@@ -24,7 +24,9 @@ const readPrompt = (filename: string) => {
     }
   }
 
-  console.error(`[Prompts] Failed to read prompt file: ${filename}. Searched in ${candidates.length} locations.`);
+  console.error(
+    `[Prompts] Failed to read prompt file: ${filename}. Searched in ${candidates.length} locations.`
+  );
   return '';
 };
 
