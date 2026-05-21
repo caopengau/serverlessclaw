@@ -89,7 +89,7 @@ audit-configuration: ## [AUDIT] Audit deployment configuration for security and 
 		$(call log_success,✓ No high-severity vulnerabilities); \
 	\
 	$(call log_info,[AUDIT 5/5] Framework Purity Check); \
-	PRODUCT_LEAKS=$$(grep -ri "$(BANNED_IMPORT_STRINGS)" framework --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "\.sst" | grep -v ".aiready" | grep -v "node_modules" | grep -v "\.next" | grep -v "\.open-next" | grep -v "dist" | grep -v "// " | wc -l); \
+	PRODUCT_LEAKS=$$(grep -ri "$(BANNED_IMPORT_STRINGS)" packages/core packages/infra packages/primitives packages/hooks packages/sdk packages/ui apps/dashboard apps/cli --include="*.ts" --include="*.tsx" --include="*.json" 2>/dev/null | grep -v "\.sst" | grep -v ".aiready" | grep -v "node_modules" | grep -v "\.next" | grep -v "\.open-next" | grep -v "dist" | grep -v "coverage" | grep -v "// " | wc -l); \
 	if [ "$$PRODUCT_LEAKS" -eq 0 ]; then \
 		$(call log_success,✓ Framework is project-agnostic); \
 	else \
@@ -103,7 +103,7 @@ check-framework-purity: ## [COMPLIANCE] Verify framework contains no product-spe
 	@$(call load_env); \
 	\
 	$(call log_info,Scanning framework source code for product leaks...); \
-	VIOLATIONS=$$(find framework -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \) \
+	VIOLATIONS=$$(find packages/core packages/infra packages/primitives packages/hooks packages/sdk packages/ui apps/dashboard apps/cli -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.json" \) \
 		! -path "*/node_modules/*" \
 		! -path "*/.sst/*" \
 		! -path "*/.aiready/*" \
@@ -117,7 +117,7 @@ check-framework-purity: ## [COMPLIANCE] Verify framework contains no product-spe
 		$(call log_success,✓ Framework is clean - ready for OSS extraction); \
 	else \
 		$(call log_warning,Found $$VIOLATIONS file(s) with project leaks:); \
-		find framework -type f \( -name "*.ts" -o -name "*.tsx" \) \
+		find packages/core packages/infra packages/primitives packages/hooks packages/sdk packages/ui apps/dashboard apps/cli -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.json" \) \
 			! -path "*/node_modules/*" \
 			! -path "*/.sst/*" \
 			! -path "*/.next/*" \
