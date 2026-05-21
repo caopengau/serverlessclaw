@@ -15,7 +15,7 @@ export async function init(hubConfig: {
   try {
     // Attempt to load the project-specific extension entry point.
     // The build process copies the project's dashboard code into this subdirectory.
-    // @ts-ignore - Dynamic import path that may not exist during framework-only builds
+    // @ts-expect-error - Dynamic import path that may not exist during framework-only builds
     const projectExt = await import('./project/index');
 
     if (projectExt && typeof projectExt.init === 'function') {
