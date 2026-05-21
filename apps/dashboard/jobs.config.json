@@ -1,0 +1,109 @@
+[
+  {
+    "jobType": "xauusd_training",
+    "displayName": "Gold Spot ML Trainer",
+    "description": "Engineers high-dimensional indicators and trains an early-stopped LightGBM model.",
+    "inputs": [
+      {
+        "name": "fee",
+        "label": "Model Fee Point Spread",
+        "type": "number",
+        "default": 0.003,
+        "min": 0.001,
+        "max": 0.005,
+        "step": 0.001,
+        "helpText": "USD currency point spread per executed trade (e.g. 0.001, 0.003, 0.005)."
+      },
+      {
+        "name": "model_name",
+        "label": "Output Model Filename",
+        "type": "text",
+        "default": "xauusd_lgbm_model_fee_0.3.bin"
+      }
+    ],
+    "executor": {
+      "type": "subprocess",
+      "command": ". venv/bin/activate && python features.py --fee {{fee}} --output xauusd_m1_features_fee_{{fee}}.parquet && python train.py --features ../data/processed/xauusd_m1_features_fee_{{fee}}.parquet --model-name {{model_name}} --run-source dashboard --fee {{fee}}",
+      "cwd": "packages/goldex-core/ml",
+      "outputPath": "../models/{{model_name}}"
+    },
+    "metricsSchema": [
+      {
+        "key": "accuracy",
+        "label": "Out-of-sample Accuracy",
+        "format": "percentage",
+        "regexPattern": "Out-of-sample Accuracy:\\s+(\\d+\\.\\d+)"
+      },
+      {
+        "key": "best_iteration",
+        "label": "Best Learning Iteration",
+        "format": "integer",
+        "regexPattern": "best iteration is:\\s+\\[(\\d+)\\]"
+      }
+    ]
+  },
+  {
+    "jobType": "xauusd_simulation",
+    "displayName": "Gold Execution Backtest Simulator",
+    "description": "Simulates historical execution under custom entry/exit confidence thresholds and pips fees.",
+    "inputs": [
+      {
+        "name": "model",
+        "label": "Target Model Binary",
+        "type": "text",
+        "default": "model://latest"
+      },
+      {
+        "name": "features",
+        "label": "Target Features File",
+        "type": "text",
+        "default": "xauusd_m1_features_fee_0.3.parquet"
+      },
+      {
+        "name": "threshold",
+        "label": "Confidence Threshold (T)",
+        "type": "number",
+        "default": 0.45,
+        "min": 0.35,
+        "max": 0.6,
+        "step": 0.01,
+        "helpText": "Probability threshold required to trigger Buy or Sell trade entry (35% to 60%)."
+      },
+      {
+        "name": "fee",
+        "label": "Spread Fee (USD)",
+        "type": "number",
+        "default": 0.003,
+        "min": 0.001,
+        "max": 0.005,
+        "step": 0.001,
+        "helpText": "The USD point spread cost per trade."
+      }
+    ],
+    "executor": {
+      "type": "subprocess",
+      "command": ". venv/bin/activate && python inference_sim.py --model {{model}} --features {{features}} --threshold {{threshold}} --fee {{fee}}",
+      "cwd": "packages/goldex-core/ml"
+    },
+    "metricsSchema": [
+      {
+        "key": "total_trades",
+        "label": "Total Trades Volume",
+        "format": "integer",
+        "regexPattern": "Total Trades Executed:\\s+([\\d,]+)"
+      },
+      {
+        "key": "win_rate",
+        "label": "Trading Win Rate",
+        "format": "percentage",
+        "regexPattern": "Win Rate:\\s+(\\d+\\.\\d+)%"
+      },
+      {
+        "key": "cumulative_return",
+        "label": "Cumulative Net Return",
+        "format": "percentage",
+        "regexPattern": "Cumulative Net Return:\\s+([+-]?\\d+\\.\\d+)%"
+      }
+    ]
+  }
+]

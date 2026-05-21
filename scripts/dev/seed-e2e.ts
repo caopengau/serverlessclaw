@@ -42,9 +42,9 @@ async function seed() {
     const users = [
       { id: 'dashboard-user', role: 'admin', password: process.env.DASHBOARD_PASSWORD || 'claw123' },
       { id: 'superadmin', role: 'owner', password: 'test-password' },
-      { id: 'admin@goldex.clawmore.ai', role: 'admin', password: 'claw123' },
-      { id: 'trader@goldex.clawmore.ai', role: 'member', password: 'goldex_trader_2026' },
-      { id: 'auditor@goldex.clawmore.ai', role: 'viewer', password: 'compliance_first_001' },
+      { id: 'test-admin', role: 'admin', password: 'test-password-123' },
+      { id: 'test-member', role: 'member', password: 'test-password-456' },
+      { id: 'test-viewer', role: 'viewer', password: 'test-password-789' },
     ];
 
     for (const u of users) {
