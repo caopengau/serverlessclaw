@@ -84,7 +84,7 @@ export function createDashboard(
     architecture: 'arm64',
     buildCommand: `mkdir -p src/extensions/hub && find src/extensions/hub -mindepth 1 -maxdepth 1 ! -name 'index.ts' -exec rm -rf {} + && ${
       extSource ? `cp -rL ${extSource} src/extensions/hub/ && ` : ''
-    }npx open-next build`,
+    }npx open-next build && rm -rf .open-next/server-functions/default/.aiready .open-next/server-functions/default/.sst .open-next/server-functions/default/.turbo .open-next/server-functions/default/.github .open-next/server-functions/default/.husky`,
     server: {
       memory: AGENT_CONFIG.memory.LARGE,
       timeout: AGENT_CONFIG.timeout.LONG,
