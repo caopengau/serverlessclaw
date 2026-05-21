@@ -336,15 +336,15 @@ export default function Sidebar() {
         </button>
 
         {/* Navigation */}
-        <nav className=\"flex-1 space-y-0 text-sm overflow-y-auto overflow-x-hidden custom-scrollbar\">
+        <nav className="flex-1 space-y-0 text-sm overflow-y-auto overflow-x-hidden custom-scrollbar">
           {mounted &&
             navItems.map((item, idx) => {
               if ('type' in item && item.type === 'header') {
-                if (isCollapsed) return <div key={idx} className=\"h-px bg-border/40 my-1.5 mx-2\" />;
+                if (isCollapsed) return <div key={idx} className="h-px bg-border/40 my-1.5 mx-2" />;
                 return (
                   <div
                     key={idx}
-                    className=\"text-muted-foreground px-2 text-[9px] tracking-[0.2em] font-black mb-1 pt-2 first:pt-0 uppercase\"
+                    className="text-muted-foreground px-2 text-[9px] tracking-[0.2em] font-black mb-1 pt-2 first:pt-0 uppercase"
                   >
                     {item.label}
                   </div>
