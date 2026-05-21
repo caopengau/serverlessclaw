@@ -351,94 +351,94 @@ export default function Sidebar() {
                 );
               }
 
-            const isActive = item.activePaths
-              ? item.activePaths.some(
-                  (p) => p === pathname || (p !== ROUTES.HOME && pathname?.startsWith(p))
-                )
-              : pathname === item.href;
+              const isActive = item.activePaths
+                ? item.activePaths.some(
+                    (p) => p === pathname || (p !== ROUTES.HOME && pathname?.startsWith(p))
+                  )
+                : pathname === item.href;
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let Icon: any = item.icon;
-            if (typeof Icon === 'string') {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const iconMap: Record<string, React.ComponentType<any>> = {
-                Database: Database,
-                Activity: Activity,
-                TrendingUp: TrendingUp,
-              };
-              Icon = iconMap[Icon] || Activity;
-            }
+              let Icon: any = item.icon;
+              if (typeof Icon === 'string') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const iconMap: Record<string, React.ComponentType<any>> = {
+                  Database: Database,
+                  Activity: Activity,
+                  TrendingUp: TrendingUp,
+                };
+                Icon = iconMap[Icon] || Activity;
+              }
 
-            const navLink = (
-              <Link
-                href={item.href!}
-                className={`flex items-center gap-3 rounded transition-all group relative ${
-                  isActive
-                    ? 'bg-cyber-green/10 text-cyber-green'
-                    : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground'
-                } ${isCollapsed ? 'justify-center py-0.5' : 'justify-between px-2 py-0.5'}`}
-              >
-                {isActive && (
-                  <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-cyber-green rounded-full shadow-[0_0_8px_rgba(0,255,157,0.5)]" />
-                )}
-                <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-                  {Icon && (
-                    <div className="w-8 h-6 flex items-center justify-center shrink-0">
-                      <Icon
-                        size={14}
-                        className={
-                          isActive
-                            ? 'text-cyber-green'
-                            : 'text-muted-foreground group-hover:text-foreground'
-                        }
-                      />
-                    </div>
+              const navLink = (
+                <Link
+                  href={item.href!}
+                  className={`flex items-center gap-3 rounded transition-all group relative ${
+                    isActive
+                      ? 'bg-cyber-green/10 text-cyber-green'
+                      : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground'
+                  } ${isCollapsed ? 'justify-center py-0.5' : 'justify-between px-2 py-0.5'}`}
+                >
+                  {isActive && (
+                    <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-cyber-green rounded-full shadow-[0_0_8px_rgba(0,255,157,0.5)]" />
                   )}
-                  {!isCollapsed && (
-                    <Typography
-                      variant="caption"
-                      weight={isActive ? 'bold' : 'medium'}
-                      className={`${isActive ? 'text-cyber-green' : ''} text-xs tracking-tight whitespace-nowrap`}
-                    >
-                      {item.label}
-                    </Typography>
-                  )}
-                </div>
-                {!isCollapsed && isActive && (
-                  <ChevronRight size={10} className="text-cyber-green" />
-                )}
-              </Link>
-            );
-
-            if (isCollapsed) {
-              return (
-                <CyberTooltip
-                  key={idx}
-                  position="right"
-                  showIcon={false}
-                  className="w-full"
-                  content={
-                    <div className="flex flex-col gap-1">
+                  <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+                    {Icon && (
+                      <div className="w-8 h-6 flex items-center justify-center shrink-0">
+                        <Icon
+                          size={14}
+                          className={
+                            isActive
+                              ? 'text-cyber-green'
+                              : 'text-muted-foreground group-hover:text-foreground'
+                          }
+                        />
+                      </div>
+                    )}
+                    {!isCollapsed && (
                       <Typography
                         variant="caption"
-                        weight="bold"
-                        className="text-cyber-green text-[10px] uppercase tracking-wider"
+                        weight={isActive ? 'bold' : 'medium'}
+                        className={`${isActive ? 'text-cyber-green' : ''} text-xs tracking-tight whitespace-nowrap`}
                       >
                         {item.label}
                       </Typography>
-                      <Typography className="text-[9px] leading-tight text-foreground/70">
-                        {item.subtitle}
-                      </Typography>
-                    </div>
-                  }
-                >
-                  {navLink}
-                </CyberTooltip>
+                    )}
+                  </div>
+                  {!isCollapsed && isActive && (
+                    <ChevronRight size={10} className="text-cyber-green" />
+                  )}
+                </Link>
               );
-            }
 
-            return <React.Fragment key={idx}>{navLink}</React.Fragment>;
-          })}
+              if (isCollapsed) {
+                return (
+                  <CyberTooltip
+                    key={idx}
+                    position="right"
+                    showIcon={false}
+                    className="w-full"
+                    content={
+                      <div className="flex flex-col gap-1">
+                        <Typography
+                          variant="caption"
+                          weight="bold"
+                          className="text-cyber-green text-[10px] uppercase tracking-wider"
+                        >
+                          {item.label}
+                        </Typography>
+                        <Typography className="text-[9px] leading-tight text-foreground/70">
+                          {item.subtitle}
+                        </Typography>
+                      </div>
+                    }
+                  >
+                    {navLink}
+                  </CyberTooltip>
+                );
+              }
+
+              return <React.Fragment key={idx}>{navLink}</React.Fragment>;
+            })}
         </nav>
 
         {/* Footer */}

@@ -85,18 +85,17 @@ const nextConfig = {
       if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.startsWith('.')) {
         extensionPath = path.resolve(__dirname, process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS);
       } else {
-        extensionPath = path.resolve(__dirname, '../../../' + process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS);
+        extensionPath = path.resolve(
+          __dirname,
+          '../../../' + process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS
+        );
       }
     }
 
     let extensionDir = null;
     if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
       if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.startsWith('.')) {
-        extensionDir = path.resolve(
-          __dirname,
-          process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS,
-          '../..'
-        );
+        extensionDir = path.resolve(__dirname, process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS, '../..');
       } else {
         extensionDir = path.resolve(
           __dirname,
