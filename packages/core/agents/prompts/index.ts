@@ -6,12 +6,26 @@ const currentFile = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFile);
 
 const readPrompt = (filename: string) => {
-  try {
-    return fs.readFileSync(path.join(currentDir, filename), 'utf-8');
-  } catch (err) {
-    console.error(`Failed to read prompt file: ${filename}`, err);
-    return '';
+  const candidates = [
+    path.join(currentDir, filename),
+    path.join(process.cwd(), 'packages/core/agents/prompts', filename),
+    path.join(process.cwd(), 'framework/packages/core/agents/prompts', filename),
+    // OpenNext standalone path
+    path.join(process.cwd(), 'apps/dashboard/packages/core/agents/prompts', filename),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        return fs.readFileSync(candidate, 'utf-8');
+      }
+    } catch {
+      // Continue to next candidate
+    }
   }
+
+  console.error(`[Prompts] Failed to read prompt file: ${filename}. Searched in ${candidates.length} locations.`);
+  return '';
 };
 
 export const SUPERCLAW_SYSTEM_PROMPT = readPrompt('superclaw.md');

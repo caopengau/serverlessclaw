@@ -20,7 +20,7 @@ export function ExtensionLoader() {
         const extension = await import('virtual-extensions');
 
         if (extension && typeof extension.init === 'function') {
-          extension.init({
+          await extension.init({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             registerSidebar: registerSidebarExtension as any,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

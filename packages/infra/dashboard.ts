@@ -80,12 +80,13 @@ export function createDashboard(
       NEXT_PUBLIC_ACCENT_COLOR_DARK:
         options.theme?.accentColorDark || process.env.NEXT_PUBLIC_ACCENT_COLOR_DARK || '',
       NEXT_PUBLIC_APP_TITLE: options.theme?.appTitle || process.env.NEXT_PUBLIC_APP_TITLE || '',
+      ...(options.extensionSource
+        ? { NEXT_PUBLIC_ACTIVE_EXTENSIONS: `${options.extensionSource}/index.tsx` }
+        : {}),
     },
     architecture: 'arm64',
-    buildCommand: `mkdir -p src/extensions/hub/project && find src/extensions/hub -mindepth 1 -maxdepth 1 ! -name 'index.ts' ! -name 'project' -exec rm -rf {} + && ${
-      extSource
-        ? `cp -rL ${extSource}/* src/extensions/hub/project/ && cp -L ${extSource}/jobs.config.json . && `
-        : ''
+    buildCommand: `find src/extensions/ -mindepth 1 -maxdepth 1 ! -name 'index.ts' ! -name 'messages' -exec rm -rf {} + && ${
+      extSource ? `cp -L ../../../${extSource}/jobs.config.json . && ` : ''
     }npx open-next build && rm -rf .open-next/server-functions/default/.aiready .open-next/server-functions/default/.sst .open-next/server-functions/default/.turbo .open-next/server-functions/default/.github .open-next/server-functions/default/.husky`,
     server: {
       memory: AGENT_CONFIG.memory.LARGE,
