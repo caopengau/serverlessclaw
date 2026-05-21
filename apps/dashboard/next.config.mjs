@@ -64,6 +64,11 @@ const nextConfig = {
       'node_modules/@swifttype/opentelemetry-instrumentation-playwright',
       'node_modules/vitest',
       'node_modules/playwright',
+      '**/.next/cache/**',
+      '**/.next/dev/**',
+      '**/.sst/**',
+      '**/.turbo/**',
+      '**/node_modules/.cache/**',
     ],
   },
   webpack: (config, { isServer }) => {
