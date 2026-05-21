@@ -2,8 +2,8 @@
 # Makefile.shared: Common macros, variables, and environment configuration (FRAMEWORK)
 ###############################################################################
 
-ifndef _FRAMEWORK_SHARED_MK_INCLUDED
-_FRAMEWORK_SHARED_MK_INCLUDED := 1
+ifndef _SERVERLESSCLAW_SHARED_MK_INCLUDED
+_SERVERLESSCLAW_SHARED_MK_INCLUDED := 1
 
 # Explicitly use bash for all shell commands to ensure macro robustness
 SHELL := /bin/bash
@@ -394,15 +394,15 @@ endef
 
 .PHONY: manifest clean-ddb seed-e2e
 
-clean-ddb: ## Clean up temporary E2E/test data from DynamoDB
+clean-ddb:: ## Clean up temporary E2E/test data from DynamoDB
 	@$(call log_step,Cleaning DynamoDB test data for $(ENV)...)
 	@$(call load_env); $(SST) shell --stage $(ENV) -- npx tsx $(SCRIPTS_DIR)/dev/clean-ddb.ts
 
-seed-e2e: ## Seed DynamoDB with data for E2E tests
+seed-e2e:: ## Seed DynamoDB with data for E2E tests
 	@$(call log_step,Seeding DynamoDB for E2E tests in $(ENV)...)
 	@$(call load_env); $(SST) shell --stage $(ENV) -- npx tsx $(SCRIPTS_DIR)/dev/seed-e2e.ts
 
-manifest: ## Generate a failure manifest from CI logs (LOG_DIR, OUTPUT_DIR)
+manifest:: ## Generate a failure manifest from CI logs (LOG_DIR, OUTPUT_DIR)
 	@$(call log_step,Generating failure manifest...)
 	@LOG_DIR=$(or $(LOG_DIR),/tmp/ci-logs); \
 	OUTPUT_DIR=$(or $(OUTPUT_DIR),.); \
@@ -410,14 +410,14 @@ manifest: ## Generate a failure manifest from CI logs (LOG_DIR, OUTPUT_DIR)
 
 .PHONY: clean clean-all
 
-clean: ## Remove temporary build and test artifacts (.turbo, .next, .sst, coverage)
+clean:: ## Remove temporary build and test artifacts (.turbo, .next, .sst, coverage)
 	@$(call log_step,Cleaning temporary artifacts...)
 	@rm -rf .turbo .sst/artifacts coverage test-results
 	@find . -name ".aiready" -type d -prune -exec rm -rf {} +
 	@find . -name ".next" -type d -prune -exec rm -rf {} +
 	@$(call log_success,Cleaned build artifacts.)
 
-clean-all: clean ## Remove all artifacts including node_modules and pnpm store pruning
+clean-all:: clean ## Remove all artifacts including node_modules and pnpm store pruning
 	@$(call log_step,Deep cleaning repository...)
 	@rm -rf node_modules .sst
 	@find . -name "node_modules" -type d -prune -exec rm -rf {} +

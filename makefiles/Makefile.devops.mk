@@ -1,7 +1,12 @@
 ###############################################################################
-# Makefile.devops: DevOps verification and compliance targets
+# Makefile.devops: DevOps verification and compliance targets (FRAMEWORK)
 ###############################################################################
 include makefiles/Makefile.shared.mk
+
+# DevOps Configuration (Override these in product Makefile if needed)
+PRODUCT_NAME ?= Product
+BANNED_IMPORT_STRINGS ?= voltx\|VoltX\|goldex\|GoldEx
+BANNED_IMPORT_PATTERNS ?= from.*packages/(voltx|goldex)|from.*apps/(voltx|goldex)|import.*(voltx|goldex)
 
 .PHONY: verify-agent-compliance verify-devops-standards cleanup-stale-resources audit-configuration check-framework-purity
 
@@ -84,20 +89,20 @@ audit-configuration: ## [AUDIT] Audit deployment configuration for security and 
 		$(call log_success,✓ No high-severity vulnerabilities); \
 	\
 	$(call log_info,[AUDIT 5/5] Framework Purity Check); \
-	VOLTX_IN_FRAMEWORK=$$(grep -r "voltx\|VoltX" framework --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "\.sst" | grep -v ".aiready" | grep -v "node_modules" | grep -v "// " | wc -l); \
-	if [ "$$VOLTX_IN_FRAMEWORK" -eq 0 ]; then \
-		$(call log_success,✓ Framework is VoltX-free); \
+	PRODUCT_LEAKS=$$(grep -ri "$(BANNED_IMPORT_STRINGS)" framework --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "\.sst" | grep -v ".aiready" | grep -v "node_modules" | grep -v "\.next" | grep -v "\.open-next" | grep -v "dist" | grep -v "// " | wc -l); \
+	if [ "$$PRODUCT_LEAKS" -eq 0 ]; then \
+		$(call log_success,✓ Framework is project-agnostic); \
 	else \
-		$(call log_warning,⚠ Found $$VOLTX_IN_FRAMEWORK VoltX references in framework); \
+		$(call log_warning,⚠ Found $$PRODUCT_LEAKS project-specific references in framework); \
 	fi; \
 	\
 	$(call log_success,Configuration audit completed)
 
-check-framework-purity: ## [COMPLIANCE] Verify framework contains no VoltX-specific code
+check-framework-purity: ## [COMPLIANCE] Verify framework contains no product-specific code
 	@$(call log_step,Checking framework purity for OSS compatibility...)
 	@$(call load_env); \
 	\
-	$(call log_info,Scanning framework source code for VoltX imports/references...); \
+	$(call log_info,Scanning framework source code for product leaks...); \
 	VIOLATIONS=$$(find framework -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \) \
 		! -path "*/node_modules/*" \
 		! -path "*/.sst/*" \
@@ -106,19 +111,19 @@ check-framework-purity: ## [COMPLIANCE] Verify framework contains no VoltX-speci
 		! -path "*/dist/*" \
 		! -path "*/build/*" \
 		! -path "*/coverage/*" \
-		-exec grep -l "from.*packages/voltx\|from.*apps/voltx\|import.*voltx\|import.*VoltX" {} \; 2>/dev/null | wc -l); \
+		-exec grep -lE "$(BANNED_IMPORT_PATTERNS)" {} \; 2>/dev/null | wc -l); \
 	\
 	if [ "$$VIOLATIONS" -eq 0 ]; then \
 		$(call log_success,✓ Framework is clean - ready for OSS extraction); \
 	else \
-		$(call log_warning,Found $$VIOLATIONS file(s) with VoltX imports:); \
+		$(call log_warning,Found $$VIOLATIONS file(s) with project leaks:); \
 		find framework -type f \( -name "*.ts" -o -name "*.tsx" \) \
 			! -path "*/node_modules/*" \
 			! -path "*/.sst/*" \
 			! -path "*/.next/*" \
 			! -path "*/dist/*" \
-			-exec grep -l "from.*packages/voltx\|from.*apps/voltx\|import.*voltx" {} \; 2>/dev/null | head -5; \
-		$(call log_error,Framework must not import from VoltX packages for OSS extraction); \
+			-exec grep -lE "$(BANNED_IMPORT_PATTERNS)" {} \; 2>/dev/null | head -5; \
+		$(call log_error,Framework must not import from project-specific packages for OSS extraction); \
 		exit 1; \
 	fi
 
