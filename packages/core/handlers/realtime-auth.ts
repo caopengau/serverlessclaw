@@ -6,7 +6,7 @@ import { logger } from '../lib/logger';
  * Enhanced SST Realtime Authorizer for Diagnostics.
  * Logs full event and implements robust token extraction.
  */
-export const handler = async (event: unknown, context: unknown, callback: unknown) => {
+export const handler = async (event: unknown, context: unknown) => {
   // 1. Log EVERYTHING for diagnostics
   logger.info('[RealtimeAuth] RAW_EVENT:', JSON.stringify(event));
 
@@ -77,9 +77,5 @@ export const handler = async (event: unknown, context: unknown, callback: unknow
   // Inject token so SST's internal logic might find it
   if (token && !typedEvent.token) typedEvent.token = token;
 
-  return (auth as (e: unknown, c: unknown, cb: unknown) => Promise<unknown>)(
-    event,
-    context,
-    callback
-  );
+  return (auth as (e: unknown, c: unknown) => Promise<unknown>)(event, context);
 };

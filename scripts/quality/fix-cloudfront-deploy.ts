@@ -322,9 +322,10 @@ function handler(event) {
     isStatic = !!staticExts[ext];
   }
   if (isStatic) {
+    var originPath = (uri.startsWith("/_next/") || uri.startsWith("/_assets/")) ? "/_assets" : "";
     cf.updateRequestOrigin({
       domainName: "${s3Domain}",
-      originPath: "/_assets"
+      originPath: originPath
     });
   } else {
     cf.updateRequestOrigin({

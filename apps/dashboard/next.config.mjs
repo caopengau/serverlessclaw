@@ -80,13 +80,32 @@ const nextConfig = {
       use: 'raw-loader',
     });
     // Resolve extension bridge dynamically based on the active local workspace extension
-    const extensionPath = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS
-      ? path.resolve(__dirname, '../../../' + process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS)
-      : path.resolve(__dirname, './src/extensions/index.ts');
+    let extensionPath = path.resolve(__dirname, './src/extensions/index.ts');
+    if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
+      if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.startsWith('.')) {
+        extensionPath = path.resolve(__dirname, process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS);
+      } else {
+        extensionPath = path.resolve(__dirname, '../../../' + process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS);
+      }
+    }
 
-    const extensionDir = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS
-      ? path.resolve(__dirname, '../../../', process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS, '../..')
-      : null;
+    let extensionDir = null;
+    if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
+      if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.startsWith('.')) {
+        extensionDir = path.resolve(
+          __dirname,
+          process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS,
+          '../..'
+        );
+      } else {
+        extensionDir = path.resolve(
+          __dirname,
+          '../../../',
+          process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS,
+          '../..'
+        );
+      }
+    }
 
     const messagesEnPath =
       extensionDir && fs.existsSync(path.join(extensionDir, 'messages/en.json'))
