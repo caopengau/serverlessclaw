@@ -373,20 +373,25 @@ async function triggerRebuild() {
   }
 }
 
+import RoleGuard from '@/components/RoleGuard';
+import { UserRole } from '@claw/core/lib/types/common';
+
 export default async function SettingsPage() {
   const config = await getConfig();
 
   return (
-    <div className="flex-1 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-green/5 via-transparent to-transparent">
-      <PageHeader titleKey="SETTINGS_TITLE" subtitleKey="SETTINGS_SUBTITLE" />
+    <RoleGuard requiredRoles={[UserRole.ADMIN, UserRole.OWNER]}>
+      <div className="flex-1 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-green/5 via-transparent to-transparent">
+        <PageHeader titleKey="SETTINGS_TITLE" subtitleKey="SETTINGS_SUBTITLE" />
 
-      <div className="max-w-4xl space-y-10">
-        <SettingsForm config={config} updateConfig={updateConfig} />
+        <div className="max-w-4xl space-y-10">
+          <SettingsForm config={config} updateConfig={updateConfig} />
 
-        <SettingsClient triggerRebuild={triggerRebuild} />
+          <SettingsClient triggerRebuild={triggerRebuild} />
 
-        <DeploySyncStatus />
+          <DeploySyncStatus />
+        </div>
       </div>
-    </div>
+    </RoleGuard>
   );
 }

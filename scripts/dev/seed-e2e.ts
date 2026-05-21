@@ -9,8 +9,14 @@ import { getMemoryTableName, getTraceTableName } from '../../packages/core/lib/u
 import { GapStatus } from '../../packages/core/lib/types/agent';
 import { MEMORY_KEYS } from '../../packages/core/lib/constants';
 
+import { createHash } from 'crypto';
+
 async function seed() {
   console.log('🌱 Starting E2E Data Seeding...');
+
+  function hashPassword(userId: string, password: string): string {
+    return createHash('sha256').update(`${userId}:${password}`).digest('hex');
+  }
 
   const memoryTable = getMemoryTableName();
   const traceTable = getTraceTableName();
@@ -34,8 +40,11 @@ async function seed() {
     // 0. Seed User Identities
     console.log('👤 Seeding E2E Users...');
     const users = [
-      { id: 'dashboard-user', role: 'admin' },
-      { id: 'superadmin', role: 'owner' },
+      { id: 'dashboard-user', role: 'admin', password: process.env.DASHBOARD_PASSWORD || 'claw123' },
+      { id: 'superadmin', role: 'owner', password: 'test-password' },
+      { id: 'admin@goldex.clawmore.ai', role: 'admin', password: 'claw123' },
+      { id: 'trader@goldex.clawmore.ai', role: 'member', password: 'goldex_trader_2026' },
+      { id: 'auditor@goldex.clawmore.ai', role: 'viewer', password: 'compliance_first_001' },
     ];
 
     for (const u of users) {
@@ -49,6 +58,7 @@ async function seed() {
             role: u.role,
             workspaceIds: ['default'],
             authProvider: 'dashboard',
+            hashedPassword: hashPassword(u.id, u.password),
             createdAt: now,
             lastActiveAt: now,
           },
