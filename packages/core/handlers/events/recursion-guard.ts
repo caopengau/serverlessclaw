@@ -9,9 +9,9 @@ import { emitMetrics, METRICS } from '../../lib/metrics';
  * Returns true if limit is exceeded (and event is routed to DLQ), false otherwise.
  */
 export async function checkRecursionLimit(
-  event: any,
+  event: unknown,
   detailType: string,
-  eventDetail: any,
+  eventDetail: unknown,
   traceId: string,
   sessionId: string,
   workspaceId?: string
@@ -28,7 +28,7 @@ export async function checkRecursionLimit(
       `[RECURSION] Limit exceeded for trace ${traceId} (Depth: ${currentDepth}, Limit: ${recursionLimit})`
     );
     await routeToDlq(
-      event,
+      event as { 'detail-type': string; detail: Record<string, unknown>; id?: string },
       detailType,
       'SYSTEM',
       traceId,

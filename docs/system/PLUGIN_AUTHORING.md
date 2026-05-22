@@ -75,11 +75,13 @@ export const myPlugin: ClawPlugin = {
         required: ['target'],
         additionalProperties: false,
       },
-      connectionProfile: ['my-product'],  // resource connections for topology
-      requiresApproval: true,             // set false only for read-only tools
-      sensitive: true,                    // flags tool for mandatory approval/RBAC
+      connectionProfile: ['my-product'], // resource connections for topology
+      requiresApproval: true, // set false only for read-only tools
+      sensitive: true, // flags tool for mandatory approval/RBAC
       requiredPermissions: ['my-product:write'],
-      execute: async (args) => { /* implementation */ },
+      execute: async (args) => {
+        /* implementation */
+      },
     },
   },
 
@@ -182,40 +184,43 @@ CLAW_OPTIONAL_PLUGIN_MODULES="@my-org/integration-my-product" pnpm test
 
 Full `ClawPlugin` type is exported from `@serverlessclaw/sdk`:
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | `string` | Unique plugin identifier |
-| `agents` | `Record<string, IAgentConfig>` | Agent configs keyed by agent id |
-| `tools` | `Record<string, ITool>` | Tool implementations keyed by tool name |
-| `mcpServers` | `Record<string, MCPServerConfig>` | Optional MCP server configs |
-| `prompts` | `Record<string, string>` | Optional system prompt overrides |
-| `memoryProviders` | `Record<string, IMemory>` | Optional custom memory backends |
-| `llmProviders` | `Record<string, IProvider>` | Optional custom LLM providers |
-| `webhooks` | `Record<string, WebhookConfig>` | Optional inbound webhook handlers |
-| `approvalPolicies` | `Record<string, ApprovalPolicy>` | Optional custom approval policies |
-| `sidebarExtensions` | `unknown[]` | Optional dashboard sidebar extensions |
-| `layoutExtensions` | `unknown[]` | Optional dashboard layout extensions |
-| `onInit` | `() => Promise<void>` | Called once on framework startup |
+| Field               | Type                              | Description                             |
+| ------------------- | --------------------------------- | --------------------------------------- |
+| `id`                | `string`                          | Unique plugin identifier                |
+| `agents`            | `Record<string, IAgentConfig>`    | Agent configs keyed by agent id         |
+| `tools`             | `Record<string, ITool>`           | Tool implementations keyed by tool name |
+| `mcpServers`        | `Record<string, MCPServerConfig>` | Optional MCP server configs             |
+| `prompts`           | `Record<string, string>`          | Optional system prompt overrides        |
+| `memoryProviders`   | `Record<string, IMemory>`         | Optional custom memory backends         |
+| `llmProviders`      | `Record<string, IProvider>`       | Optional custom LLM providers           |
+| `webhooks`          | `Record<string, WebhookConfig>`   | Optional inbound webhook handlers       |
+| `approvalPolicies`  | `Record<string, ApprovalPolicy>`  | Optional custom approval policies       |
+| `sidebarExtensions` | `unknown[]`                       | Optional dashboard sidebar extensions   |
+| `layoutExtensions`  | `unknown[]`                       | Optional dashboard layout extensions    |
+| `onInit`            | `() => Promise<void>`             | Called once on framework startup        |
 
 ## 6. Production Deployment
 
 Set the environment variable in your deployment target:
 
 **AWS Lambda (SST)**
+
 ```bash
 # .env.prod
 CLAW_OPTIONAL_PLUGIN_MODULES=@my-org/integration-my-product
 ```
 
 **Docker**
+
 ```dockerfile
 ENV CLAW_OPTIONAL_PLUGIN_MODULES="@my-org/integration-my-product"
 ```
 
 **GitHub Actions**
+
 ```yaml
 env:
-  CLAW_OPTIONAL_PLUGIN_MODULES: "@my-org/integration-my-product"
+  CLAW_OPTIONAL_PLUGIN_MODULES: '@my-org/integration-my-product'
 ```
 
 ## 7. Conventions

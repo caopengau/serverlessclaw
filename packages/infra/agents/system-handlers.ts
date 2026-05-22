@@ -41,7 +41,7 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
         actions: ['dynamodb:*'],
         resources: [
           memoryTable.nodes.table.arn,
-          memoryTable.nodes.table.arn.apply((arn) => `${arn}/index/*`),
+          memoryTable.nodes.table.arn.apply((arn: string) => `${arn}/index/*`),
         ],
       },
     ],

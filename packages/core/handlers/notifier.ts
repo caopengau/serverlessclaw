@@ -211,7 +211,9 @@ async function deliverTelegram(
   attachments: Attachment[],
   options: { label: string; value: string }[]
 ): Promise<void> {
-  const res = Resource as any;
+  const res = Resource as unknown as {
+    TelegramBotToken?: { value: string };
+  };
   const token = res.TelegramBotToken?.value;
   if (!token) return;
 
@@ -265,7 +267,9 @@ async function deliverDiscord(
   attachments: Attachment[],
   options: { label: string; value: string }[]
 ): Promise<void> {
-  const res = Resource as any;
+  const res = Resource as unknown as {
+    DiscordBotToken?: { value: string };
+  };
   const token = res.DiscordBotToken?.value;
   if (!token) return;
 
@@ -313,7 +317,9 @@ async function deliverSlack(
   attachments: Attachment[],
   options: { label: string; value: string }[]
 ): Promise<void> {
-  const res = Resource as any;
+  const res = Resource as unknown as {
+    SlackBotToken?: { value: string };
+  };
   const token = res.SlackBotToken?.value;
   if (!token) return;
 

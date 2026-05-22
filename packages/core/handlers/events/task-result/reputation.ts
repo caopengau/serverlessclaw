@@ -17,7 +17,7 @@ export async function recordTaskReputation(params: {
   const { agentId, isSuccess, metadata, workspaceId, teamId, staffId, traceId } = params;
 
   try {
-    const latencyMs = (metadata as any)?.durationMs ?? 0;
+    const latencyMs = ((metadata as Record<string, unknown>)?.durationMs as number) ?? 0;
     await updateReputation(new BaseMemoryProvider(), agentId, isSuccess, latencyMs, {
       scope: { workspaceId, teamId, staffId },
       traceId: traceId || '',

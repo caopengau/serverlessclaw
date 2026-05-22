@@ -3,11 +3,30 @@ import { EventType } from '../../../lib/types/agent/events';
 import { emitTypedEvent } from '../../../lib/utils/typed-emit';
 import { ConfigManager } from '../../../lib/registry/config';
 import { emitMetrics, METRICS } from '../../../lib/metrics';
+import type { AggregateState, ParallelAggregator } from '../../../lib/agent/parallel-aggregator';
+
+interface DagTaskPayload {
+  userId: string;
+  traceId: string;
+  taskId: string;
+  agentId: string;
+  response: string;
+  sessionId?: string;
+  depth?: number;
+  workspaceId?: string;
+  teamId?: string;
+  staffId?: string;
+  userRole?: string;
+}
 
 /**
- * Handles DAG task completion/failure and triggers the next step.
+  * Handles the outcome of a DAG task.
+
  */
-export async function handleDagTaskOutcome(payload: any, isFailure: boolean): Promise<void> {
+export async function handleDagTaskOutcome(
+  payload: DagTaskPayload,
+  isFailure: boolean
+): Promise<void> {
   const {
     userId,
     traceId,
@@ -47,16 +66,18 @@ export async function handleDagTaskOutcome(payload: any, isFailure: boolean): Pr
  * Handles the final aggregation of parallel task results.
  */
 export async function finalizeParallelDispatch(
-  aggregateState: any,
-  existingState: any,
+  aggregateState: AggregateState,
+  existingState: Record<string, unknown>,
   scope: { workspaceId?: string; teamId?: string; staffId?: string },
-  aggregator: any
+  aggregator: ParallelAggregator
 ): Promise<void> {
   const { userId, traceId, workspaceId, teamId, staffId } = aggregateState;
 
   const threshold =
     ((await ConfigManager.getRawConfig('parallel_partial_success_threshold')) as number) ?? 0.5;
-  const successCount = aggregateState.results.filter((r: any) => r.status === 'success').length;
+  const successCount = aggregateState.results.filter(
+    (r: { status: string }) => r.status === 'success'
+  ).length;
   const successRate = successCount / aggregateState.taskCount;
 
   const overallStatus =
@@ -85,7 +106,7 @@ export async function finalizeParallelDispatch(
       results: aggregateState.results,
       taskCount: aggregateState.taskCount,
       completedCount: aggregateState.results.length,
-      elapsedMs: Date.now() - (existingState.createdAt || Date.now()),
+      elapsedMs: Date.now() - ((existingState.createdAt as number) || Date.now()),
       aggregationType: aggregateState.aggregationType,
       aggregationPrompt: aggregateState.aggregationPrompt,
       workspaceId,

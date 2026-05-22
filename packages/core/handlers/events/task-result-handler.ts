@@ -5,6 +5,7 @@ import { LRUSet } from '../../lib/utils/lru';
 import * as crypto from 'crypto';
 import { checkAndMarkProcessed } from './task-result/idempotency';
 import { recordTaskReputation } from './task-result/reputation';
+import type { AggregateState } from '../../lib/agent/parallel-aggregator';
 
 const DEDUP_MAX_SIZE = 10_000;
 const processedEvents = new LRUSet<string>(DEDUP_MAX_SIZE);
@@ -97,7 +98,7 @@ export async function handleTaskResult(
 
   if (traceId) {
     const { aggregator } = await import('../../lib/agent/parallel-aggregator');
-    const existingState = await aggregator.getState(userId, traceId, workspaceId);
+    const existingState = (await aggregator.getRawState(userId, traceId, workspaceId)) as any;
 
     if (existingState) {
       if (isFailure) {
@@ -127,12 +128,12 @@ export async function handleTaskResult(
           status: isFailure ? 'failed' : 'success',
           result: response,
           durationMs: 0,
-          patch: (eventDetail.metadata as any)?.patch,
+          patch: (eventDetail.metadata as Record<string, unknown>)?.patch as string | undefined,
         },
         workspaceId
       );
 
-      if ((existingState.metadata as any)?.hasDependencies) {
+      if ((existingState.metadata as Record<string, unknown>)?.hasDependencies) {
         const { handleDagTaskOutcome } = await import('./task-result/dag-orchestrator');
         await handleDagTaskOutcome(
           {
@@ -156,7 +157,7 @@ export async function handleTaskResult(
       if (aggregateState?.isComplete) {
         const { finalizeParallelDispatch } = await import('./task-result/dag-orchestrator');
         await finalizeParallelDispatch(
-          aggregateState,
+          aggregateState as AggregateState,
           existingState,
           { workspaceId, teamId, staffId },
           aggregator
@@ -178,7 +179,7 @@ export async function handleTaskResult(
     userNotified,
     undefined,
     traceId,
-    EventType.CONTINUATION_TASK as any,
+    EventType.CONTINUATION_TASK as EventType,
     workspaceId,
     teamId,
     staffId,

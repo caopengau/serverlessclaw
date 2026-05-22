@@ -40,7 +40,7 @@ export function createMonitors(ctx: SharedContext, options: MonitorOptions) {
         actions: ['logs:GetLogEvents'],
         resources: [
           deployer.name.apply(
-            (name) =>
+            (name: string) =>
               $util.interpolate`arn:aws:logs:${aws.getRegionOutput().name}:${aws.getCallerIdentityOutput().accountId}:log-group:/aws/codebuild/${name}:*`
           ),
         ],

@@ -225,11 +225,20 @@ export async function postProcessPlan(
           strategy = parsed.plan || parsed.strategy || plan;
 
           const rawTasks = parsed.tasks || parsed.subTasks || [];
-          subTasks = rawTasks.map((t: any, idx: number) => ({
-            id: t.id || `${gapIdToSave}-task-${idx + 1}`,
-            description: t.task || t.description || (typeof t === 'string' ? t : JSON.stringify(t)),
-            status: t.status || 'PENDING',
-          }));
+          subTasks = rawTasks.map((t: Record<string, unknown> | string, idx: number) => {
+            const isString = typeof t === 'string';
+            const taskObj = isString ? {} : (t as Record<string, unknown>);
+            return {
+              id: (taskObj.id as string | number) || `${gapIdToSave}-task-${idx + 1}`,
+              description:
+                (taskObj.task as string) ||
+                (taskObj.description as string) ||
+                (isString ? t : JSON.stringify(t)),
+              status:
+                (taskObj.status as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED') ||
+                'PENDING',
+            };
+          });
 
           spec = parsed.spec || '';
         } else {
