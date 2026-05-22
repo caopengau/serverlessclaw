@@ -23,6 +23,8 @@ import {
 } from '@aws-sdk/client-cloudfront';
 import { S3Client, ListBucketsCommand, GetBucketLocationCommand } from '@aws-sdk/client-s3';
 import { readFileSync } from 'fs';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const STAGE = process.argv[2] || 'prod';
 const APP = process.argv[3] || 'serverlessclaw';
@@ -229,6 +231,78 @@ async function addS3Origin(distId: string) {
     staticBehavior.FunctionAssociations = { Quantity: 0 };
     staticBehavior.CachePolicyId = '658327ea-f89d-4fab-a63d-7e88639e58f6';
   }
+
+  // Dynamically scan the dashboard public directory to add secure cache behaviors for custom static assets
+  let publicDir = '';
+  let scriptDir = '';
+  try {
+    scriptDir = path.dirname(new URL(import.meta.url).pathname);
+  } catch {
+    // Fallback if import.meta.url is not supported
+  }
+  const possiblePaths = [
+    path.join(process.cwd(), 'framework/apps/dashboard/public'),
+    path.join(process.cwd(), 'apps/dashboard/public'),
+  ];
+  if (scriptDir) {
+    possiblePaths.push(
+      path.join(scriptDir, '../../apps/dashboard/public'),
+      path.join(scriptDir, '../apps/dashboard/public')
+    );
+  }
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      publicDir = p;
+      break;
+    }
+  }
+
+  if (publicDir) {
+    log(`Scanning dashboard public directory at: ${publicDir}`);
+    const items = fs.readdirSync(publicDir);
+    for (const item of items) {
+      if (item.startsWith('.')) continue; // ignore hidden files
+      const fullPath = path.join(publicDir, item);
+      const isDir = fs.statSync(fullPath).isDirectory();
+      const pattern = isDir ? `/${item}/*` : `/${item}`;
+
+      const existing = cacheBehaviors.Items.find((b) => b.PathPattern === pattern);
+      if (!existing) {
+        log(`Adding CloudFront cache behavior for static asset ${pattern} via S3 origin...`);
+        cacheBehaviors.Items.push({
+          PathPattern: pattern,
+          TargetOriginId: 's3',
+          ViewerProtocolPolicy: 'redirect-to-https',
+          AllowedMethods: {
+            Quantity: 2,
+            Items: ['HEAD', 'GET'],
+            CachedMethods: {
+              Quantity: 2,
+              Items: ['HEAD', 'GET'],
+            },
+          },
+          SmoothStreaming: false,
+          Compress: true,
+          LambdaFunctionAssociations: { Quantity: 0 },
+          FunctionAssociations: { Quantity: 0 },
+          FieldLevelEncryptionId: '',
+          CachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6',
+          GrpcConfig: { Enabled: false },
+        });
+      } else {
+        log(`Ensuring existing CloudFront cache behavior for ${pattern} targets S3...`);
+        existing.TargetOriginId = 's3';
+        existing.ViewerProtocolPolicy = 'redirect-to-https';
+        existing.Compress = true;
+        existing.LambdaFunctionAssociations = { Quantity: 0 };
+        existing.FunctionAssociations = { Quantity: 0 };
+        existing.CachePolicyId = '658327ea-f89d-4fab-a63d-7e88639e58f6';
+      }
+    }
+  } else {
+    log('Could not find dashboard public directory to scan. Skipping dynamic cache behaviors.');
+  }
+
   cacheBehaviors.Quantity = cacheBehaviors.Items.length;
 
   await cf.send(

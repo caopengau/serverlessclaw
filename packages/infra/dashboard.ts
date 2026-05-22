@@ -18,6 +18,8 @@ export function createDashboard(
       accentColor?: string;
       accentColorDark?: string;
       appTitle?: string;
+      logo?: string;
+      logoBanner?: string;
     };
   } = {}
 ): { dashboard: sst.aws.Nextjs } {
@@ -80,8 +82,9 @@ export function createDashboard(
       NEXT_PUBLIC_ACCENT_COLOR_DARK:
         options.theme?.accentColorDark || process.env.NEXT_PUBLIC_ACCENT_COLOR_DARK || '',
       NEXT_PUBLIC_APP_TITLE: options.theme?.appTitle || process.env.NEXT_PUBLIC_APP_TITLE || '',
-      NEXT_PUBLIC_APP_LOGO: process.env.NEXT_PUBLIC_APP_LOGO || '/icon.png',
-      NEXT_PUBLIC_APP_LOGO_BANNER: process.env.NEXT_PUBLIC_APP_LOGO_BANNER || '',
+      NEXT_PUBLIC_APP_LOGO: options.theme?.logo || process.env.NEXT_PUBLIC_APP_LOGO || '/icon.png',
+      NEXT_PUBLIC_APP_LOGO_BANNER:
+        options.theme?.logoBanner || process.env.NEXT_PUBLIC_APP_LOGO_BANNER || '',
       ...(options.extensionSource
         ? { NEXT_PUBLIC_ACTIVE_EXTENSIONS: './src/extensions/project/index.tsx' }
         : {}),
