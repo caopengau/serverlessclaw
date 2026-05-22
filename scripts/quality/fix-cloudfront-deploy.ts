@@ -92,22 +92,24 @@ async function getBucketRegionalDomain(bucketName: string): Promise<string> {
 async function findDistribution(): Promise<string> {
   const { ListDistributionsCommand } = await import('@aws-sdk/client-cloudfront');
 
-  // Read dashboard URL from outputs
-  let dashboardDomain = '';
-  try {
-    const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf-8'));
-    // Try to find the URL for the specific resource
-    if (outputs[RESOURCE]) {
-      dashboardDomain = new URL(outputs[RESOURCE]).hostname;
-    } else if (outputs.dashboard) {
-      dashboardDomain = new URL(outputs.dashboard).hostname;
+  // Read dashboard URL from environment variable or fallback to outputs
+  let dashboardDomain = process.env.CLAW_DOMAIN_DASHBOARD || '';
+  if (!dashboardDomain) {
+    try {
+      const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf-8'));
+      // Try to find the URL for the specific resource
+      if (outputs[RESOURCE]) {
+        dashboardDomain = new URL(outputs[RESOURCE]).hostname;
+      } else if (outputs.dashboard) {
+        dashboardDomain = new URL(outputs.dashboard).hostname;
+      }
+    } catch {
+      // outputs.json may not exist yet
     }
+  }
 
-    if (dashboardDomain) {
-      log(`Resource domain: ${dashboardDomain}`);
-    }
-  } catch {
-    // outputs.json may not exist yet
+  if (dashboardDomain) {
+    log(`Resource domain: ${dashboardDomain}`);
   }
 
   const allDists = await cf.send(new ListDistributionsCommand({}));
@@ -322,7 +324,10 @@ function handler(event) {
     isStatic = !!staticExts[ext];
   }
   if (isStatic) {
-    var originPath = (uri.startsWith("/_next/") || uri.startsWith("/_assets/")) ? "/_assets" : "";
+    var originPath = "/_assets";
+    if (uri.startsWith("/_assets/")) {
+      originPath = "";
+    }
     cf.updateRequestOrigin({
       domainName: "${s3Domain}",
       originPath: originPath
