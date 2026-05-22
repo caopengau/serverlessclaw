@@ -146,7 +146,7 @@ vi.mock('@/components/CyberTooltip', () => ({
 }));
 
 describe('Sidebar Component', () => {
-  it('renders in expanded mode by default', () => {
+  it('renders in expanded mode by default', async () => {
     mockUseUICommand.mockReturnValue({
       isSidebarCollapsed: false,
       setSidebarCollapsed: vi.fn(),
@@ -156,14 +156,14 @@ describe('Sidebar Component', () => {
 
     // Check for some labels that should be visible when expanded
     // Note: The labels are translated, so they'll be the keys because of our mock
-    expect(screen.getByText('OPERATIONS')).toBeInTheDocument();
-    expect(screen.getByText('AGENTS')).toBeInTheDocument();
+    expect(await screen.findByText('OPERATIONS')).toBeInTheDocument();
+    expect(await screen.findByText('AGENTS')).toBeInTheDocument();
 
     // Tooltips should NOT be present for main nav links when expanded
     expect(screen.queryByTestId('cyber-tooltip')).not.toBeInTheDocument();
   });
 
-  it('renders in collapsed mode and shows tooltips', () => {
+  it('renders in collapsed mode and shows tooltips', async () => {
     mockUseUICommand.mockReturnValue({
       isSidebarCollapsed: true,
       setSidebarCollapsed: vi.fn(),
@@ -176,7 +176,7 @@ describe('Sidebar Component', () => {
     // In our mock, CyberTooltip renders children, so the Link with labels might still be there.
 
     // Verification: CyberTooltip should be present for nav links when collapsed
-    const tooltips = screen.getAllByTestId('cyber-tooltip');
+    const tooltips = await screen.findAllByTestId('cyber-tooltip');
     expect(tooltips.length).toBeGreaterThan(0);
   });
 

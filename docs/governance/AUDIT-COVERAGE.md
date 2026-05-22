@@ -27,12 +27,12 @@ Last Updated: 2026-05-18
 | Perspective | Name                | Description                 | Usage Count | Last Tested |
 | :---------- | :------------------ | :-------------------------- | :---------- | :---------- |
 | **A**       | Life of a Message   | Spine → Brain → Eye         | 13          | 2026-05-17  |
-| **B**       | Evolution Cycle     | Hand → Shield → Scales      | 14          | 2026-05-17  |
+| **B**       | Evolution Cycle     | Hand → Shield → Scales      | 15          | 2026-05-22  |
 | **C**       | Identity Journey    | Brain → Spine → Shield      | 13          | 2026-05-17  |
 | **D**       | Trust Loop          | Eye → Scales → Spine        | 17          | 2026-05-18  |
 | **E**       | Recovery Path       | Shield → Spine → Brain      | 16          | 2026-05-18  |
 | **F**       | Metabolic Loop      | Metabolism ↔ Scales ↔ Spine | 13          | 2026-05-18  |
-| **G**       | Dashboard Integrity | Cross-Silo API Safety       | 5           | 2026-05-18  |
+| **G**       | Dashboard Integrity | Cross-Silo API Safety       | 6           | 2026-05-22  |
 
 ---
 
@@ -40,6 +40,7 @@ Last Updated: 2026-05-18
 
 | Date       | Report                                                    | Silos                                | Perspective | Status/Summary                                                                                                         |
 | :--------- | :-------------------------------------------------------- | :----------------------------------- | :---------- | :--------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-22 | `reports/audit-2026-05-22-dashboard-integrity.md`              | Hand, Eye                            | B, G        | FIXED: P1 Domain Pollution in Dashboard config, P1 Broken Framework Purity Check in DevOps Pipeline.                   |
 | 2026-05-18 | `reports/audit-2026-05-18-metabolic-loop.md`              | Metabolism, Scales, Spine            | F           | FIXED: P1 Path traversal in native audit, P1 Redundant codebase scans, P1 N+1 Query in trust repairs.                  |
 | 2026-05-18 | `reports/audit-2026-05-18-trust-loop-race.md`             | Eye, Scales, Spine                   | D           | FIXED: P1 Bypassed Conditional Clamping in ConfigManagerMap, P1 Race Condition in Trust Calibration Clamping.          |
 | 2026-05-17 | `reports/audit-2026-05-17-session-listing-remediation.md` | Brain, Spine, Shield                 | C           | FIXED: P1 GSI Active Session Mismatch (Dual-write), P1 Missing Org Scoping, P1 Lenient Mock.                           |
