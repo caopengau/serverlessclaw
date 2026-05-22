@@ -32,7 +32,7 @@
     "recharts": "^3.0.0",
     "remark-gfm": "^4.0.1",
     "sonner": "^2.0.7",
-    "sst": "4.13.1",
+    "sst": "4.14.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
