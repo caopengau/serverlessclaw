@@ -35,6 +35,7 @@ vi.mock('../../lib/agent/parallel-aggregator', () => ({
     addResult: vi.fn().mockResolvedValue(null),
     updateDagState: vi.fn().mockResolvedValue(true),
     markAsCompleted: vi.fn().mockResolvedValue(true),
+    getRawState: vi.fn().mockResolvedValue(null),
   },
 }));
 
