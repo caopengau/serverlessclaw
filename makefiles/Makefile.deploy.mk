@@ -30,7 +30,7 @@ deploy: ## Deploy SST to the environment (default: prod) - WITH FAIL-FAST CHECKS
 		./$(SCRIPTS_DIR)/ci/check-aws-account.sh "$(ENV)" "$$EXPECTED_ACCOUNT" && \
 		$(call log_success,[DEPLOY STEP 1/3] AWS account verified) && \
 		$(call log_info,[DEPLOY STEP 2/3] Patching CloudFront Router components...) && \
-		npx tsx scripts/quality/fix-cloudfront-deploy.ts && \
+		npx tsx $(SCRIPTS_DIR)/quality/fix-cloudfront-deploy.ts && \
 		$(call log_info,[DEPLOY STEP 2/3] Starting SST deployment...) && \
 		$(SST) deploy --stage $(ENV) --yes && \
 		$(call log_success,[DEPLOY STEP 2/3] SST deployment completed) && \
