@@ -6,3 +6,8 @@ declare module 'virtual-extensions' {
     registerComponent: (ext: any) => void;
   }): void;
 }
+
+declare module 'virtual-jobs-config' {
+  const config: any[];
+  export default config;
+}

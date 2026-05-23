@@ -116,8 +116,14 @@ const nextConfig = {
         ? path.join(extensionDir, 'messages/cn.json')
         : path.resolve(__dirname, './src/extensions/messages/cn.json');
 
+    const jobsConfigPath =
+      extensionDir && fs.existsSync(path.join(extensionDir, 'jobs.config.json'))
+        ? path.join(extensionDir, 'jobs.config.json')
+        : path.resolve(__dirname, './jobs.config.json');
+
     console.log('[NextConfig] resolved extensionPath:', extensionPath);
     console.log('[NextConfig] resolved messagesEnPath:', messagesEnPath);
+    console.log('[NextConfig] resolved jobsConfigPath:', jobsConfigPath);
 
     // Ensure cross-package resolution works for workspace packages
     config.resolve.alias = {
@@ -125,6 +131,7 @@ const nextConfig = {
       'virtual-extensions': extensionPath,
       'virtual-messages-en': messagesEnPath,
       'virtual-messages-cn': messagesCnPath,
+      'virtual-jobs-config': jobsConfigPath,
       '@serverlessclaw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),
       '@serverlessclaw/core/lib': path.resolve(__dirname, '../../framework/packages/core/lib'),
       '@claw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),

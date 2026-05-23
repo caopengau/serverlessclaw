@@ -7,43 +7,30 @@ import { logger } from '@claw/core/lib/logger';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
 import fs from 'fs';
 import path from 'path';
+import defaultJobsConfig from 'virtual-jobs-config';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Dynamically resolves and loads jobs.config.json from candidate paths
- * to prevent leaking domain-specific logic into the Serverless Claw core.
+ * Dynamically resolves and loads jobs.config.json from the virtual webpack alias
+ * to prevent leaking domain-specific logic into the Serverless Claw core,
+ * and to guarantee availability in the Open-Next deployed Lambda environment.
  */
 function loadJobsConfig(): JobSpec[] {
-  const candidatePaths = [
-    // 1. Path provided by environment variable
-    process.env.JOBS_CONFIG_PATH ? path.resolve(process.cwd(), process.env.JOBS_CONFIG_PATH) : '',
-    // 2. NextJS CWD (usually root of the dashboard app)
-    path.join(process.cwd(), 'jobs.config.json'),
-    // 3. Monorepo root fallback candidates
-    path.resolve(process.cwd(), '../../jobs.config.json'),
-    path.resolve(process.cwd(), '../../../jobs.config.json'),
-  ].filter(Boolean) as string[];
-
-  for (const filePath of candidatePaths) {
-    if (fs.existsSync(filePath)) {
-      try {
-        const raw = fs.readFileSync(filePath, 'utf-8');
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          logger.info(
-            `[Jobs API] Successfully loaded ${parsed.length} specifications from config: ${filePath}`
-          );
-          return parsed as JobSpec[];
-        }
-      } catch (err) {
-        logger.error(`[Jobs API] Error parsing config file at ${filePath}:`, err);
-      }
+  try {
+    if (Array.isArray(defaultJobsConfig)) {
+       const specs = defaultJobsConfig as JobSpec[];
+       logger.info(`[Jobs API] Successfully loaded ${specs.length} specifications from virtual-jobs-config`);
+       return specs;
+    } else {
+      logger.warn('[Jobs API] virtual-jobs-config did not export an array, returning empty specs list.');
     }
+  } catch (e) {
+    logger.error('[Jobs API] Failed to parse virtual-jobs-config:', e);
   }
 
   logger.warn(
-    '[Jobs API] No jobs.config.json found in candidate paths. Running with empty specifications.'
+    '[Jobs API] No jobs.config.json found via virtual module. Running with empty specifications.'
   );
   return [];
 }
