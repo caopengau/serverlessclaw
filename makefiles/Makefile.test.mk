@@ -15,11 +15,11 @@ test-tier-3: ## Run Tier 3: Deployment health and E2E (uses .sst/outputs.json if
 	@OUTPUTS=$$(cat .sst/outputs.json 2>/dev/null) ; \
 	API_URL=$(URL) ; \
 	if [ -z "$$API_URL" ] && [ -n "$$OUTPUTS" ]; then \
-		API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('api',''))" 2>/dev/null) ; \
+		API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; out=json.load(sys.stdin); print(out.get('apiUrl', out.get('WebhookApi', out.get('api',''))))" 2>/dev/null) ; \
 	fi ; \
 	FINAL_DASHBOARD_URL=$(DASHBOARD_URL) ; \
 	if [ -z "$$FINAL_DASHBOARD_URL" ] && [ -n "$$OUTPUTS" ]; then \
-		FINAL_DASHBOARD_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboard',''))" 2>/dev/null) ; \
+		FINAL_DASHBOARD_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; out=json.load(sys.stdin); print(out.get('dashboardUrl', out.get('MissionControl', out.get('dashboard',''))))" 2>/dev/null) ; \
 	fi ; \
 	if [ -z "$$API_URL" ]; then $(call log_error,API URL is required for Tier 3); exit 1; fi; \
 	if [ -z "$$FINAL_DASHBOARD_URL" ]; then $(call log_error,DASHBOARD URL is required for Tier 3); exit 1; fi; \

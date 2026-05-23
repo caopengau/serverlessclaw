@@ -36,7 +36,9 @@ export default function AgentsPage() {
         : '/api/agents';
       const res = await fetch(url);
       const data = await res.json();
-      setAgents(data.agents || []);
+      const agentsData = data.agents || [];
+      const agentsList = Array.isArray(agentsData) ? agentsData : Object.values(agentsData);
+      setAgents(agentsList as Agent[]);
     } catch (error) {
       logger.error('Failed to fetch agents:', error);
       toast.error(t('AGENTS_FETCH_ERROR'));
