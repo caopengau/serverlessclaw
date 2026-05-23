@@ -1,11 +1,6 @@
 import { logger } from '../../logger';
 import { AgentRole, TraceSource, ReasoningProfile } from '../../types/index';
-import {
-  AGENT_ERRORS,
-  AGENT_ERRORS_CN,
-  AGENT_ERROR_PREFIXES,
-  LOCALE_INSTRUCTIONS,
-} from '../../constants';
+import { AGENT_ERRORS, AGENT_ERRORS_CN, AGENT_ERROR_PREFIXES } from '../../constants';
 import { AgentProcessOptions } from '../../agent/options';
 
 /**
@@ -81,14 +76,9 @@ export async function createAgent(
   ]);
   const agentTools = await getAgentTools(agentId);
 
-  let systemPrompt = config.systemPrompt || '';
-  const instruction =
-    locale.toLowerCase() === 'cn' ? LOCALE_INSTRUCTIONS.CN : LOCALE_INSTRUCTIONS.EN;
-  if (instruction && systemPrompt) {
-    systemPrompt += instruction;
-  }
+  const systemPrompt = config.systemPrompt || '';
 
-  return new Agent(memory, provider, agentTools, { ...config, systemPrompt });
+  return new Agent(memory, provider, agentTools, { ...config, systemPrompt, locale });
 }
 
 /** Options for building process options */

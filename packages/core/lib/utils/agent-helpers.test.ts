@@ -34,7 +34,7 @@ describe('createAgent', () => {
     }),
   } as any;
 
-  it('should append English instructions for locale=en', async () => {
+  it('should set English locale and keep prompt pristine', async () => {
     const agent = (await createAgent(
       'test',
       mockConfig as any,
@@ -42,10 +42,11 @@ describe('createAgent', () => {
       mockProvider,
       'en'
     )) as any;
-    expect(agent.systemPrompt).toBe('Base Prompt'); // EN instruction is empty string in constants
+    expect(agent.systemPrompt).toBe('Base Prompt');
+    expect(agent.getConfig()?.locale).toBe('en');
   });
 
-  it('should append Chinese instructions for locale=cn', async () => {
+  it('should set Chinese locale and keep prompt pristine', async () => {
     const agent = (await createAgent(
       'test',
       mockConfig as any,
@@ -53,8 +54,8 @@ describe('createAgent', () => {
       mockProvider,
       'cn'
     )) as any;
-    expect(agent.getConfig()?.systemPrompt).toContain('Base Prompt');
-    expect(agent.getConfig()?.systemPrompt).toContain('Chinese (中文)');
+    expect(agent.getConfig()?.systemPrompt).toBe('Base Prompt');
+    expect(agent.getConfig()?.locale).toBe('cn');
   });
 });
 

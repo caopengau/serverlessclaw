@@ -222,6 +222,7 @@ export async function handleProcess(
         teamId,
         staffId,
         activeUser: options.activeUser,
+        locale: agent.config?.locale,
       }
     );
 
