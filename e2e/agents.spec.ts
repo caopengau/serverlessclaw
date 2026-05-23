@@ -38,8 +38,8 @@ test.describe('Agents Configuration', () => {
     // Add a small delay to ensure sidebar is rendered
     await page.waitForTimeout(500);
 
-    // Try to find the agents link with better error context
-    const agentsLink = page.locator('a[href="/agents"]').first();
+    // Wait for link to be attached in the DOM (allows for cold starts and hydration)
+    await agentsLink.waitFor({ state: 'attached', timeout: 15000 }).catch(() => {});
 
     // Check if link exists and is visible
     if (!(await agentsLink.count())) {
