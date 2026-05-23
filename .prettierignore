@@ -20,5 +20,7 @@ test-results/
 reports/
 e2e/.auth/
 **/.aiready/**
+**/venv/
+**/.venv/
 # Product extension overlays (gitignored, product-specific local directories)
 **/extensions/project/**
