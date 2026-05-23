@@ -18,12 +18,15 @@ export const dynamic = 'force-dynamic';
  */
 function loadJobsConfig(): JobSpec[] {
   try {
-    if (Array.isArray(defaultJobsConfig)) {
-      const specs = defaultJobsConfig as unknown as JobSpec[];
-      logger.info(
-        `[Jobs API] Successfully loaded ${specs.length} specifications from virtual-jobs-config`
-      );
-      return specs;
+    let configData: any = defaultJobsConfig;
+    if (configData && typeof configData === 'object' && !Array.isArray(configData) && 'default' in configData) {
+      configData = configData.default;
+    }
+
+    if (Array.isArray(configData)) {
+       const specs = configData as unknown as JobSpec[];
+       logger.info(`[Jobs API] Successfully loaded ${specs.length} specifications from virtual-jobs-config`);
+       return specs;
     } else {
       logger.warn(
         '[Jobs API] virtual-jobs-config did not export an array, returning empty specs list.'
