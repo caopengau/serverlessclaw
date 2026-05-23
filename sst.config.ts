@@ -1,7 +1,7 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
 const APP_CONFIG = {
-  name: 'goldex',
+  name: 'serverlessclaw',
   region: 'ap-southeast-2',
   architecture: 'arm64' as const,
   runtime: 'nodejs24.x',
@@ -13,16 +13,16 @@ function getAppRegion(): string {
 }
 
 /**
- * Sovereign SST v4 Platform Configuration for GoldEx.
- * Imports and orchestrates the modular ServerlessClaw OSS core framework.
+ * SST v4 Platform Configuration for ServerlessClaw.
+ * Defines the main application entry point, infrastructure providers, and modular resource setup.
  */
 export default $config({
-  app(input: any) {
+  app(input) {
     const region = getAppRegion();
 
     return {
       name: APP_CONFIG.name,
-      removal: input?.stage === 'prod' ? 'retain' : 'remove',
+      removal: input?.stage === 'prod' ? 'retain' : 'remove', // Non-prod/local stages remove resources by default
       protect: ['prod'].includes(input?.stage),
       home: 'aws',
       providers: {
@@ -30,9 +30,7 @@ export default $config({
           region,
           version: '7.23.0',
         },
-        ...(input?.stage !== 'local' && process.env.CLOUDFLARE_API_TOKEN
-          ? { cloudflare: '6.15.0' }
-          : {}),
+        ...(input?.stage !== 'local' ? { cloudflare: '6.15.0' } : {}),
       },
       defaults: {
         function: {
@@ -46,9 +44,11 @@ export default $config({
               '.md': 'text',
             },
             esbuild: {
-              // AWS SDK v3 is externalized to optimize Lambda package footprints
+              // AWS SDK v3 is included in Lambda's managed Node.js 24.x runtime.
+              // Externalizing it reduces bundle size by ~2-3MB per function.
               external: [
                 '@aws-sdk/*',
+                // Dashboard-only packages — safety net against accidental bundling
                 'sonner',
                 'react-markdown',
                 'remark-gfm',
@@ -66,16 +66,14 @@ export default $config({
     };
   },
   async run() {
-    const infraOptions = { pathPrefix: 'framework/' };
-
-    // Dynamic Imports from ServerlessClaw OSS Core Framework Subtree
-    const { createStorage } = await import('./packages/infra/storage.ts');
-    const { createBus } = await import('./packages/infra/bus.ts');
-    const { createDeployer } = await import('./packages/infra/deployer.ts');
-    const { createApi, configureApiRoutes } = await import('./packages/infra/api.ts');
-    const { createMCPServers } = await import('./packages/infra/mcp-servers.ts');
-    const { createAgents } = await import('./packages/infra/agents.ts');
-    const { createDashboard } = await import('./packages/infra/dashboard.ts');
+    // SST v4 Modular Infrastructure via Dynamic Imports
+    const { createStorage } = await import('./packages/infra/storage.js');
+    const { createBus } = await import('./packages/infra/bus.js');
+    const { createDeployer } = await import('./packages/infra/deployer.js');
+    const { createApi, configureApiRoutes } = await import('./packages/infra/api.js');
+    const { createMCPServers } = await import('./packages/infra/mcp-servers.js');
+    const { createAgents } = await import('./packages/infra/agents.js');
+    const { createDashboard } = await import('./packages/infra/dashboard.js');
 
     // 1. Storage & Secrets
     const {
@@ -89,7 +87,7 @@ export default $config({
     } = createStorage();
 
     // 2. Multi-Agent Orchestration (EventBridge)
-    const { bus, realtime, dlq } = createBus(infraOptions);
+    const { bus, realtime, dlq } = createBus();
 
     // 3. The Deployer (CodeBuild)
     const { deployer, linkable: deployerLink } = createDeployer({
@@ -104,7 +102,6 @@ export default $config({
       configTable,
       stagingBucket,
       knowledgeBucket,
-      dataLakeBucket,
       secrets,
       bus,
       deployer,
@@ -112,22 +109,18 @@ export default $config({
     });
 
     // 5. MCP Servers
-    const mcpServers = createMCPServers(
-      {
-        memoryTable,
-        traceTable,
-        configTable,
-        stagingBucket,
-        knowledgeBucket,
-        dataLakeBucket,
-        secrets,
-        bus,
-        deployer,
-        deployerLink,
-        api,
-      },
-      infraOptions
-    );
+    const mcpServers = createMCPServers({
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      knowledgeBucket,
+      secrets,
+      bus,
+      deployer,
+      deployerLink,
+      api, // Now available for linking if needed
+    });
     const multiplexer = mcpServers.multiplexer;
 
     // 6. Sub-Agents (Handlers & Logic)
@@ -145,82 +138,60 @@ export default $config({
         deployerLink,
         realtime,
         dlq,
-        api,
+        api, // Linkable API instance
         multiplexer,
       },
-      mcpServers,
-      infraOptions
+      mcpServers
     );
 
     // 7. API Routes (Configured after agents exist)
-    configureApiRoutes(
+    configureApiRoutes(api, {
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      knowledgeBucket,
+      secrets,
+      bus,
+      deployer,
+      deployerLink,
+      agents: agentResources,
+    });
+
+    // 8. ClawCenter (Next.js 16)
+    const { dashboard } = createDashboard({
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      knowledgeBucket,
+      secrets,
+      bus,
+      deployer,
+      deployerLink,
       api,
-      {
-        memoryTable,
-        traceTable,
-        configTable,
-        stagingBucket,
-        knowledgeBucket,
-        dataLakeBucket,
-        secrets,
-        bus,
-        deployer,
-        deployerLink,
-        agents: agentResources,
-      },
-      infraOptions
-    );
+      realtime,
+      multiplexer,
+      heartbeatHandler: agentResources.heartbeatHandler,
+      schedulerRole: agentResources.schedulerRole,
+    });
 
-    // 8. GoldEx Customized ClawCenter Dashboard
-    const { dashboard } = createDashboard(
-      {
-        memoryTable,
-        traceTable,
-        configTable,
-        stagingBucket,
-        knowledgeBucket,
-        dataLakeBucket,
-        secrets,
-        bus,
-        deployer,
-        deployerLink,
-        api,
-        realtime,
-        multiplexer,
-        heartbeatHandler: agentResources.heartbeatHandler,
-        schedulerRole: agentResources.schedulerRole,
-      },
-      {
-        ...infraOptions,
-        // Copies our GoldEx jobs configurations dynamically into the dashboard build bundle
-        extensionSource: 'apps/goldex-dashboard',
-        theme: {
-          primaryColor: '#b89b30',
-          primaryColorDark: '#ffd700',
-          accentColor: '#8c731f',
-          accentColorDark: '#ffea6c',
-          appTitle: 'GoldEx Mission Control',
-        },
-      }
-    );
-
-    // 9. Integration Stacks (GitHub webhook infrastructure)
-    const { createGitHubStack } = await import('./packages/integration-github/stack.ts');
-    const githubResources = createGitHubStack({ bus, dlq }, infraOptions);
+    // 9. Integration Stacks (GitHub, etc.)
+    const { createGitHubStack } = await import('./packages/integration-github/stack.js');
+    const githubResources = createGitHubStack({ bus, dlq });
 
     // 10. Billing & Cost Alerts ($5/day Daily Budget)
-    const { createBilling } = await import('./packages/infra/billing.ts');
+    const { createBilling } = await import('./packages/infra/billing.js');
     const { billingTopic } = createBilling();
 
-    // 11. Multi-Region Operator Scaling
-    const { createMultiRegionScaling } = await import('./packages/infra/multi-region.ts');
+    // 11. Multi-Region Operator Scaling (VX-4.2)
+    const { createMultiRegionScaling } = await import('./packages/infra/multi-region.js');
     const multiRegion = createMultiRegionScaling({
       memoryTable,
       traceTable,
       configTable,
       stagingBucket,
       knowledgeBucket,
-      dataLakeBucket,
       secrets,
       bus,
       deployer,
