@@ -28,6 +28,8 @@ function findFilesRecursively(dir: string, fileRegex: RegExp): string[] {
 
   const list = fs.readdirSync(dir);
   for (const file of list) {
+    if (file === 'node_modules') continue; // Skip node_modules to avoid log spam and speed up scan
+
     const filePath = path.join(dir, file);
     const stat = fs.statSync(filePath);
 
@@ -63,10 +65,6 @@ function patchFile(filePath: string) {
     );
     fs.writeFileSync(filePath, patchedContent, 'utf8');
     console.log(`✔ Patched ${path.relative(ROOT_DIR, filePath)} successfully.`);
-  } else {
-    console.log(
-      `✔ File already patched or does not contain pattern: ${path.relative(ROOT_DIR, filePath)}`
-    );
   }
 }
 
