@@ -31,7 +31,7 @@ export default $config({
           version: '7.23.0',
         },
         ...(input?.stage !== 'local' && process.env.CLOUDFLARE_API_TOKEN
-          ? { cloudflare: '6.13.0' }
+          ? { cloudflare: '6.15.0' }
           : {}),
       },
       defaults: {

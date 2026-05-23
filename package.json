@@ -1,6 +1,6 @@
 {
   "name": "serverlessclaw",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "packageManager": "pnpm@10.33.4",
   "description": "A serverless implementation of OpenClaw AI agent using SST, AWS Lambda, and DynamoDB.",
   "repository": {
@@ -51,7 +51,7 @@
     "@octokit/rest": "^22.0.1",
     "@opennextjs/aws": "4.0.2",
     "dotenv": "^17.4.0",
-    "sst": "4.13.1",
+    "sst": "4.14.3",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^6.0.2",

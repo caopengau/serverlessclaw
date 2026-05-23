@@ -67,8 +67,8 @@ verify-deploy: ## Full post-deploy verification: API, dashboard, CSS, JS
 	@$(call log_step,Running post-deploy verification...) ; \
 	OUTPUTS=$$(cat .sst/outputs.json 2>/dev/null) ; \
 	if [ -z "$$OUTPUTS" ]; then $(call log_error,.sst/outputs.json not found); exit 1; fi ; \
-	API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('api',''))" 2>/dev/null) ; \
-	DASHBOARD_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboard',''))" 2>/dev/null) ; \
+	API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; out=json.load(sys.stdin); print(out.get('apiUrl', out.get('api','')))" 2>/dev/null) ; \
+	DASHBOARD_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; out=json.load(sys.stdin); print(out.get('dashboardUrl', out.get('dashboard','')))" 2>/dev/null) ; \
 	FAIL=0 ; \
 	echo "" ; \
 	echo "  =========================================" ; \

@@ -26,20 +26,17 @@ deploy: ## Deploy SST to the environment (default: prod) - WITH FAIL-FAST CHECKS
 	@$(call load_env); \
 	chmod +x ./$(SCRIPTS_DIR)/ci/check-aws-account.sh; \
 	if \
-		$(call log_info,[DEPLOY STEP 1/4] Verifying AWS account and permissions...) && \
+		$(call log_info,[DEPLOY STEP 1/3] Verifying AWS account and permissions...) && \
 		./$(SCRIPTS_DIR)/ci/check-aws-account.sh "$(ENV)" "$$EXPECTED_ACCOUNT" && \
-		$(call log_success,[DEPLOY STEP 1/4] AWS account verified) && \
-		$(call log_info,[DEPLOY STEP 2/4] Starting SST deployment...) && \
+		$(call log_success,[DEPLOY STEP 1/3] AWS account verified) && \
+		$(call log_info,[DEPLOY STEP 2/3] Patching CloudFront Router components...) && \
+		npx tsx scripts/quality/fix-cloudfront-deploy.ts && \
+		$(call log_info,[DEPLOY STEP 2/3] Starting SST deployment...) && \
 		$(SST) deploy --stage $(ENV) --yes && \
-		$(call log_success,[DEPLOY STEP 2/4] SST deployment completed) && \
-		$(call log_info,[DEPLOY STEP 3/4] Running post-deploy CloudFront fix...) && \
-		APP_NAME=$$(jq -r .name package.json 2>/dev/null || echo 'serverlessclaw') && \
-		$(call log_info,Resolved APP_NAME=$$APP_NAME from package.json) && \
-		$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/fix-cloudfront-deploy.ts $(ENV) $$APP_NAME MissionControl && \
-		$(call log_success,[DEPLOY STEP 3/4] CloudFront configuration updated) && \
-		$(call log_info,[DEPLOY STEP 4/4] Running post-deploy verification...) && \
+		$(call log_success,[DEPLOY STEP 2/3] SST deployment completed) && \
+		$(call log_info,[DEPLOY STEP 3/3] Running post-deploy verification...) && \
 		$(MAKE) verify-deploy && \
-		$(call log_success,[DEPLOY STEP 4/4] Post-deploy verification passed); \
+		$(call log_success,[DEPLOY STEP 3/3] Post-deploy verification passed); \
 	then \
 		if [ "$(E2E)" = "true" ]; then $(MAKE) test-tier-3 ; fi; \
 		$(call log_success,SST deploy to $(ENV) completed successfully); \

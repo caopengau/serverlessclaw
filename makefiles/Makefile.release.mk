@@ -56,7 +56,8 @@ pre-release-check: ## [FAIL-FAST #1/3] Validate environment and credentials befo
 verify-build-readiness: ## [FAIL-FAST #2/3] Verify the dashboard build will succeed
 	@$(call log_step,[FAIL-FAST #2/3] Verifying build configuration...)
 	@$(call log_info,Checking swc helpers bundling setup...)
-	@if ! grep -q "install" framework/apps/dashboard/open-next.config.ts 2>/dev/null || ! grep -q "@swc/helpers" framework/apps/dashboard/open-next.config.ts 2>/dev/null; then \
+	@DASHBOARD_DIR=$$( [ -d "framework/apps/dashboard" ] && echo "framework/apps/dashboard" || echo "apps/dashboard" ); \
+	if ! grep -q "install" "$$DASHBOARD_DIR/open-next.config.ts" 2>/dev/null || ! grep -q "@swc/helpers" "$$DASHBOARD_DIR/open-next.config.ts" 2>/dev/null; then \
 		$(call log_warning,open-next.config.ts missing swc/helpers in install list); \
 		echo "  Expected: install: ['@swc/helpers', ...]"; \
 		$(call log_error,Build configuration incomplete - swc/helpers not in bundle list); \
@@ -65,7 +66,8 @@ verify-build-readiness: ## [FAIL-FAST #2/3] Verify the dashboard build will succ
 		$(call log_success,swc/helpers bundling configured); \
 	fi
 	@$(call log_info,Checking outputFileTracingRoot configuration...)
-	@if ! grep -q "outputFileTracingRoot" framework/apps/dashboard/next.config.mjs 2>/dev/null; then \
+	@DASHBOARD_DIR=$$( [ -d "framework/apps/dashboard" ] && echo "framework/apps/dashboard" || echo "apps/dashboard" ); \
+	if ! grep -q "outputFileTracingRoot" "$$DASHBOARD_DIR/next.config.mjs" 2>/dev/null; then \
 		$(call log_warning,next.config.mjs missing outputFileTracingRoot); \
 		$(call log_error,Build configuration incomplete - tracing scope not expanded); \
 		exit 1; \
