@@ -18,14 +18,14 @@ export const dynamic = 'force-dynamic';
  */
 function loadJobsConfig(): JobSpec[] {
   try {
-    let configData: any = defaultJobsConfig;
+    let configData: unknown = defaultJobsConfig;
     if (
       configData &&
       typeof configData === 'object' &&
       !Array.isArray(configData) &&
       'default' in configData
     ) {
-      configData = configData.default;
+      configData = (configData as Record<string, unknown>).default;
     }
 
     if (Array.isArray(configData)) {
