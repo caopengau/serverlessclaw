@@ -8,6 +8,6 @@ declare module 'virtual-extensions' {
 }
 
 declare module 'virtual-jobs-config' {
-  const config: any[];
+  const config: Record<string, unknown>[];
   export default config;
 }
