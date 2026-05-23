@@ -10,6 +10,11 @@ vi.mock('sonner', () => ({
   },
 }));
 
+vi.mock('@/components/RoleGuard', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 // Mock Lucide icons used in the page
 vi.mock('lucide-react', () => ({
   Database: () => <div data-testid="icon-database" />,
