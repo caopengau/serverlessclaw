@@ -109,7 +109,7 @@ The system handles chat-uploaded media through a decoupled staging layer:
 To prevent translation drift and maintain peak reasoning performance, Serverless Claw uses a dynamic localization model:
 
 1. **Static English Core**: All agent system prompts are authored and maintained in English.
-2. **Runtime Locale Injection**: The `initAgent` helper fetches the `active_locale` from the `ConfigTable` and appends locale-specific communication instructions (`LOCALE_INSTRUCTIONS`) to the system prompt before invocation.
+2. **Dynamic Context-Aware Locale Injection**: The `initAgent` helper fetches the `active_locale` from the `ConfigTable` and stores it on the Agent instance. During context assembly, the `AgentAssembler` dynamically appends locale-specific instructions (`LOCALE_INSTRUCTIONS`) to the compiled prompt *only* for user-facing consultations (`isIsolated: false`). Isolated agent-to-agent operations remain strictly in clean baseline English/JSON formats.
 3. **Localized Error Sensing**: The `detectFailure` utility is cross-lingual, scanning for both English ("FAILED") and Chinese ("失败") terminators to ensure robust workflow coordination.
 4. **Dashboard Context**: A global `TranslationsProvider` wraps the dashboard, allowing hot-swapping between English and Chinese UI strings without page reloads.
 
@@ -117,10 +117,14 @@ To prevent translation drift and maintain peak reasoning performance, Serverless
 [ ConfigTable ] ---- (active_locale: cn) ----+
                                              |
                                              v
-[ Base Prompt (EN) ] + [ CN Instructions ] ----> [ LLM Agent ] ---- (CN Response) ----> [ User ]
-                                             ^
-                                             |
-[ Error Defs (EN/CN) ] <---------------------+ (Failure Sensing)
+                                      { isIsolated? }
+                                       /           \
+                               [Yes]  /             \  [No]
+                                     v               v
+                             [ Clean EN ]    [ Base Prompt (EN) ] + [ CN Instructions ]
+                                     |               |
+                                     v               v
+                              (Agent-Agent)    (Agent-User CN Response)
 ```
 
 ---

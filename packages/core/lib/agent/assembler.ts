@@ -90,6 +90,7 @@ export class AgentAssembler {
       systemPrompt,
       pageContext,
       activeUser,
+      locale,
     } = options;
     const { distilled, lessons, preferences, globalLessons, negativeContext, recoveryContext } =
       memoryState;
@@ -114,6 +115,15 @@ export class AgentAssembler {
     ]);
 
     let contextPrompt = resolvedPrompt;
+
+    if (!isIsolated && locale) {
+      const { LOCALE_INSTRUCTIONS } = await import('../constants');
+      const instruction =
+        locale.toLowerCase() === 'cn' ? LOCALE_INSTRUCTIONS.CN : LOCALE_INSTRUCTIONS.EN;
+      if (instruction) {
+        contextPrompt += instruction;
+      }
+    }
 
     if (capabilities.supportedAttachmentTypes?.includes(AttachmentType.IMAGE)) {
       const { VISION_PROMPT_BLOCK } = await import('../prompts/vision');

@@ -52,6 +52,7 @@ export interface IAgentConfig {
   lastAnomalyCalibrationAt?: string;
   metadata?: Record<string, unknown>;
   workerFeedback?: boolean;
+  locale?: string;
 }
 
 /**

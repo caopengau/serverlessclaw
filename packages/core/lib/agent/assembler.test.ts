@@ -217,6 +217,42 @@ describe('AgentAssembler', () => {
       expect(result.contextPrompt).toContain('SYSTEM_TASK');
     });
 
+    it('injects Chinese instructions when isIsolated=false and locale=cn', async () => {
+      const memory = createMockMemory();
+      const provider = createMockProvider();
+
+      const result = await AgentAssembler.prepareContext(
+        memory as any,
+        provider as any,
+        undefined,
+        'user1',
+        'storage1',
+        'hello',
+        undefined,
+        { ...defaultOptions, isIsolated: false, locale: 'cn' }
+      );
+
+      expect(result.contextPrompt).toContain('Chinese (中文)');
+    });
+
+    it('does NOT inject Chinese instructions when isIsolated=true and locale=cn', async () => {
+      const memory = createMockMemory();
+      const provider = createMockProvider();
+
+      const result = await AgentAssembler.prepareContext(
+        memory as any,
+        provider as any,
+        undefined,
+        'user1',
+        'storage1',
+        'hello',
+        undefined,
+        { ...defaultOptions, isIsolated: true, locale: 'cn' }
+      );
+
+      expect(result.contextPrompt).not.toContain('Chinese (中文)');
+    });
+
     it('triggers summarization when needed', async () => {
       const memory = createMockMemory();
       const provider = createMockProvider();
