@@ -87,7 +87,9 @@ export default function MissionDashboard() {
             </Link>
           </div>
 
-          <div className={`grid grid-cols-1 ${isTrader ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
+          <div
+            className={`grid grid-cols-1 ${isTrader ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}
+          >
             {loading ? (
               <>
                 <Card variant="glass" padding="lg" className="h-32 border-border/40 bg-card/60">
@@ -196,7 +198,8 @@ export default function MissionDashboard() {
               weight="black"
               className="tracking-[0.2em] flex items-center gap-2"
             >
-              <Activity size={14} className="text-cyber-blue" /> {t('DASHBOARD_NERVE_CENTER_SUMMARY')}
+              <Activity size={14} className="text-cyber-blue" />{' '}
+              {t('DASHBOARD_NERVE_CENTER_SUMMARY')}
             </Typography>
 
             <Card
