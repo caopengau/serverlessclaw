@@ -23,7 +23,7 @@ export default $config({
     return {
       name: APP_CONFIG.name,
       removal: input?.stage === 'prod' ? 'retain' : 'remove', // Non-prod/local stages remove resources by default
-      protect: ['prod'].includes(input?.stage),
+      protect: ['prod'].includes(input?.stage ?? ''),
       home: 'aws',
       providers: {
         aws: {
