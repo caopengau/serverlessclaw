@@ -38,6 +38,8 @@ test.describe('Agents Configuration', () => {
     // Add a small delay to ensure sidebar is rendered
     await page.waitForTimeout(500);
 
+    const agentsLink = page.locator('a[href="/agents"]').first();
+
     // Wait for link to be attached in the DOM (allows for cold starts and hydration)
     await agentsLink.waitFor({ state: 'attached', timeout: 15000 }).catch(() => {});
 
