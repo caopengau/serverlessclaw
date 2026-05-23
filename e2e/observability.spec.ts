@@ -89,8 +89,8 @@ test.describe('Nerve Center (Unified Observability)', () => {
     // Add a small delay to ensure sidebar is rendered
     await page.waitForTimeout(500);
 
-    // Try to find the observability link with better error context
-    const observabilityLink = page.locator('a[href="/observability"]').first();
+    // Wait for link to be attached in the DOM
+    await observabilityLink.waitFor({ state: 'attached', timeout: 15000 }).catch(() => {});
 
     // Check if link exists and is visible
     if (!(await observabilityLink.count())) {

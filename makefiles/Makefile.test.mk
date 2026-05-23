@@ -221,7 +221,13 @@ test-e2e-deployed: ## Run E2E tests against deployed URL. Usage: make test-e2e-d
 	@$(call log_step,Running E2E tests against deployed URL...)
 	@if [ "$(URL)" = "" ]; then $(call log_error,URL is required); exit 1; fi
 	@$(call load_env); \
-	$(SST) shell --stage $(ENV) -- sh -c "CI=true PLAYWRIGHT=true BASE_URL=$(URL) node ./node_modules/@playwright/test/cli.js test"
+	E2E_PASSWORD=$$(grep '^DASHBOARD_PASSWORD=' .env.$(ENV) 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]'); \
+	if [ -z "$$E2E_PASSWORD" ]; then \
+		$(call log_warning,DASHBOARD_PASSWORD not found in .env.$(ENV) - falling back to claw123); \
+		E2E_PASSWORD="claw123"; \
+	fi; \
+	$(call log_info,Running E2E against $(URL) with ENV=$(ENV)...); \
+	$(SST) shell --stage $(ENV) -- sh -c "CI=true PLAYWRIGHT=true BASE_URL=$(URL) DASHBOARD_PASSWORD=$$E2E_PASSWORD node ./node_modules/@playwright/test/cli.js test"
 
 test-affected: ## Run only tests in affected packages (via Turbo)
 	@$(call log_step,Running affected tests via Turbo...)

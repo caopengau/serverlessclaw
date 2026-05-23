@@ -33,7 +33,7 @@ pre-deploy: ## Run all pre-deployment quality gates (fail-fast: env -> build -> 
 post-deploy: ## Run all post-deployment verification gates
 	@$(call log_step,Running POST-DEPLOYMENT gates for $(ENV)...)
 	@$(MAKE) seed-e2e ENV=$(ENV)
-	@$(MAKE) test-tier-3 || $(call log_warning,E2E tests reported issues - see logs above)
+	@$(MAKE) test-tier-3
 
 release-all: ## Release to both dev and prod sequentially
 	@$(MAKE) release ENV=dev
