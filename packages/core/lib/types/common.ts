@@ -14,6 +14,8 @@ export enum UserRole {
   MEMBER = 'member',
   /** Read-only access to dashboard. */
   VIEWER = 'viewer',
+  /** Specialized role for trading operations. */
+  TRADER = 'trader',
 }
 
 /**
