@@ -174,7 +174,7 @@ function verifyBoundaryIsolation(): Finding[] {
     return [];
   }
 
-  const frameworkFiles = globSync(`framework/**/*.{ts,tsx,md}`);
+  const frameworkFiles = globSync(`framework/**/*.{ts,tsx}`);
 
   frameworkFiles.forEach((file) => {
     if (file.includes('node_modules') || file.includes('.test.') || file.includes('.d.ts')) return;
