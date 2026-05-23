@@ -17,7 +17,7 @@ function getAppRegion(): string {
  * Defines the main application entry point, infrastructure providers, and modular resource setup.
  */
 export default $config({
-  app(input) {
+  app(input?: { stage: string }) {
     const region = getAppRegion();
 
     return {
@@ -102,6 +102,7 @@ export default $config({
       configTable,
       stagingBucket,
       knowledgeBucket,
+      dataLakeBucket,
       secrets,
       bus,
       deployer,
@@ -115,6 +116,7 @@ export default $config({
       configTable,
       stagingBucket,
       knowledgeBucket,
+      dataLakeBucket,
       secrets,
       bus,
       deployer,
@@ -151,6 +153,7 @@ export default $config({
       configTable,
       stagingBucket,
       knowledgeBucket,
+      dataLakeBucket,
       secrets,
       bus,
       deployer,
@@ -165,6 +168,7 @@ export default $config({
       configTable,
       stagingBucket,
       knowledgeBucket,
+      dataLakeBucket,
       secrets,
       bus,
       deployer,
@@ -192,6 +196,7 @@ export default $config({
       configTable,
       stagingBucket,
       knowledgeBucket,
+      dataLakeBucket,
       secrets,
       bus,
       deployer,
