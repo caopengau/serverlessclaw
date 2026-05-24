@@ -103,25 +103,31 @@ export class ClawTracer {
 
     await this.bestEffort(async () => {
       if (isNew) {
+        const item: Record<string, unknown> = {
+          traceId: this.traceId,
+          nodeId: '__summary__',
+          userId: this.userId,
+          source: this.source,
+          agentId: this.agentId,
+          timestamp: this.startTime,
+          status,
+          workspaceId: this.workspaceId,
+          orgId: this.orgId,
+          teamId: this.teamId,
+          staffId: this.staffId,
+          totalTokens: extra.totalTokens ?? 0,
+          ...extra,
+        };
+
+        const toolNamesArray = extra.toolNames as string[] | undefined;
+        if (toolNamesArray && toolNamesArray.length > 0) {
+          item.toolNames = new Set(toolNamesArray);
+        }
+
         await this.docClient.send(
           new PutCommand({
             TableName: this.getTableName(),
-            Item: {
-              traceId: this.traceId,
-              nodeId: '__summary__',
-              userId: this.userId,
-              source: this.source,
-              agentId: this.agentId,
-              timestamp: this.startTime,
-              status,
-              workspaceId: this.workspaceId,
-              orgId: this.orgId,
-              teamId: this.teamId,
-              staffId: this.staffId,
-              totalTokens: extra.totalTokens ?? 0,
-              toolNames: new Set((extra.toolNames as string[]) ?? []),
-              ...extra,
-            },
+            Item: item,
             ConditionExpression: 'attribute_not_exists(traceId)',
           })
         );
@@ -132,15 +138,15 @@ export class ClawTracer {
         const attrValues: Record<string, unknown> = { ':status': status, ':ts': Date.now() };
 
         Object.entries(extra).forEach(([key, val], i) => {
-          if (key === 'totalTokens' && typeof val === 'number') {
+          if (key === 'totalTokens' && typeof val === 'number' && val > 0) {
             addActions.push('#tokens :tokens');
             attrNames['#tokens'] = 'totalTokens';
             attrValues[':tokens'] = val;
-          } else if (key === 'toolNames' && Array.isArray(val)) {
+          } else if (key === 'toolNames' && Array.isArray(val) && val.length > 0) {
             addActions.push('#tools :tools');
             attrNames['#tools'] = 'toolNames';
             attrValues[':tools'] = new Set(val);
-          } else {
+          } else if (key !== 'totalTokens' && key !== 'toolNames') {
             const valKey = `:v${i}`;
             setActions.push(`#k${i} = ${valKey}`);
             attrNames[`#k${i}`] = key;
