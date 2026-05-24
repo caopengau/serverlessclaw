@@ -44,11 +44,15 @@ export function createScheduledInvocation(
   description?: string,
   input?: Record<string, unknown>
 ): void {
+  // Disable scheduled invocations on non-prod stages to avoid free-tier waste and dev noise.
+  // Operators can manually enable schedules in the AWS console for targeted testing.
+  const scheduleState = $app.stage === 'prod' ? 'ENABLED' : 'DISABLED';
+
   new aws.scheduler.Schedule(`${name}Schedule`, {
     name: `${$app.name}-${$app.stage}-${name}`,
     ...(description ? { description } : {}),
     scheduleExpression: rate,
-    state: 'ENABLED',
+    state: scheduleState,
     flexibleTimeWindow: { mode: 'OFF' },
     target: {
       arn: targetFn.arn,

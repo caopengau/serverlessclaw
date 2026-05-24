@@ -233,8 +233,16 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
       },
     });
 
-    // Subscribe DLQ handler to process failed events
-    dlq.subscribe(dlqHandler.arn);
+    // Subscribe DLQ handler to process failed events.
+    // batchSize:1 + 30s window prevents Lambda replay storms when errors pile up.
+    dlq.subscribe(dlqHandler.arn, {
+      transform: {
+        eventSourceMapping: {
+          batchSize: 1,
+          maximumBatchingWindowInSeconds: 30,
+        },
+      },
+    });
   }
 
   return {

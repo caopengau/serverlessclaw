@@ -39,7 +39,7 @@ export class OpenAIProvider implements IProvider {
   private static _client: OpenAI | null = null;
   private static _currentKey: string | null = null;
 
-  constructor(private model: string = OpenAIModel.GPT_5_4) {}
+  constructor(private model: string = OpenAIModel.GPT_5_MINI) {}
 
   /**
    * Lazily initializes and returns the OpenAI client instance.
@@ -84,8 +84,8 @@ export class OpenAIProvider implements IProvider {
     if (!model && profile) {
       const profileToModel: Record<ReasoningProfile, string> = {
         [ReasoningProfile.FAST]: OpenAIModel.GPT_5_4_NANO,
-        [ReasoningProfile.STANDARD]: OpenAIModel.GPT_5_4_MINI,
-        [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_4_MINI,
+        [ReasoningProfile.STANDARD]: OpenAIModel.GPT_5_MINI,
+        [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_MINI,
         [ReasoningProfile.DEEP]: OpenAIModel.GPT_5_4,
       };
       activeModel = (profileToModel[profile] ?? activeModel) as string;
@@ -232,8 +232,8 @@ export class OpenAIProvider implements IProvider {
     if (!model && profile) {
       const profileToModel: Record<ReasoningProfile, string> = {
         [ReasoningProfile.FAST]: OpenAIModel.GPT_5_4_NANO,
-        [ReasoningProfile.STANDARD]: OpenAIModel.GPT_5_4_MINI,
-        [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_4_MINI,
+        [ReasoningProfile.STANDARD]: OpenAIModel.GPT_5_MINI,
+        [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_MINI,
         [ReasoningProfile.DEEP]: OpenAIModel.GPT_5_4,
       };
       activeModel = (profileToModel[profile] ?? activeModel) as string;
