@@ -5,8 +5,8 @@ export class MetricsParser {
    * Scans terminal/process stdout block for predefined metrics schemas.
    * Returns a key-value record of any parsed metrics found in this block.
    */
-  static scan(output: string, schema: MetricFieldSpec[]): Record<string, any> {
-    const extracted: Record<string, any> = {};
+  static scan(output: string, schema: MetricFieldSpec[]): Record<string, unknown> {
+    const extracted: Record<string, unknown> = {};
     for (const field of schema) {
       try {
         const regex = new RegExp(field.regexPattern);
@@ -23,7 +23,7 @@ export class MetricsParser {
     return extracted;
   }
 
-  private static castType(value: string, format: string): any {
+  private static castType(value: string, format: string): number | string {
     switch (format) {
       case 'integer':
         return parseInt(value, 10);

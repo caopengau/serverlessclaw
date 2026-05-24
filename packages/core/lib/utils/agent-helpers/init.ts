@@ -15,7 +15,7 @@ export async function getAgentContext(): Promise<{
     import('../../providers/index'),
   ]);
 
-  const store = globalThis as any;
+  const store = globalThis as Record<string, unknown>;
   if (!store._agentMemory) {
     store._agentMemory = new CachedMemory(new DynamoMemory());
   }

@@ -3,7 +3,7 @@ import { logger } from '../logger';
 export interface AgentBusEvent {
   source: string;
   detailType: string;
-  detail: Record<string, any>;
+  detail: Record<string, unknown>;
 }
 
 export interface IEventMirror {

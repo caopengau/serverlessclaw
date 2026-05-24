@@ -23,7 +23,7 @@ export async function handleParallelTaskRetry({
   taskId: string;
   agentId: string;
   response: string;
-  existingState: any;
+  existingState: Record<string, unknown> | null | undefined;
   sessionId?: string;
   depth?: number;
   workspaceId?: string;

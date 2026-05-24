@@ -5,7 +5,7 @@
  */
 
 export function createGitHubStack(
-  resources: { bus: sst.aws.Bus; dlq?: sst.aws.Queue } & Record<string, any>,
+  resources: { bus: sst.aws.Bus; dlq?: sst.aws.Queue } & Record<string, unknown>,
   options: { pathPrefix?: string } = {}
 ) {
   const { bus, dlq } = resources;

@@ -150,7 +150,7 @@ export class FeatureFlags {
             workspaceId,
             conditionExpression: 'attribute_exists(#k)',
             expressionAttributeNames: { '#k': 'key' },
-          } as any);
+          } as Record<string, unknown>);
           prunedNames.push(flag.name);
           this.cache.delete(this.getCacheKey(flag.name, workspaceId));
         } catch (e: unknown) {

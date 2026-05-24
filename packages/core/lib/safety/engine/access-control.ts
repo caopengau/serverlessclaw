@@ -1,5 +1,39 @@
-import { SafetyTier, SafetyEvaluationResult, SafetyPolicy, IAgentConfig } from '../../types/agent';
+import {
+  SafetyTier,
+  SafetyEvaluationResult,
+  SafetyPolicy,
+  IAgentConfig,
+  SafetyContext,
+} from '../../types/agent';
 import { scanForResources } from '../../utils/fs-security';
+
+interface ISafetyEngine {
+  checkToolSafety(
+    ctx: SafetyContext,
+    tier: SafetyTier,
+    action: string
+  ): Promise<SafetyEvaluationResult>;
+  isSystemProtected(resource: string): boolean;
+  handleViolation(
+    ctx: SafetyContext,
+    tier: SafetyTier,
+    action: string,
+    policy: string,
+    reason: string,
+    outcome: 'blocked' | 'approval_required' | 'allowed',
+    resource?: string
+  ): Promise<SafetyEvaluationResult>;
+}
+
+interface IPolicyValidator {
+  checkResourceAccess(
+    policy: SafetyPolicy,
+    resource: string,
+    action: string,
+    tier: SafetyTier,
+    ctx?: SafetyContext
+  ): Promise<SafetyEvaluationResult>;
+}
 
 /**
  * Validates resource-level access and tool safety overrides.
@@ -7,11 +41,11 @@ import { scanForResources } from '../../utils/fs-security';
 export async function validateAccessControl(
   agentConfig: Partial<IAgentConfig> | undefined,
   action: string,
-  ctx: any,
+  ctx: SafetyContext,
   tier: SafetyTier,
   policy: SafetyPolicy,
-  engine: any,
-  validator: any
+  engine: ISafetyEngine,
+  validator: IPolicyValidator
 ): Promise<SafetyEvaluationResult> {
   // 1. Tool Safety
   const toolResult = await engine.checkToolSafety(ctx, tier, action);
@@ -20,7 +54,7 @@ export async function validateAccessControl(
   // 2. Resource Discovery
   const discovered = scanForResources(ctx.args ?? {}, ctx.pathKeys);
   const resources = new Set(discovered.map((d) => d.path));
-  if (ctx.resource) resources.add(ctx.resource);
+  if (ctx.resource) resources.add(ctx.resource as string);
 
   // 3. Resource-Level Validation
   for (const res of resources) {

@@ -10,11 +10,11 @@ import {
 interface SystemHandlerOptions {
   prefix: string;
   liveInLocalOnly: boolean | undefined;
-  baseLink: any[];
+  baseLink: unknown[];
   basePermissions: any[];
   schedulerPermissions: any[];
-  agentEnv: Record<string, any>;
-  tenantFilter: any;
+  agentEnv: Record<string, string>;
+  tenantFilter: Record<string, unknown>;
   dlq?: sst.aws.Queue;
 }
 
@@ -33,7 +33,7 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
   // 3. Event Handler (System errors)
   const eventHandler = new sst.aws.Function('EventHandler', {
     handler: `${prefix}packages/core/handlers/events.handler`,
-    dev: liveInLocalOnly as any,
+    dev: liveInLocalOnly,
     link: baseLink,
     permissions: [
       ...basePermissions,
@@ -102,7 +102,7 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
   // Chat Router
   const chatRouter = new sst.aws.Function('ChatRouter', {
     handler: `${prefix}packages/core/handlers/chat-router.handler`,
-    dev: liveInLocalOnly as any,
+    dev: liveInLocalOnly,
     link: baseLink,
     permissions: basePermissions,
     architecture: LAMBDA_ARCHITECTURE,
@@ -129,7 +129,7 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
   // 8. Notifier
   const notifier = new sst.aws.Function('Notifier', {
     handler: `${prefix}packages/core/handlers/notifier.handler`,
-    dev: liveInLocalOnly as any,
+    dev: liveInLocalOnly,
     link: baseLink,
     permissions: basePermissions,
     architecture: LAMBDA_ARCHITECTURE,
@@ -156,7 +156,7 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
   // 8. Generic Agent Runner (Handles dynamic user-defined agents)
   const agentRunner = new sst.aws.Function('AgentRunner', {
     handler: `${prefix}packages/core/handlers/agent-runner.handler`,
-    dev: liveInLocalOnly as any,
+    dev: liveInLocalOnly,
     link: baseLink,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
@@ -183,7 +183,7 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
   // 9. Realtime Bridge (EventBridge -> IoT Core)
   const bridge = new sst.aws.Function('RealtimeBridge', {
     handler: `${prefix}packages/core/handlers/bridge.handler`,
-    dev: liveInLocalOnly as any,
+    dev: liveInLocalOnly,
     link: [...(ctx.realtime ? [ctx.realtime] : []), bus],
     permissions: basePermissions,
     architecture: LAMBDA_ARCHITECTURE,
@@ -221,7 +221,7 @@ export function createSystemHandlers(ctx: SharedContext, options: SystemHandlerO
   if (dlq) {
     dlqHandler = new sst.aws.Function('DLQHandler', {
       handler: `${prefix}packages/core/handlers/dlq-handler.handler`,
-      dev: liveInLocalOnly as any,
+      dev: liveInLocalOnly,
       link: [...baseLink, dlq],
       architecture: LAMBDA_ARCHITECTURE,
       nodejs: { loader: NODEJS_LOADERS },

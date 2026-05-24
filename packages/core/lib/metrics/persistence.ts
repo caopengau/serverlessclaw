@@ -27,14 +27,22 @@ export async function persistToDynamoDB(metrics: MetricDatum[]): Promise<void> {
 
   try {
     const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
-    const ddbUtils = await import('../utils/ddb-client').catch(() => ({}) as any);
+    const ddbUtils = (await import('../utils/ddb-client').catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
 
-    if (!ddbUtils.getDocClient || !ddbUtils.getMemoryTableName) {
+    if (
+      typeof ddbUtils.getDocClient !== 'function' ||
+      typeof ddbUtils.getMemoryTableName !== 'function'
+    ) {
       return; // Silent skip if environment/mocks are incomplete
     }
 
-    const docClient = ddbUtils.getDocClient();
-    const tableName = ddbUtils.getMemoryTableName();
+    const docClient = (
+      ddbUtils.getDocClient as () => { send: (cmd: unknown) => Promise<unknown> }
+    )();
+    const tableName = (ddbUtils.getMemoryTableName as () => string | undefined)();
     if (!tableName) return;
 
     const now = Date.now();

@@ -115,7 +115,7 @@ export class JobExecutorService {
   /**
    * Helper to replace {{inputName}} placeholders with dynamic parameter inputs in strings.
    */
-  public static injectInputs(template: string, inputs: Record<string, any>): string {
+  public static injectInputs(template: string, inputs: Record<string, unknown>): string {
     let result = template;
     for (const [key, value] of Object.entries(inputs)) {
       result = result.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
@@ -128,7 +128,7 @@ export class JobExecutorService {
    */
   private static injectEnv(
     envOverrides: Record<string, string>,
-    inputs: Record<string, any>
+    inputs: Record<string, unknown>
   ): Record<string, string> {
     const result: Record<string, string> = {};
     for (const [key, value] of Object.entries(envOverrides)) {

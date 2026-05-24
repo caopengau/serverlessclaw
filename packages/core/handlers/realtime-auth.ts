@@ -71,7 +71,7 @@ export const handler = async (event: unknown, context: unknown) => {
       connect: ['*'],
       publish: [`${prefix}/*`],
       subscribe: [`${prefix}/*`],
-    } as any;
+    } as unknown as { publish: string[]; subscribe: string[] };
   });
 
   // Inject token so SST's internal logic might find it

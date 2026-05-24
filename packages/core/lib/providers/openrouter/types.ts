@@ -58,14 +58,14 @@ export interface OpenRouterResponse {
     message?: {
       role: string;
       content: string | null;
-      tool_calls?: any[];
+      tool_calls?: unknown[];
       reasoning_details?: Array<{ text?: string }>;
       reasoning?: string;
     };
     delta?: {
       role?: string;
       content?: string | null;
-      tool_calls?: any[];
+      tool_calls?: unknown[];
       reasoning_details?: Array<{ text?: string }>;
       reasoning?: string;
     };

@@ -9,14 +9,14 @@ import { emitMetrics, METRICS } from '../../lib/metrics';
  * Returns true if limit is exceeded (and event is routed to DLQ), false otherwise.
  */
 export async function checkRecursionLimit(
-  event: any,
+  event: { 'detail-type': string; detail: Record<string, unknown>; id?: string },
   detailType: string,
-  eventDetail: any,
+  eventDetail: Record<string, unknown>,
   traceId: string,
   sessionId: string,
   workspaceId?: string
 ): Promise<boolean> {
-  const isMission = isMissionContext(detailType, eventDetail as Record<string, unknown>);
+  const isMission = isMissionContext(detailType, eventDetail);
   const recursionLimit = await getRecursionLimit({ isMissionContext: isMission });
   const currentDepth = await incrementRecursionDepth(traceId, sessionId, 'system.spine', {
     isMissionContext: isMission,
@@ -41,6 +41,6 @@ export async function checkRecursionLimit(
   }
 
   // Propagate updated depth to downstream handlers
-  (eventDetail as Record<string, unknown>).depth = currentDepth;
+  eventDetail.depth = currentDepth;
   return false;
 }

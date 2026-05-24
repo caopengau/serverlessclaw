@@ -1,4 +1,4 @@
-import { ITool, ToolResult, ToolType } from '../../lib/types/index';
+import { ITool, ToolResult, ToolType, type JsonSchema } from '../../lib/types/index';
 import { getIdentityManager } from '../../lib/session/identity/manager';
 import { SecurityRegistry } from '../../lib/registry/SecurityRegistry';
 import { identitySchema } from './definitions/identity';
@@ -22,8 +22,8 @@ export async function getSecurityTools(): Promise<Record<string, ITool>> {
  */
 export const getUserIdentity: ITool = {
   ...identitySchema.getUser,
-  parameters: identitySchema.getUser.parameters as any,
-  requiredPermissions: identitySchema.getUser.requiredPermissions as any,
+  parameters: identitySchema.getUser.parameters as unknown as JsonSchema,
+  requiredPermissions: identitySchema.getUser.requiredPermissions as unknown as string[],
   type: ToolType.FUNCTION,
   connectionProfile: [],
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
@@ -51,7 +51,7 @@ export const getUserIdentity: ITool = {
     } catch (e) {
       logger.error('[SecurityTool] getUserIdentity failed:', e);
       return {
-        text: `Error: ${(e as Error).message}`,
+        text: `Error: ${e instanceof Error ? e.message : String(e)}`,
         images: [],
         metadata: { status: 'error' },
         ui_blocks: [],
@@ -65,14 +65,17 @@ export const getUserIdentity: ITool = {
  */
 export const updateUserRole: ITool = {
   ...identitySchema.updateUserRole,
-  parameters: identitySchema.updateUserRole.parameters as any,
-  requiredPermissions: identitySchema.updateUserRole.requiredPermissions as any,
+  parameters: identitySchema.updateUserRole.parameters as unknown as JsonSchema,
+  requiredPermissions: identitySchema.updateUserRole.requiredPermissions as unknown as string[],
   type: ToolType.FUNCTION,
   connectionProfile: [],
-  execute: async (args: Record<string, unknown>, context?: any): Promise<ToolResult> => {
+  execute: async (args: Record<string, unknown>, context?: unknown): Promise<ToolResult> => {
     try {
       const manager = await getIdentityManager();
-      const callerId = context?.userId || 'SYSTEM'; // Fallback to SYSTEM if no context
+      const callerId =
+        ((context as Record<string, unknown>)?.userId as string) ||
+        ((args as Record<string, unknown>)?.executorAgentId as string) ||
+        'SYSTEM'; // Fallback to SYSTEM if no context
 
       const success = await manager.updateUserRole(
         args.userId as string,
@@ -98,7 +101,7 @@ export const updateUserRole: ITool = {
       }
     } catch (e) {
       return {
-        text: `Error: ${(e as Error).message}`,
+        text: `Error: ${e instanceof Error ? e.message : String(e)}`,
         images: [],
         metadata: { status: 'error' },
         ui_blocks: [],
@@ -112,8 +115,8 @@ export const updateUserRole: ITool = {
  */
 export const checkPermission: ITool = {
   ...identitySchema.checkPermission,
-  parameters: identitySchema.checkPermission.parameters as any,
-  requiredPermissions: identitySchema.checkPermission.requiredPermissions as any,
+  parameters: identitySchema.checkPermission.parameters as unknown as JsonSchema,
+  requiredPermissions: identitySchema.checkPermission.requiredPermissions as unknown as string[],
   type: ToolType.FUNCTION,
   connectionProfile: [],
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
@@ -135,15 +138,16 @@ export const checkPermission: ITool = {
  */
 export const proposeAccessControl: ITool = {
   ...identitySchema.proposeAccessControl,
-  parameters: identitySchema.proposeAccessControl.parameters as any,
-  requiredPermissions: identitySchema.proposeAccessControl.requiredPermissions as any,
+  parameters: identitySchema.proposeAccessControl.parameters as unknown as JsonSchema,
+  requiredPermissions: identitySchema.proposeAccessControl
+    .requiredPermissions as unknown as string[],
   type: ToolType.FUNCTION,
   connectionProfile: [],
-  execute: async (args: Record<string, unknown>, _context?: any): Promise<ToolResult> => {
+  execute: async (args: Record<string, unknown>, _context?: unknown): Promise<ToolResult> => {
     try {
       const manager = await getIdentityManager();
       const entry = {
-        resourceType: args.resourceType as any,
+        resourceType: args.resourceType as 'config' | 'trace' | 'agent' | 'workspace',
         resourceId: args.resourceId as string,
         allowedRoles: args.allowedRoles as UserRole[],
         allowedUserIds: args.allowedUserIds as string[] | undefined,
@@ -159,7 +163,7 @@ export const proposeAccessControl: ITool = {
       };
     } catch (e) {
       return {
-        text: `Error: ${(e as Error).message}`,
+        text: `Error: ${e instanceof Error ? e.message : String(e)}`,
         images: [],
         metadata: { status: 'error' },
         ui_blocks: [],

@@ -1,4 +1,9 @@
-import { PutCommand, QueryCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  PutCommand,
+  QueryCommand,
+  DeleteCommand,
+  type QueryCommandInput,
+} from '@aws-sdk/lib-dynamodb';
 import { getDb, getMemoryTableName } from './client';
 import { BUS, TIME } from '../../constants';
 import { logger } from '../../logger';
@@ -60,8 +65,9 @@ export async function storeInDLQ(
           })
         );
         break; // Success
-      } catch (dlqError: any) {
-        if (!idempotencyKey && dlqError.name === 'ConditionalCheckFailedException') {
+      } catch (dlqError: unknown) {
+        const err = dlqError as { name?: string };
+        if (!idempotencyKey && err.name === 'ConditionalCheckFailedException') {
           attempt++;
           if (attempt >= 3) {
             logger.error('Failed to store event in DLQ after 3 collision retries', dlqError);
@@ -111,7 +117,7 @@ export async function getDlqEntries(
         Date.now() - TIME.MS_PER_DAY;
     }
 
-    const result = await getDb().send(new QueryCommand(params as any));
+    const result = await getDb().send(new QueryCommand(params as unknown as QueryCommandInput));
 
     return (result.Items ?? []) as DlqEntry[];
   } catch (error) {

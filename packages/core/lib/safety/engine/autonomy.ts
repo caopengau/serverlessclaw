@@ -1,4 +1,10 @@
-import { IAgentConfig, EvolutionMode, EventType, SafetyEvaluationResult } from '../../types/agent';
+import {
+  IAgentConfig,
+  EvolutionMode,
+  EventType,
+  SafetyEvaluationResult,
+  SafetyContext,
+} from '../../types/agent';
 import { TRUST } from '../../constants';
 import { logger } from '../../logger';
 import { emitEvent } from '../../utils/bus';
@@ -10,7 +16,7 @@ export async function checkAutonomousPromotion(
   config: Partial<IAgentConfig> | undefined,
   action: string,
   approval: SafetyEvaluationResult,
-  ctx: any
+  ctx: SafetyContext
 ): Promise<SafetyEvaluationResult | null> {
   const trustScore = config?.trustScore ?? TRUST.DEFAULT_SCORE;
   const isAutoMode = config?.evolutionMode === EvolutionMode.AUTO;

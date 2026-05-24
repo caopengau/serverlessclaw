@@ -10,7 +10,7 @@ export async function checkTrustEscalation(
   config: Partial<IAgentConfig> | undefined,
   action: string,
   evaluation: SafetyEvaluationResult,
-  ctx: any
+  ctx: Record<string, unknown>
 ): Promise<SafetyEvaluationResult | null> {
   const trustScore = config?.trustScore ?? TRUST.DEFAULT_SCORE;
   const tier = config?.safetyTier ?? SafetyTier.PROD;

@@ -224,11 +224,11 @@ export class AgentRegistry {
     if (config.metadata !== undefined || config.systemPrompt !== undefined) {
       enriched.metadata = { ...existing?.metadata, ...config.metadata };
       if (config.systemPrompt !== undefined) {
-        (enriched.metadata as any).promptHash = hashString(config.systemPrompt);
+        (enriched.metadata as Record<string, unknown>).promptHash = hashString(config.systemPrompt);
       }
     }
 
-    const updateOptions: any = {
+    const updateOptions: Record<string, unknown> = {
       increments: { version: 1 },
       workspaceId: options?.workspaceId,
       conditionExpression: options?.conditionExpression,
@@ -244,11 +244,11 @@ export class AgentRegistry {
       if (updateOptions.conditionExpression) {
         updateOptions.conditionExpression = `(${updateOptions.conditionExpression}) AND (${versionCondition})`;
         updateOptions.expressionAttributeNames = {
-          ...updateOptions.expressionAttributeNames,
+          ...(updateOptions.expressionAttributeNames as Record<string, string>),
           ...versionNames,
         };
         updateOptions.expressionAttributeValues = {
-          ...updateOptions.expressionAttributeValues,
+          ...(updateOptions.expressionAttributeValues as Record<string, unknown>),
           ...versionValues,
         };
       } else {

@@ -7,7 +7,7 @@ export interface TelemetryData {
   operation: string;
   status: 'start' | 'success' | 'error';
   durationMs?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: number;
 }
 

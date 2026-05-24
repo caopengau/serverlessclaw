@@ -2,7 +2,7 @@ export interface JobInputSpec {
   name: string;
   label: string;
   type: 'number' | 'text' | 'select' | 'boolean';
-  default: any;
+  default: unknown;
   min?: number;
   max?: number;
   step?: number;
@@ -44,7 +44,7 @@ export interface JobRun {
   startedAt?: string;
   completedAt?: string;
   triggeredBy: string;
-  inputsApplied: Record<string, any>;
-  metrics: Record<string, any>;
+  inputsApplied: Record<string, unknown>;
+  metrics: Record<string, unknown>;
   logLocation?: string;
 }

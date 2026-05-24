@@ -116,7 +116,7 @@ export async function saveConversationMeta(
   try {
     await base.updateItem(params);
   } catch (error) {
-    if (existing && (error as any).name === 'ConditionalCheckFailedException') {
+    if (existing && (error as Record<string, unknown>).name === 'ConditionalCheckFailedException') {
       logger.warn(
         `[saveConversationMeta] Session meta for ${sessionId} changed concurrently. Retrying update.`
       );
@@ -153,8 +153,8 @@ export async function getSessionMetadata(
     updatedAt: item.timestamp as number | string,
     isPinned: !!item.isPinned,
     expiresAt: item.expiresAt as number | undefined,
-    mission: item.mission as any,
+    mission: item.mission as Record<string, unknown>,
     workspaceId: item.workspaceId as string,
-    metadata: item.metadata as any,
+    metadata: item.metadata as Record<string, unknown>,
   };
 }

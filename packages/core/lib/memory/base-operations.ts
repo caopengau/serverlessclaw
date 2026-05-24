@@ -32,8 +32,8 @@ export async function getHistory(
       role: (item.role as MessageRole) || MessageRole.ASSISTANT,
       content: (item.content as string) || '',
       thought: (item.thought as string) || '',
-      tool_calls: (item.tool_calls as any[]) || [],
-      attachments: (item.attachments as any[]) || [],
+      tool_calls: (item.tool_calls as Array<import('../types/llm').ToolCall>) || [],
+      attachments: (item.attachments as Array<import('../types/llm').Attachment>) || [],
       tool_call_id: item.tool_call_id as string,
       name: item.name as string,
       agentName: (item.agentName as string) || 'SYSTEM',
@@ -67,7 +67,7 @@ export async function clearHistory(
 
   for (let i = 0; i < items.length; i += 25) {
     const batch = items.slice(i, i + 25);
-    let requestItems: any = {
+    let requestItems: Record<string, unknown> = {
       [tableName]: batch.map((item) => ({
         DeleteRequest: {
           Key: { userId: item.userId as string, timestamp: item.timestamp as number },
@@ -86,8 +86,8 @@ export async function clearHistory(
 
       const response = await base
         .getDocClient()
-        .send(new BatchWriteCommand({ RequestItems: requestItems }));
-      requestItems = (response.UnprocessedItems as typeof requestItems) || {};
+        .send(new BatchWriteCommand({ RequestItems: requestItems as any }));
+      requestItems = (response.UnprocessedItems as Record<string, unknown>) || {};
       attempts++;
     }
   }

@@ -22,13 +22,13 @@ export function isE2ETest(): boolean {
     process.env.CLAW_TEST === 'true' ||
     process.env.CORE_TEST === 'true' ||
     process.env.NODE_ENV === 'test' ||
-    (globalThis as any).__vitest_worker__ !== undefined ||
+    (globalThis as Record<string, unknown>).__vitest_worker__ !== undefined ||
     process.argv.some((arg) => arg.includes('vitest')) ||
     lifecycle.includes('test') ||
     lifecycle.includes('check') ||
-    (globalThis as any).__CLAW_TEST__ === true ||
-    (globalThis as any).CLAW_TEST === true ||
-    (globalThis as any).IS_CLAW_TEST === true ||
+    (globalThis as Record<string, unknown>).__CLAW_TEST__ === true ||
+    (globalThis as Record<string, unknown>).CLAW_TEST === true ||
+    (globalThis as Record<string, unknown>).IS_CLAW_TEST === true ||
     new Error().stack?.includes('.test.ts');
 
   return !!(process.env.PLAYWRIGHT || process.env.CI || isVitest);

@@ -1,13 +1,13 @@
 export interface Message {
   topic: string;
-  payload: any;
+  payload: unknown;
   timestamp: number;
 }
 
 export interface ProtocolAdapter {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-  publish(topic: string, message: any): Promise<void>;
+  publish(topic: string, message: unknown): Promise<void>;
   subscribe(topic: string, handler: (msg: Message) => void): Promise<void>;
   unsubscribe(topic: string, handler: (msg: Message) => void): Promise<void>;
 }
@@ -27,7 +27,7 @@ export class MockMQTTAdapter implements ProtocolAdapter {
     console.log('Disconnected from Mock MQTT broker');
   }
 
-  async publish(topic: string, message: any): Promise<void> {
+  async publish(topic: string, message: unknown): Promise<void> {
     if (!this.connected) throw new Error('Not connected');
     const msg: Message = { topic, payload: message, timestamp: Date.now() };
     const topicHandlers = this.handlers.get(topic) || [];
@@ -66,7 +66,7 @@ export class MockOCPPAdapter implements ProtocolAdapter {
     console.log('Disconnected from Mock OCPP Central System');
   }
 
-  async publish(action: string, payload: any): Promise<void> {
+  async publish(action: string, payload: unknown): Promise<void> {
     if (!this.connected) throw new Error('Not connected');
     const msg: Message = { topic: action, payload, timestamp: Date.now() };
     const topicHandlers = this.handlers.get(action) || [];
@@ -100,7 +100,7 @@ export class UniversalBus {
     return this.adapters.get(name);
   }
 
-  async publishAll(topic: string, message: any): Promise<void> {
+  async publishAll(topic: string, message: unknown): Promise<void> {
     for (const adapter of this.adapters.values()) {
       try {
         await adapter.publish(topic, message);

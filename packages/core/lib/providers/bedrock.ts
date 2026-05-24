@@ -126,7 +126,7 @@ export class BedrockProvider implements IProvider {
           toolSpec: {
             name: tool.name,
             description: tool.description,
-            inputSchema: { json: tool.parameters as any },
+            inputSchema: { json: tool.parameters as Record<string, unknown> },
           },
         } as BedrockTool;
       });
@@ -150,14 +150,17 @@ export class BedrockProvider implements IProvider {
       ...(responseFormat?.type === BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA
         ? { outputConfig: { format: BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON } }
         : {}),
-    } as unknown as any);
+    } as any); // Simple any cast for complex SDK alignment
 
     const response = await client.send(command);
 
     if (response.output?.message) {
       const msg = response.output.message;
-      const thought = (msg.content as any[])
-        ?.filter((c) => !!c.reasoningContent)
+      const thought = (msg.content as unknown[])
+        ?.filter(
+          (c): c is { reasoningContent: { reasoningText: { text: string } } } =>
+            !!(c as Record<string, unknown>).reasoningContent
+        )
         .map((c) => c.reasoningContent?.reasoningText?.text ?? '')
         .join('\n\n');
       if (thought) logger.debug(`[Bedrock Reasoning] for ${activeModelId}:`, thought);
@@ -246,7 +249,7 @@ export class BedrockProvider implements IProvider {
           toolSpec: {
             name: tool.name,
             description: tool.description,
-            inputSchema: { json: tool.parameters as any },
+            inputSchema: { json: tool.parameters as Record<string, unknown> },
           },
         } as BedrockTool;
       });
@@ -270,7 +273,7 @@ export class BedrockProvider implements IProvider {
       ...(responseFormat?.type === BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA
         ? { outputConfig: { format: BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON } }
         : {}),
-    } as unknown as any);
+    } as any); // Simple any cast for complex SDK alignment
 
     try {
       const response = await client.send(command);

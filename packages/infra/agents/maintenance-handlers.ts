@@ -10,9 +10,9 @@ import { createSchedulerRole, createScheduledInvocation } from './scheduler-util
 interface MaintenanceOptions {
   prefix: string;
   liveInLocalOnly: boolean | undefined;
-  baseLink: any[];
-  basePermissions: any[];
-  agentEnv: Record<string, any>;
+  baseLink: unknown[];
+  basePermissions: unknown[];
+  agentEnv: Record<string, string>;
   recoveryScheduleRate: string;
 }
 
@@ -23,9 +23,9 @@ export function createMaintenanceHandlers(ctx: SharedContext, options: Maintenan
 
   const heartbeatHandler = new sst.aws.Function('HeartbeatHandler', {
     handler: `${prefix}packages/core/handlers/heartbeat.handler`,
-    dev: liveInLocalOnly as any,
-    link: baseLink,
-    permissions: basePermissions,
+    dev: liveInLocalOnly,
+    link: baseLink as sst.Linkable<Record<string, unknown>>[],
+    permissions: basePermissions as any,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
     memory: AGENT_CONFIG.memory.SMALL,
@@ -39,15 +39,15 @@ export function createMaintenanceHandlers(ctx: SharedContext, options: Maintenan
 
   const deadMansSwitch = new sst.aws.Function('DeadMansSwitch', {
     handler: `${prefix}packages/core/handlers/recovery.handler`,
-    dev: liveInLocalOnly as any,
-    link: [...baseLink, deployerLink, api!],
+    dev: liveInLocalOnly,
+    link: [...baseLink, deployerLink, api!] as sst.Linkable<Record<string, unknown>>[],
     permissions: [
       ...basePermissions,
       {
         actions: ['codebuild:StartBuild'],
         resources: [deployer.arn],
       },
-    ],
+    ] as any,
     environment: {
       ...agentEnv,
       STAGE: $app.stage,
@@ -81,9 +81,9 @@ export function createMaintenanceHandlers(ctx: SharedContext, options: Maintenan
 
   const maintenanceHandler = new sst.aws.Function('MaintenanceHandler', {
     handler: `${prefix}packages/core/handlers/maintenance.handler`,
-    dev: liveInLocalOnly as any,
+    dev: liveInLocalOnly,
     link: [memoryTable, bus],
-    permissions: basePermissions,
+    permissions: basePermissions as any,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
     memory: AGENT_CONFIG.memory.SMALL,
@@ -95,9 +95,9 @@ export function createMaintenanceHandlers(ctx: SharedContext, options: Maintenan
 
   const traceCleanupHandler = new sst.aws.Function('TraceCleanupHandler', {
     handler: `${prefix}packages/core/handlers/trace-cleanup.handler`,
-    dev: liveInLocalOnly as any,
+    dev: liveInLocalOnly,
     link: [traceTable],
-    permissions: basePermissions,
+    permissions: basePermissions as any,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
     memory: AGENT_CONFIG.memory.SMALL,
@@ -109,9 +109,9 @@ export function createMaintenanceHandlers(ctx: SharedContext, options: Maintenan
 
   const mcpWarmupHandler = new sst.aws.Function('MCPWarmupHandler', {
     handler: `${prefix}packages/core/handlers/mcp-warmup.handler`,
-    dev: liveInLocalOnly as any,
-    link: baseLink,
-    permissions: basePermissions,
+    dev: liveInLocalOnly,
+    link: baseLink as sst.Linkable<Record<string, unknown>>[],
+    permissions: basePermissions as any,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
     environment: agentEnv,

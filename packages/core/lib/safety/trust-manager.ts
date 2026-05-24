@@ -212,7 +212,7 @@ export class TrustManager {
               conditionExpression: score < TRUST.MIN_SCORE ? '#trust < :min' : '#trust > :max',
               expressionAttributeNames: { '#trust': 'trustScore' },
               expressionAttributeValues: { ':min': TRUST.MIN_SCORE, ':max': TRUST.MAX_SCORE },
-            } as any
+            } as Record<string, unknown>
           );
           score = clamped;
         } catch (clampErr: unknown) {

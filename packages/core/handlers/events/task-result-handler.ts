@@ -127,12 +127,12 @@ export async function handleTaskResult(
           status: isFailure ? 'failed' : 'success',
           result: response,
           durationMs: 0,
-          patch: (eventDetail.metadata as any)?.patch,
+          patch: (eventDetail.metadata as Record<string, unknown>)?.patch as string | undefined,
         },
         workspaceId
       );
 
-      if ((existingState.metadata as any)?.hasDependencies) {
+      if ((existingState.metadata as Record<string, unknown>)?.hasDependencies) {
         const { handleDagTaskOutcome } = await import('./task-result/dag-orchestrator');
         await handleDagTaskOutcome(
           {
@@ -159,7 +159,7 @@ export async function handleTaskResult(
           aggregateState,
           existingState,
           { workspaceId, teamId, staffId },
-          aggregator
+          aggregator as any
         );
       }
       return;
@@ -178,7 +178,7 @@ export async function handleTaskResult(
     userNotified,
     undefined,
     traceId,
-    EventType.CONTINUATION_TASK as any,
+    EventType.CONTINUATION_TASK,
     workspaceId,
     teamId,
     staffId,

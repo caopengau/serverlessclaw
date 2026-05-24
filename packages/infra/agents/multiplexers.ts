@@ -10,11 +10,11 @@ import {
 interface MultiplexerOptions {
   prefix: string;
   liveInLocalOnly: boolean | undefined;
-  baseLink: any[];
+  baseLink: unknown[];
   basePermissions: any[];
   schedulerPermissions: any[];
-  agentEnv: Record<string, any>;
-  tenantFilter: any;
+  agentEnv: Record<string, string>;
+  tenantFilter: Record<string, unknown>;
   dlq?: sst.aws.Queue;
 }
 
@@ -34,8 +34,10 @@ export function createMultiplexers(ctx: SharedContext, options: MultiplexerOptio
   // 1. High-Power Multiplexer (Coder, Researcher, Strategic Planner)
   const highPowerMultiplexer = new sst.aws.Function('HighPowerMultiplexer', {
     handler: `${prefix}packages/core/handlers/agent-multiplexer.handler`,
-    dev: liveInLocalOnly as any,
-    link: [...baseLink, stagingBucket, deployerLink].filter(Boolean),
+    dev: liveInLocalOnly,
+    link: [...baseLink, stagingBucket, deployerLink].filter(Boolean) as sst.Linkable<
+      Record<string, unknown>
+    >[],
     permissions: [...basePermissions, ...schedulerPermissions],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
@@ -61,8 +63,8 @@ export function createMultiplexers(ctx: SharedContext, options: MultiplexerOptio
   // 2. Standard Multiplexer (QA, Facilitator)
   const standardMultiplexer = new sst.aws.Function('StandardMultiplexer', {
     handler: `${prefix}packages/core/handlers/agent-multiplexer.handler`,
-    dev: liveInLocalOnly as any,
-    link: [...baseLink, deployerLink].filter(Boolean),
+    dev: liveInLocalOnly,
+    link: [...baseLink, deployerLink].filter(Boolean) as sst.Linkable<Record<string, unknown>>[],
     permissions: [...basePermissions, ...schedulerPermissions],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
@@ -88,8 +90,10 @@ export function createMultiplexers(ctx: SharedContext, options: MultiplexerOptio
   // 3. Light Multiplexer (Critic, Reflector, Merger)
   const lightMultiplexer = new sst.aws.Function('LightMultiplexer', {
     handler: `${prefix}packages/core/handlers/agent-multiplexer.handler`,
-    dev: liveInLocalOnly as any,
-    link: [...baseLink, stagingBucket, deployerLink].filter(Boolean),
+    dev: liveInLocalOnly,
+    link: [...baseLink, stagingBucket, deployerLink].filter(Boolean) as sst.Linkable<
+      Record<string, unknown>
+    >[],
     permissions: [...basePermissions, ...schedulerPermissions],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },

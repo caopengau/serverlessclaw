@@ -31,9 +31,12 @@ export function getConfigValue<K extends ConfigKey>(
 
 export function getHotSwappableKeys(): Array<{ key: ConfigKey; configKey: string }> {
   return Object.entries(CONFIG_DEFAULTS)
-    .filter(([, def]) => (def as any).hotSwappable && (def as any).configKey)
+    .filter(
+      ([, def]) =>
+        (def as Record<string, unknown>).hotSwappable && (def as Record<string, unknown>).configKey
+    )
     .map(([key, def]) => ({
       key: key as ConfigKey,
-      configKey: (def as any).configKey!,
+      configKey: (def as Record<string, unknown>).configKey as string,
     }));
 }

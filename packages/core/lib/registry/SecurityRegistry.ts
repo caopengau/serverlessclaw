@@ -112,7 +112,7 @@ export class SecurityRegistry {
       return true;
     }
 
-    return WORKSPACE_SCOPED_PERMISSIONS.has(permKey as any);
+    return WORKSPACE_SCOPED_PERMISSIONS.has(permKey as unknown as Permission);
   }
 
   /**

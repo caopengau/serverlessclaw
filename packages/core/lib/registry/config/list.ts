@@ -180,7 +180,7 @@ export class ConfigManagerList extends ConfigManagerBase {
           throw new Error(`Value for ${key} is not an object, cannot append to field ${field}`);
         }
 
-        const currentList = (current as any)?.[field] || [];
+        const currentList = (current as Record<string, unknown>)?.[field] || [];
         if (!Array.isArray(currentList)) {
           throw new Error(`Field ${field} in ${key} is not a list`);
         }
@@ -248,7 +248,7 @@ export class ConfigManagerList extends ConfigManagerBase {
         const current = await this.getRawConfig(key, options);
         if (!current || typeof current !== 'object') return;
 
-        const currentList = (current as any)?.[field];
+        const currentList = (current as Record<string, unknown>)?.[field];
         if (!Array.isArray(currentList)) return;
 
         const newList = currentList.filter(

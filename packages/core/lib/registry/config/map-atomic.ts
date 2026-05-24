@@ -191,8 +191,8 @@ export class ConfigManagerMapAtomic extends ConfigManagerList {
             // Value was corrected or changed back into range concurrently - fetch fresh state
             const rootMap = (await ConfigManagerMapAtomic.getRawConfig(key, {
               workspaceId: options.workspaceId,
-            })) as Record<string, any>;
-            const fresh = rootMap?.[entityId];
+            })) as Record<string, unknown>;
+            const fresh = rootMap?.[entityId] as Record<string, unknown> | undefined;
             return (fresh?.[field] as number) ?? clamped;
           }
           throw clampError;

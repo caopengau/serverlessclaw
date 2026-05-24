@@ -49,7 +49,7 @@ export async function recordFailurePattern(
   const workspaceId = resolveScopeId(scope);
 
   const { putWithCollisionRetry } = await import('../utils/atomic');
-  await putWithCollisionRetry(base as any, {
+  await putWithCollisionRetry(base as unknown as import('../base').BaseMemoryProvider, {
     userId: pk,
     timestamp: parseInt(timestamp, 10),
     type: 'MEMORY:FAILURE_PATTERN',
@@ -85,7 +85,7 @@ export async function getLowUtilizationMemory(
 
   const allItems: Record<string, unknown>[] = [];
   for (const type of types) {
-    const params: any = {
+    const params: Record<string, unknown> = {
       ExpressionAttributeNames: { '#tp': 'type' },
       ExpressionAttributeValues: { ':type': type },
       Limit: limit,
@@ -94,7 +94,7 @@ export async function getLowUtilizationMemory(
     if (workspaceId) {
       params.IndexName = 'WorkspaceTypeIndex';
       params.KeyConditionExpression = 'workspaceId = :wsId AND #tp = :type';
-      params.ExpressionAttributeValues[':wsId'] = workspaceId;
+      (params.ExpressionAttributeValues as Record<string, unknown>)[':wsId'] = workspaceId;
     } else {
       params.IndexName = 'TypeTimestampIndex';
       params.KeyConditionExpression = '#tp = :type';
