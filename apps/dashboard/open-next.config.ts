@@ -1,9 +1,11 @@
 const config = {
   default: {
-    // Explicitly include runtime dependencies in the Lambda bundle.
-    // This ensures SWC helper deep imports and Next runtime packages are present at runtime.
+    // Enable bundling to create a single-file server function.
+    // Disable minification to avoid ENOENT errors with pnpm symlinks.
+    bundle: true,
+    minify: false,
     install: {
-      packages: ['@swc/helpers', 'next', 'react', 'react-dom'],
+      packages: ['@swc/helpers'],
     },
   },
 };
