@@ -77,14 +77,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     const store = JobStore.getInstance();
 
-    // 1. Dynamic Seeding: Load local jobs config and save to store
-    const specsFromConfig = loadJobsConfig();
-    for (const spec of specsFromConfig) {
-      await store.saveJobSpec(workspaceId, spec);
-    }
+    // 1. Load local jobs config
+    const specs = loadJobsConfig();
 
-    // 2. Fetch specs and runs from database
-    const specs = await store.listJobSpecs(workspaceId);
+    // 2. Fetch runs from database
     const runs = await store.listJobRuns(workspaceId);
 
     return NextResponse.json({
@@ -185,11 +181,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const store = JobStore.getInstance();
 
-    // 1. Fetch target specification
-    const spec = await store.getJobSpec(workspaceId, jobType);
+    // 1. Fetch target specification from config
+    const specs = loadJobsConfig();
+    const spec = specs.find(s => s.jobType === jobType);
     if (!spec) {
       return NextResponse.json(
-        { error: `Job Specification of type '${jobType}' not found in database.` },
+        { error: `Job Specification of type '${jobType}' not found in configuration.` },
         { status: HTTP_STATUS.NOT_FOUND }
       );
     }
