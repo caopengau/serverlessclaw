@@ -42,16 +42,23 @@ release-all: ## Release to both dev and prod sequentially
 pre-release-check: ## [FAIL-FAST #1/3] Validate environment and credentials before release
 	@$(call log_step,[FAIL-FAST #1/3] Pre-release environment check for $(ENV)...)
 	@$(call load_env); \
+	export AWS_PROFILE=$$AWS_PROFILE; \
+	export AWS_REGION=$${AWS_REGION:-$(AWS_REGION)}; \
 	$(call verify_env,EXPECTED_ACCOUNT); \
-	$(call log_info,Verifying AWS identity...); \
+	$(call log_info,Verifying AWS identity using profile: $$AWS_PROFILE in region: $$AWS_REGION...); \
 	ACTUAL_ACCOUNT=$$(aws sts get-caller-identity --query Account --output text 2>/dev/null); \
+	if [ -z "$$ACTUAL_ACCOUNT" ]; then \
+		$(call log_error,Failed to get AWS account ID. Profile $$AWS_PROFILE might be invalid.); \
+		aws sts get-caller-identity; \
+		exit 1; \
+	fi; \
 	if [ "$$ACTUAL_ACCOUNT" != "$$EXPECTED_ACCOUNT" ]; then \
 		$(call log_error,AWS Account mismatch! Expected $$EXPECTED_ACCOUNT but found $$ACTUAL_ACCOUNT); \
 		exit 1; \
 	fi; \
 	$(call log_info,Verifying AWS permissions...); \
-	aws lambda list-functions --region $(AWS_REGION) > /dev/null 2>&1 || { $(call log_error,AWS credentials invalid or Lambda access denied); exit 1; }; \
-	$(call log_success,Environment validated: Account $$EXPECTED_ACCOUNT, Region $(AWS_REGION))
+	aws lambda list-functions --max-items 1 --region $$AWS_REGION > /dev/null 2>&1 || { $(call log_error,AWS credentials invalid or Lambda access denied); exit 1; }; \
+	$(call log_success,Environment validated: Account $$EXPECTED_ACCOUNT, Region $$AWS_REGION)
 
 verify-build-readiness: ## [FAIL-FAST #2/3] Verify the dashboard build will succeed
 	@$(call log_step,[FAIL-FAST #2/3] Verifying build configuration...)

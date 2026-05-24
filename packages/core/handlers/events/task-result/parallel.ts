@@ -1,5 +1,6 @@
 import { AGENT_TYPES, EventType } from '../../../lib/types/index';
 import { AgentRegistry } from '../../../lib/registry/AgentRegistry';
+import type { AggregateState } from '../../../lib/agent/parallel-aggregator';
 
 /**
  * Attempts to retry a failed parallel sub-task with an alternative agent.
@@ -23,7 +24,7 @@ export async function handleParallelTaskRetry({
   taskId: string;
   agentId: string;
   response: string;
-  existingState: Record<string, unknown> | null | undefined;
+  existingState: AggregateState | null | undefined;
   sessionId?: string;
   depth?: number;
   workspaceId?: string;
@@ -32,7 +33,7 @@ export async function handleParallelTaskRetry({
 }): Promise<boolean> {
   if (!existingState) return false;
 
-  const metadata = existingState.metadata as Record<string, unknown> | undefined;
+  const metadata = existingState.metadata;
   const retries = (metadata?.retries as Record<string, number> | undefined) ?? {};
   if (retries[taskId] && retries[taskId] > 0) {
     return false; // Already retried this task once

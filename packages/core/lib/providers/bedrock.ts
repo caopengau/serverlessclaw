@@ -150,6 +150,7 @@ export class BedrockProvider implements IProvider {
       ...(responseFormat?.type === BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA
         ? { outputConfig: { format: BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON } }
         : {}),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any); // Simple any cast for complex SDK alignment
 
     const response = await client.send(command);
@@ -273,6 +274,7 @@ export class BedrockProvider implements IProvider {
       ...(responseFormat?.type === BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA
         ? { outputConfig: { format: BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON } }
         : {}),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any); // Simple any cast for complex SDK alignment
 
     try {

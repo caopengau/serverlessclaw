@@ -45,6 +45,7 @@ export function createMonitors(ctx: SharedContext, options: MonitorOptions) {
           ),
         ],
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as any,
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.MEDIUM,
@@ -85,7 +86,12 @@ export function createMonitors(ctx: SharedContext, options: MonitorOptions) {
     link: [memoryTable, bus],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
-    permissions: [...basePermissions, { actions: ['lambda:GetAccountSettings'], resources: ['*'] }],
+
+    permissions: [
+      ...basePermissions,
+      { actions: ['lambda:GetAccountSettings'], resources: ['*'] },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any,
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.SHORT,
     logging: {

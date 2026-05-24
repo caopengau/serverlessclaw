@@ -29,6 +29,26 @@ const SHARD_PREFIX = 'PARALLEL_SHARD#';
  */
 const ITEM_SIZE_THRESHOLD_BYTES = 300 * 1024;
 
+export interface AggregateState {
+  userId: string;
+  timestamp: number;
+  taskCount: number;
+  completedCount: number;
+  results: AggregatedResult[];
+  initiatorId: string;
+  sessionId?: string;
+  expiresAt: number;
+  status: string;
+  createdAt: number;
+  taskMapping: Array<{ taskId: string; agentId: string }>;
+  results_ids: string[];
+  aggregationType?: 'summary' | 'agent_guided' | 'merge_patches';
+  aggregationPrompt?: string;
+  initialQuery?: string;
+  metadata: Record<string, unknown>;
+  version?: number;
+}
+
 /**
  * Manages aggregation of parallel agent task results using DynamoDB.
  * Supports sharding for large parallel dispatches exceeding 400KB.
@@ -126,16 +146,7 @@ export class ParallelAggregator {
     traceId: string,
     result: AggregatedResult,
     workspaceId?: string
-  ): Promise<{
-    isComplete: boolean;
-    taskCount: number;
-    results: AggregatedResult[];
-    initiatorId: string;
-    sessionId?: string;
-    status: string;
-    aggregationType?: 'summary' | 'agent_guided' | 'merge_patches';
-    aggregationPrompt?: string;
-  } | null> {
+  ): Promise<(AggregateState & { isComplete: boolean }) | null> {
     const key = this.buildPk(userId, traceId, workspaceId);
 
     try {
@@ -151,14 +162,8 @@ export class ParallelAggregator {
         if (!state) return null;
 
         return {
+          ...state,
           isComplete: state.completedCount >= state.taskCount,
-          taskCount: state.taskCount,
-          results: state.results,
-          initiatorId: state.initiatorId,
-          sessionId: state.sessionId,
-          status: state.status,
-          aggregationType: state.aggregationType,
-          aggregationPrompt: state.aggregationPrompt,
         };
       }
 
@@ -198,14 +203,23 @@ export class ParallelAggregator {
         const results = await this.mergeShardedResults(updated.results, updated.results_shards);
 
         return {
-          isComplete: updated.completedCount >= updated.taskCount,
+          userId: updated.userId,
+          timestamp: updated.timestamp,
           taskCount: updated.taskCount,
+          completedCount: updated.completedCount,
           results,
           initiatorId: updated.initiatorId,
           sessionId: updated.sessionId,
+          expiresAt: updated.expiresAt,
           status: updated.status,
+          createdAt: updated.createdAt,
+          taskMapping: updated.taskMapping || [],
+          results_ids: updated.results_ids || [],
           aggregationType: updated.aggregationType,
           aggregationPrompt: updated.aggregationPrompt,
+          metadata: updated.metadata || {},
+          version: updated.version,
+          isComplete: updated.completedCount >= updated.taskCount,
         };
       } else {
         // 3. Sharding flow: Create shard first, THEN update main (prevents phantom completions)
@@ -262,14 +276,23 @@ export class ParallelAggregator {
         const results = await this.mergeShardedResults(updated.results, updated.results_shards);
 
         return {
-          isComplete: updated.completedCount >= updated.taskCount,
+          userId: updated.userId,
+          timestamp: updated.timestamp,
           taskCount: updated.taskCount,
+          completedCount: updated.completedCount,
           results,
           initiatorId: updated.initiatorId,
           sessionId: updated.sessionId,
+          expiresAt: updated.expiresAt,
           status: updated.status,
+          createdAt: updated.createdAt,
+          taskMapping: updated.taskMapping || [],
+          results_ids: updated.results_ids || [],
           aggregationType: updated.aggregationType,
           aggregationPrompt: updated.aggregationPrompt,
+          metadata: updated.metadata || {},
+          version: updated.version,
+          isComplete: updated.completedCount >= updated.taskCount,
         };
       }
     } catch (error: unknown) {
@@ -354,7 +377,11 @@ export class ParallelAggregator {
   /**
    * Retrieves the current state of a parallel dispatch, including all sharded results.
    */
-  async getState(userId: string, traceId: string, workspaceId?: string) {
+  async getState(
+    userId: string,
+    traceId: string,
+    workspaceId?: string
+  ): Promise<AggregateState | undefined> {
     const response = await docClient.send(
       new GetCommand({
         TableName: this.tableName,

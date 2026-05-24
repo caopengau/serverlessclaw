@@ -11,8 +11,8 @@ interface MultiplexerOptions {
   prefix: string;
   liveInLocalOnly: boolean | undefined;
   baseLink: unknown[];
-  basePermissions: any[];
-  schedulerPermissions: any[];
+  basePermissions: unknown[];
+  schedulerPermissions: unknown[];
   agentEnv: Record<string, string>;
   tenantFilter: Record<string, unknown>;
   dlq?: sst.aws.Queue;
