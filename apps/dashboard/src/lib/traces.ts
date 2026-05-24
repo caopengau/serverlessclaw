@@ -108,9 +108,11 @@ export async function getTraces(
       const fallbackRes = await docClient.send(
         new QueryCommand({
           TableName: tableName,
-          IndexName: 'SummaryByNode',
+          IndexName: indexName,
           KeyConditionExpression: keyCondition,
-          ExpressionAttributeNames: startTime || endTime ? { '#ts': 'timestamp' } : undefined,
+          FilterExpression: filterExpression,
+          ExpressionAttributeNames:
+            Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
           ExpressionAttributeValues: rootExpressionAttributeValues,
           Limit: 100,
           ExclusiveStartKey: decodePaginationToken(nextToken ?? ''),
