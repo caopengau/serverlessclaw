@@ -18,7 +18,13 @@ export function createMultiRegionScaling(ctx: SharedContext) {
 
   // Define cross-region sync queues if needed (Mock logic for Phase 4)
   const regionSyncQueue = new sst.aws.Queue('FrameworkRegionSyncQueue', {
-    visibilityTimeout: '60 seconds',
+    transform: {
+      queue: {
+        visibilityTimeoutSeconds: 300, // 5 min — matches DLQ
+        receiveMessageWaitTimeSeconds: 20, // Long polling — reduces empty-receive API calls
+        messageRetentionSeconds: 14 * 24 * 60 * 60, // 14 days
+      },
+    },
   });
 
   return {
