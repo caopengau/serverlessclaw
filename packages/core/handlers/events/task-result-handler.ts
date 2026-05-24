@@ -132,7 +132,8 @@ export async function handleTaskResult(
         workspaceId
       );
 
-      if ((existingState.metadata as Record<string, unknown>)?.hasDependencies) {
+      const metadata = (existingState as any).metadata as Record<string, unknown> | undefined;
+      if (metadata?.hasDependencies) {
         const { handleDagTaskOutcome } = await import('./task-result/dag-orchestrator');
         await handleDagTaskOutcome(
           {
@@ -156,8 +157,8 @@ export async function handleTaskResult(
       if (aggregateState?.isComplete) {
         const { finalizeParallelDispatch } = await import('./task-result/dag-orchestrator');
         await finalizeParallelDispatch(
-          aggregateState,
-          existingState,
+          aggregateState as unknown as Record<string, unknown>,
+          existingState as unknown as Record<string, unknown>,
           { workspaceId, teamId, staffId },
           aggregator as any
         );
