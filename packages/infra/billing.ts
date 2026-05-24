@@ -18,6 +18,7 @@ export function createBilling() {
   // Create an SNS Topic for billing alerts
   const billingTopic = new sst.aws.SnsTopic('BillingAlerts', {
     transform: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       topic: (args: any) => {
         args.displayName = 'System Billing Alerts';
       },
@@ -28,7 +29,7 @@ export function createBilling() {
   // Without this policy, budget notifications silently fail.
   new aws.sns.TopicPolicy('BillingAlertsPolicy', {
     arn: billingTopic.arn,
-    policy: billingTopic.arn.apply((arn: string) =>
+    policy: billingTopic.arn.apply((arn) =>
       JSON.stringify({
         Version: '2012-10-17',
         Statement: [
