@@ -1,4 +1,6 @@
 import { spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 import { JobSpec, JobRun, JobStatus } from './types';
 import { JobStore } from './store';
 import { MetricsParser } from './parser';
@@ -30,8 +32,18 @@ export class JobExecutorService {
 
     // 3. Resolve execution CWD and environment variables
     const baseCwd = spec.executor.cwd || '';
-    // Resolve absolute path for workspace alignment if needed
-    const executionCwd = baseCwd.startsWith('/') ? baseCwd : `${process.cwd()}/${baseCwd}`;
+    let executionCwd = baseCwd;
+    if (!baseCwd.startsWith('/')) {
+      const localPath = path.resolve(process.cwd(), baseCwd);
+      const parentPath = path.resolve(process.cwd(), '../../', baseCwd);
+      if (fs.existsSync(localPath)) {
+        executionCwd = localPath;
+      } else if (fs.existsSync(parentPath)) {
+        executionCwd = parentPath;
+      } else {
+        executionCwd = localPath; // fallback
+      }
+    }
 
     // Spawn standard shell process
     const child = spawn(formattedCmd, {
@@ -39,6 +51,7 @@ export class JobExecutorService {
       cwd: executionCwd,
       env: {
         ...process.env,
+        PYTHONUNBUFFERED: '1',
         WORKSPACE_ID: workspaceId,
         STAGING_BUCKET_NAME: process.env.STAGING_BUCKET_NAME || '',
         ...this.injectEnv(spec.executor.envOverrides || {}, run.inputsApplied),
@@ -81,6 +94,31 @@ export class JobExecutorService {
 
     child.stdout.on('data', handleOutput);
     child.stderr.on('data', handleOutput);
+
+    // Register error handler to catch execution/spawn failures and mark job as FAILED
+    child.on('error', (err) => {
+      logger.error(`[JobExecutor] Process spawn error for job ${run.jobId}:`, err);
+      const errMsg = `Failed to spawn command process: ${err.message}\n`;
+      const logTopic = `workspaces/${workspaceId}/jobs/${run.jobId}/logs`;
+      publishToRealtime(logTopic, { text: errMsg }).catch((pubErr) => {
+        logger.error(`[JobExecutor] Realtime log publish failed:`, pubErr);
+      });
+      run.status = 'FAILED';
+      run.completedAt = new Date().toISOString();
+      store
+        .updateJobRun(workspaceId, run, {
+          status: 'FAILED',
+          completedAt: run.completedAt,
+        })
+        .catch((dbErr) => {
+          logger.error(`[JobExecutor] Failed to update job status to FAILED in DB:`, dbErr);
+        });
+
+      const statusTopic = `workspaces/${workspaceId}/jobs/${run.jobId}/status`;
+      publishToRealtime(statusTopic, { status: 'FAILED', metrics: run.metrics }).catch((pubErr) => {
+        logger.error(`[JobExecutor] Realtime status publish failed:`, pubErr);
+      });
+    });
 
     child.on('close', async (code) => {
       const finalStatus: JobStatus = code === 0 ? 'COMPLETED' : 'FAILED';
