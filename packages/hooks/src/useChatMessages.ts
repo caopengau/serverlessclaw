@@ -9,11 +9,11 @@ interface ChatApiResponse {
   thought?: string;
   messageId?: string;
   agentName?: string;
-  tool_calls?: any[];
+  tool_calls?: unknown[];
   error?: string;
   details?: string;
   model?: string;
-  usage?: any;
+  usage?: Record<string, unknown>;
 }
 
 export interface UseChatMessagesOptions {
@@ -123,12 +123,12 @@ export function useChatMessages({
             data.thought && data.thought.length > (existing.thought?.length ?? 0)
               ? data.thought
               : existing.thought || data.thought,
-          tool_calls: data.tool_calls || existing.tool_calls,
+          tool_calls: (data.tool_calls || existing.tool_calls) as ChatMessage['tool_calls'],
           agentName: data.agentName || existing.agentName,
           ui_blocks: data.ui_blocks || existing.ui_blocks,
           isThinking: false,
           modelName: data.model || existing.modelName,
-          usage: data.usage || existing.usage,
+          usage: (data.usage || existing.usage) as ChatMessage['usage'],
         };
         return updated;
       }
@@ -140,11 +140,11 @@ export function useChatMessages({
           thought: data.thought,
           messageId: targetId,
           agentName: data.agentName || 'SuperClaw',
-          tool_calls: data.tool_calls,
+          tool_calls: data.tool_calls as ChatMessage['tool_calls'],
           ui_blocks: data.ui_blocks,
           createdAt: Date.now(),
           modelName: data.model,
-          usage: data.usage,
+          usage: data.usage as ChatMessage['usage'],
         },
       ];
     });

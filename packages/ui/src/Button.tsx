@@ -23,7 +23,7 @@ const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const LoaderIcon = Loader2 as any;
+  const LoaderIcon = Loader2;
   const variantStyles = {
     primary: THEME.CLASSES.BUTTON_PRIMARY,
     danger: THEME.CLASSES.BUTTON_DANGER,
