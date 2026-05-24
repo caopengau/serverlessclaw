@@ -40,7 +40,11 @@ async function seed() {
     // 0. Seed User Identities
     console.log('👤 Seeding E2E Users...');
     const users = [
-      { id: 'dashboard-user', role: 'admin', password: process.env.DASHBOARD_PASSWORD || 'claw123' },
+      {
+        id: 'dashboard-user',
+        role: 'admin',
+        password: process.env.DASHBOARD_PASSWORD || 'claw123',
+      },
       { id: 'superadmin', role: 'owner', password: 'test-password' },
       { id: 'test-admin', role: 'admin', password: 'test-password-123' },
       { id: 'test-member', role: 'member', password: 'test-password-456' },

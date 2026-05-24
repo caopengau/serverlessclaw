@@ -9,11 +9,11 @@ interface ChatApiResponse {
   thought?: string;
   messageId?: string;
   agentName?: string;
-  tool_calls?: any[];
+  tool_calls?: unknown[];
   error?: string;
   details?: string;
   model?: string;
-  usage?: any;
+  usage?: unknown;
 }
 
 export interface UseChatMessagesOptions {
