@@ -33,7 +33,7 @@ export class JobStore extends BaseMemoryProvider {
    */
   async getJobSpec(workspaceId: string, jobType: string): Promise<JobSpec | undefined> {
     const specs = await this.listJobSpecs(workspaceId);
-    return specs.find(s => s.jobType === jobType);
+    return specs.find((s) => s.jobType === jobType);
   }
 
   /**
@@ -107,7 +107,7 @@ export class JobStore extends BaseMemoryProvider {
         },
       });
       if (jobType) {
-         items = items.filter(item => item.jobType === jobType);
+        items = items.filter((item) => item.jobType === jobType);
       }
       // Sort chronologically descending (newest first)
       const sorted = (items as unknown as JobRun[]).sort(
