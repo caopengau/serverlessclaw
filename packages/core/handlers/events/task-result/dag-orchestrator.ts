@@ -3,6 +3,7 @@ import { EventType } from '../../../lib/types/agent/events';
 import { emitTypedEvent } from '../../../lib/utils/typed-emit';
 import { ConfigManager } from '../../../lib/registry/config';
 import { emitMetrics, METRICS } from '../../../lib/metrics';
+import type { AggregateState } from '../../../lib/agent/parallel-aggregator';
 
 /**
  * Handles DAG task completion/failure and triggers the next step.
@@ -48,53 +49,61 @@ export async function handleDagTaskOutcome(
  * Handles the final aggregation of parallel task results.
  */
 export async function finalizeParallelDispatch(
-  aggregateState: Record<string, unknown>,
-  existingState: Record<string, unknown>,
+  aggregateState: AggregateState,
+  existingState: AggregateState,
   scope: { workspaceId?: string; teamId?: string; staffId?: string },
   aggregator: {
     markAsCompleted: (
       userId: string,
       traceId: string,
-      status: string,
+      status: 'success' | 'partial' | 'failed' | 'timed_out',
       workspaceId?: string
     ) => Promise<boolean>;
   }
 ): Promise<void> {
-  const userId = aggregateState.userId as string;
-  const traceId = aggregateState.traceId as string;
-  const workspaceId = aggregateState.workspaceId as string | undefined;
-  const teamId = aggregateState.teamId as string | undefined;
-  const staffId = aggregateState.staffId as string | undefined;
+  const workspaceId = scope.workspaceId;
+  const teamId = scope.teamId;
+  const staffId = scope.staffId;
 
   const threshold =
     ((await ConfigManager.getRawConfig('parallel_partial_success_threshold')) as number) ?? 0.5;
-  const results = (aggregateState.results as Array<Record<string, unknown>>) || [];
+  const results = aggregateState.results || [];
   const successCount = results.filter((r) => r.status === 'success').length;
-  const taskCount = (aggregateState.taskCount as number) || 0;
+  const taskCount = aggregateState.taskCount || 0;
   const successRate = taskCount > 0 ? successCount / taskCount : 0;
 
   const overallStatus =
     successRate === 1 ? 'success' : successRate >= threshold ? 'partial' : 'failed';
 
   emitMetrics([
-    METRICS.parallelDispatchCompleted(traceId, taskCount, successCount, overallStatus, scope),
+    METRICS.parallelDispatchCompleted(
+      aggregateState.results_ids[0] || 'unknown', // traceId context
+      taskCount,
+      successCount,
+      overallStatus,
+      scope
+    ),
   ]).catch(() => {});
 
-  const marked = await aggregator.markAsCompleted(userId, traceId, overallStatus, workspaceId);
+  const marked = await aggregator.markAsCompleted(
+    aggregateState.userId.split('#')[1], // Original userId (PARALLEL#userId#...)
+    aggregateState.results_ids[0] || '', // Use a representative ID or pass traceId explicitly
+    overallStatus,
+    workspaceId
+  );
 
   if (marked) {
-    const resultsArray = (aggregateState.results as unknown[]) || [];
     await emitTypedEvent('events.handler', EventType.PARALLEL_TASK_COMPLETED, {
-      userId,
+      userId: aggregateState.userId,
       sessionId: aggregateState.sessionId as string,
-      traceId,
-      taskId: traceId,
-      initiatorId: aggregateState.initiatorId as string,
+      traceId: aggregateState.results_ids[0] || '',
+      taskId: aggregateState.results_ids[0] || '',
+      initiatorId: aggregateState.initiatorId,
       overallStatus,
-      results: resultsArray,
+      results: aggregateState.results,
       taskCount,
-      completedCount: resultsArray.length,
-      elapsedMs: Date.now() - ((existingState.createdAt as number) || Date.now()),
+      completedCount: aggregateState.results.length,
+      elapsedMs: Date.now() - (existingState.createdAt || Date.now()),
       aggregationType: aggregateState.aggregationType as string,
       aggregationPrompt: aggregateState.aggregationPrompt as string,
       workspaceId,

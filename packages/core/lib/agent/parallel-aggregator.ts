@@ -29,26 +29,24 @@ const SHARD_PREFIX = 'PARALLEL_SHARD#';
  */
 const ITEM_SIZE_THRESHOLD_BYTES = 300 * 1024;
 
-/**
- * Represents the current state of a parallel dispatch.
- */
 export interface AggregateState {
-  isComplete: boolean;
+  userId: string;
+  timestamp: number;
   taskCount: number;
   completedCount: number;
   results: AggregatedResult[];
   initiatorId: string;
   sessionId?: string;
+  expiresAt: number;
   status: string;
-  aggregationType?: 'summary' | 'agent_guided' | 'merge_patches';
-  aggregationPrompt?: string;
-  userId: string;
-  traceId: string;
-  workspaceId?: string;
-  teamId?: string;
-  staffId?: string;
   createdAt: number;
   taskMapping: Array<{ taskId: string; agentId: string }>;
+  results_ids: string[];
+  aggregationType?: 'summary' | 'agent_guided' | 'merge_patches';
+  aggregationPrompt?: string;
+  initialQuery?: string;
+  metadata: Record<string, unknown>;
+  version?: number;
 }
 
 /**
@@ -148,7 +146,7 @@ export class ParallelAggregator {
     traceId: string,
     result: AggregatedResult,
     workspaceId?: string
-  ): Promise<AggregateState | null> {
+  ): Promise<(AggregateState & { isComplete: boolean }) | null> {
     const key = this.buildPk(userId, traceId, workspaceId);
 
     try {
@@ -163,7 +161,10 @@ export class ParallelAggregator {
         const state = await this.getState(userId, traceId, workspaceId);
         if (!state) return null;
 
-        return state;
+        return {
+          ...state,
+          isComplete: state.completedCount >= state.taskCount,
+        };
       }
 
       const currentItemSize = this.estimateSize(current);
@@ -202,19 +203,23 @@ export class ParallelAggregator {
         const results = await this.mergeShardedResults(updated.results, updated.results_shards);
 
         return {
-          isComplete: updated.completedCount >= updated.taskCount,
+          userId: updated.userId,
+          timestamp: updated.timestamp,
           taskCount: updated.taskCount,
           completedCount: updated.completedCount,
           results,
           initiatorId: updated.initiatorId,
           sessionId: updated.sessionId,
+          expiresAt: updated.expiresAt,
           status: updated.status,
+          createdAt: updated.createdAt,
+          taskMapping: updated.taskMapping || [],
+          results_ids: updated.results_ids || [],
           aggregationType: updated.aggregationType,
           aggregationPrompt: updated.aggregationPrompt,
-          userId,
-          traceId,
-          createdAt: updated.createdAt,
-          taskMapping: updated.taskMapping,
+          metadata: updated.metadata || {},
+          version: updated.version,
+          isComplete: updated.completedCount >= updated.taskCount,
         };
       } else {
         // 3. Sharding flow: Create shard first, THEN update main (prevents phantom completions)
@@ -271,19 +276,23 @@ export class ParallelAggregator {
         const results = await this.mergeShardedResults(updated.results, updated.results_shards);
 
         return {
-          isComplete: updated.completedCount >= updated.taskCount,
+          userId: updated.userId,
+          timestamp: updated.timestamp,
           taskCount: updated.taskCount,
           completedCount: updated.completedCount,
           results,
           initiatorId: updated.initiatorId,
           sessionId: updated.sessionId,
+          expiresAt: updated.expiresAt,
           status: updated.status,
+          createdAt: updated.createdAt,
+          taskMapping: updated.taskMapping || [],
+          results_ids: updated.results_ids || [],
           aggregationType: updated.aggregationType,
           aggregationPrompt: updated.aggregationPrompt,
-          userId,
-          traceId,
-          createdAt: updated.createdAt,
-          taskMapping: updated.taskMapping,
+          metadata: updated.metadata || {},
+          version: updated.version,
+          isComplete: updated.completedCount >= updated.taskCount,
         };
       }
     } catch (error: unknown) {
@@ -391,18 +400,21 @@ export class ParallelAggregator {
 
     return {
       userId: item.userId,
-      traceId,
-      isComplete: (item.completedCount as number) >= (item.taskCount as number),
+      timestamp: item.timestamp,
       taskCount: item.taskCount,
       completedCount: item.completedCount,
       results,
       initiatorId: item.initiatorId,
       sessionId: item.sessionId,
+      expiresAt: item.expiresAt,
       status: item.status,
-      aggregationType: item.aggregationType,
-      aggregationPrompt: item.aggregationPrompt,
       createdAt: item.createdAt,
       taskMapping: item.taskMapping || [],
+      results_ids: item.results_ids || [],
+      aggregationType: item.aggregationType,
+      aggregationPrompt: item.aggregationPrompt,
+      metadata: item.metadata || {},
+      version: item.version,
     };
   }
 
