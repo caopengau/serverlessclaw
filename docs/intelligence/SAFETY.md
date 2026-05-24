@@ -152,14 +152,14 @@ graph TD
 Plugins can register new roles (e.g., `trader`, `OPERATOR`) or add granular permissions to existing roles using the `SecurityRegistry` on plugin initialization. For example, the GoldEx plugin registers:
 
 ```typescript
-SecurityRegistry.registerRolePermissions("trader", [
+SecurityRegistry.registerRolePermissions('trader', [
   Permission.AGENT_VIEW,
   Permission.AGENT_INVOKE,
   Permission.TASK_VIEW,
   Permission.DASHBOARD_VIEW,
   Permission.ACTION_FINANCIAL,
-  "goldex:trade_execute",
-  "goldex:risk_override",
+  'goldex:trade_execute',
+  'goldex:risk_override',
 ]);
 ```
 
