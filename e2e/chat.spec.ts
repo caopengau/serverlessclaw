@@ -1,7 +1,8 @@
+import path from 'path';
 import { test, expect } from 'playwright/test';
 
 test.describe('Chat Flow', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' });
+  test.use({ storageState: path.join(__dirname, '.auth/user.json') });
 
   test('renders chat page at /chat', async ({ page }) => {
     await page.goto('/chat');

@@ -95,13 +95,15 @@ const nextConfig = {
     let extensionDir = null;
     if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
       if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.startsWith('.')) {
-        extensionDir = path.resolve(__dirname, process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS, '../..');
+        // Resolve to ./src/extensions/project
+        extensionDir = path.resolve(__dirname, process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS, '..');
       } else {
+        // Resolve to package root
         extensionDir = path.resolve(
           __dirname,
           '../../../',
           process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS,
-          '../..'
+          '../../..'
         );
       }
     }

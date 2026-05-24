@@ -1,7 +1,8 @@
+import path from 'path';
 import { test, expect } from 'playwright/test';
 
 test.describe('Agents Configuration', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' });
+  test.use({ storageState: path.join(__dirname, '.auth/user.json') });
 
   test('renders agents page', async ({ page }) => {
     await page.goto('/agents');

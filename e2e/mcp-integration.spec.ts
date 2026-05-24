@@ -1,7 +1,8 @@
+import path from 'path';
 import { test, expect } from 'playwright/test';
 
 test.describe('MCP Integration (Capabilities)', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' });
+  test.use({ storageState: path.join(__dirname, '.auth/user.json') });
 
   test('renders MCP tab in capabilities', async ({ page }) => {
     await page.goto('/capabilities');

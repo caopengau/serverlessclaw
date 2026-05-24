@@ -1,7 +1,8 @@
+import path from 'path';
 import { test, expect } from 'playwright/test';
 
 test.describe('Mission Dashboard', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' });
+  test.use({ storageState: path.join(__dirname, '.auth/user.json') });
 
   test('renders mission dashboard landing page', async ({ page }) => {
     await page.goto('/');
