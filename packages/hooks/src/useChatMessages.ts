@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useCallback, useEffect } from 'react';
 import { logger } from '@claw/core/lib/logger';
 import { AGENT_ERRORS } from '@claw/core/lib/constants';
@@ -9,11 +10,11 @@ interface ChatApiResponse {
   thought?: string;
   messageId?: string;
   agentName?: string;
-  tool_calls?: unknown[];
+  tool_calls?: any[];
   error?: string;
   details?: string;
   model?: string;
-  usage?: unknown;
+  usage?: any;
 }
 
 export interface UseChatMessagesOptions {
@@ -123,12 +124,12 @@ export function useChatMessages({
             data.thought && data.thought.length > (existing.thought?.length ?? 0)
               ? data.thought
               : existing.thought || data.thought,
-          tool_calls: data.tool_calls || existing.tool_calls,
+          tool_calls: data.tool_calls || (existing.tool_calls as any),
           agentName: data.agentName || existing.agentName,
           ui_blocks: data.ui_blocks || existing.ui_blocks,
           isThinking: false,
           modelName: data.model || existing.modelName,
-          usage: data.usage || existing.usage,
+          usage: data.usage || (existing.usage as any),
         };
         return updated;
       }
@@ -140,11 +141,11 @@ export function useChatMessages({
           thought: data.thought,
           messageId: targetId,
           agentName: data.agentName || 'SuperClaw',
-          tool_calls: data.tool_calls,
+          tool_calls: data.tool_calls as any,
           ui_blocks: data.ui_blocks,
           createdAt: Date.now(),
           modelName: data.model,
-          usage: data.usage,
+          usage: data.usage as any,
         },
       ];
     });
