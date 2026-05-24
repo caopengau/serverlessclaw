@@ -36,12 +36,14 @@ test.describe('Chat Flow', () => {
 
   test('send button is enabled when input has text', async ({ page }) => {
     await page.goto('/chat');
+    await page.waitForTimeout(2000);
     await page.fill('textarea', 'Hello agent');
     await expect(page.getByRole('button', { name: /SEND|发送/i }).first()).toBeEnabled();
   });
 
   test('sends message and displays in chat', async ({ page }) => {
     await page.goto('/chat');
+    await page.waitForTimeout(2000);
     await page.fill('textarea', 'Test message');
     await page
       .getByRole('button', { name: /SEND|发送/i })
@@ -53,6 +55,7 @@ test.describe('Chat Flow', () => {
 
   test('displays EXECUTING state while loading', async ({ page }) => {
     await page.goto('/chat');
+    await page.waitForTimeout(2000);
     await page.fill('textarea', 'Processing test');
     await page
       .getByRole('button', { name: /SEND|发送/i })
@@ -69,6 +72,7 @@ test.describe('Chat Flow', () => {
 
   test('textarea supports Enter to send', async ({ page }) => {
     await page.goto('/chat');
+    await page.waitForTimeout(2000);
     await page.fill('textarea', 'Enter send test');
     await page.press('textarea', 'Enter');
 

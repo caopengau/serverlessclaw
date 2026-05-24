@@ -42,12 +42,14 @@ export function resolveSSTResourceValue(
   }
 
   // 3. Try traditional Resource access
-  // We check for SST_RESOURCE_App to avoid triggering the Proxy's "links not active" error
+  // We check for active link signals to avoid triggering the Proxy's "links not active" error
   if (
     process.env.SST_RESOURCE_App ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
     process.env.VITEST ||
     process.env.NODE_ENV === 'test' ||
-    process.env.PLAYWRIGHT
+    process.env.PLAYWRIGHT ||
+    Object.keys(process.env).some((k) => k.startsWith('SST_RESOURCE_'))
   ) {
     try {
       const resource = Resource as unknown as Record<string, Record<string, string>>;
@@ -99,10 +101,12 @@ export const getConfigTableName = () =>
 export function getAppInfo(): { name: string; stage: string } {
   if (
     process.env.SST_RESOURCE_App ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
     process.env.SST_STAGE ||
     process.env.VITEST ||
     process.env.NODE_ENV === 'test' ||
-    process.env.PLAYWRIGHT
+    process.env.PLAYWRIGHT ||
+    Object.keys(process.env).some((k) => k.startsWith('SST_RESOURCE_'))
   ) {
     try {
       const resource = Resource as unknown as Record<string, { name: string; stage: string }>;

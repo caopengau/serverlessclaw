@@ -26,10 +26,24 @@ export async function getTraces(
 
     const { startTime, endTime, workspaceId } = options ?? {};
 
+    let traceSummariesEnabled = false;
+    try {
+      const { ConfigManager } = await import('@claw/core/lib/registry/config');
+      traceSummariesEnabled =
+        (await ConfigManager.getTypedConfig('trace_summaries_enabled', false, { workspaceId })) ||
+        process.env.TRACE_SUMMARIES_ENABLED === 'true';
+    } catch (e) {
+      logger.warn('Failed to load ConfigManager, checking env only:', e);
+      traceSummariesEnabled = process.env.TRACE_SUMMARIES_ENABLED === 'true';
+    }
+
+    const primaryNodeId = traceSummariesEnabled ? '__summary__' : 'root';
+    const fallbackNodeId = traceSummariesEnabled ? 'root' : '__summary__';
+
     // Use WorkspaceSummaryIndex if workspaceId is provided (Enterprise Scale)
     let indexName = 'SummaryByNode';
     let keyCondition = 'nodeId = :summary';
-    const expressionAttributeValues: Record<string, any> = { ':summary': '__summary__' };
+    const expressionAttributeValues: Record<string, any> = { ':summary': primaryNodeId };
     let filterExpression: string | undefined = undefined;
     const expressionAttributeNames: Record<string, string> = {};
 
@@ -95,23 +109,28 @@ export async function getTraces(
       (item: any) => item.source !== TraceSource.SYSTEM
     ) as Trace[];
 
-    // Fallback path: if trace summaries are disabled, '__summary__' rows won't exist.
-    // In that case, query root trace nodes so /trace still has data.
+    // Fallback path: if trace summaries are disabled, primary rows won't exist.
+    // In that case, query fallback trace nodes so /trace still has data.
     if (filteredSummary.length === 0) {
       logger.warn(
-        '[getTraces] No summary rows found. Falling back to root trace query (trace_summaries may be disabled).'
+        `[getTraces] No ${primaryNodeId} rows found. Falling back to ${fallbackNodeId} trace query.`
       );
 
-      // Re-use query logic but for 'root' nodeId
-      const rootExpressionAttributeValues = { ...expressionAttributeValues, ':summary': 'root' };
+      // Re-use query logic but for fallbackNodeId
+      const fallbackExpressionAttributeValues = {
+        ...expressionAttributeValues,
+        ':summary': fallbackNodeId,
+      };
 
       const fallbackRes = await docClient.send(
         new QueryCommand({
           TableName: tableName,
-          IndexName: 'SummaryByNode',
+          IndexName: indexName,
           KeyConditionExpression: keyCondition,
-          ExpressionAttributeNames: startTime || endTime ? { '#ts': 'timestamp' } : undefined,
-          ExpressionAttributeValues: rootExpressionAttributeValues,
+          FilterExpression: filterExpression,
+          ExpressionAttributeNames:
+            Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+          ExpressionAttributeValues: fallbackExpressionAttributeValues,
           Limit: 100,
           ExclusiveStartKey: decodePaginationToken(nextToken ?? ''),
           ScanIndexForward: false,

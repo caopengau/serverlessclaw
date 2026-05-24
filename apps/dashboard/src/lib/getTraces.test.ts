@@ -3,6 +3,11 @@ import { TraceSource } from '@claw/core/lib/types/agent';
 import { getResourceName } from '@/lib/sst-utils';
 
 vi.mock('@/lib/sst-utils', () => ({ getResourceName: vi.fn(() => 'TraceTable') }));
+vi.mock('@claw/core/lib/registry/config', () => ({
+  ConfigManager: {
+    getTypedConfig: vi.fn().mockResolvedValue(true),
+  },
+}));
 
 import { getTraces } from './traces';
 
