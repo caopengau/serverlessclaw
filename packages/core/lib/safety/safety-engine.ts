@@ -159,6 +159,7 @@ export class SafetyEngine extends SafetyBase {
       ctx,
       tier,
       policy,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this as any, // Cast to avoid deep interface implementation mismatch
       this.validator
     );

@@ -86,6 +86,7 @@ export async function clearHistory(
 
       const response = await base
         .getDocClient()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .send(new BatchWriteCommand({ RequestItems: requestItems as any }));
       requestItems = (response.UnprocessedItems as Record<string, unknown>) || {};
       attempts++;
