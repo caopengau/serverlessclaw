@@ -86,8 +86,9 @@ The system uses a **Dual-Layer Retrieval** strategy to ensure trace visibility e
 ### 1. Configuration-Guided Routing (Primary)
 
 The dashboard checks whether `trace_summaries_enabled` is configured for the active workspace (via dynamic `ConfigManager` configuration).
-* If **enabled** (default in production), it queries the `'__summary__'` partition.
-* If **disabled** (default in development), it immediately queries the `'root'` partition.
+
+- If **enabled** (default in production), it queries the `'__summary__'` partition.
+- If **disabled** (default in development), it immediately queries the `'root'` partition.
 
 ### 2. Fail-Safe Swapping (Fallback)
 
