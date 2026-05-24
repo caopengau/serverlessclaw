@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShieldAlert } from 'lucide-react';
+import Link from 'next/link';
 
 export default function UnauthorizedPage() {
   return (
@@ -10,12 +11,12 @@ export default function UnauthorizedPage() {
         <p className="text-sm text-red-400/80">
           You do not have the required clearance level to access this sector.
         </p>
-        <a
+        <Link
           href="/"
           className="mt-6 border border-red-500/30 px-6 py-2 text-xs uppercase hover:bg-red-500/10 transition-colors"
         >
           Return to Dashboard
-        </a>
+        </Link>
       </div>
     </div>
   );
