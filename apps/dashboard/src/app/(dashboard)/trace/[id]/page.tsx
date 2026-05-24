@@ -4,6 +4,8 @@ import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '@claw/core/lib/logger';
 import { getTraceTableName } from '@claw/core/lib/utils/ddb-client';
 import { Trace } from '@/lib/types/ui';
+import { redirect } from 'next/navigation';
+import { AUTH } from '@/lib/constants';
 
 import TraceDetailView from './TraceDetailView';
 
@@ -50,6 +52,20 @@ export default async function TraceDetailPage({
   params: Promise<{ id: string }>;
 }): Promise<React.ReactElement> {
   const { id } = await params;
+
+  // RBAC Gating check for TRACE_VIEW permission
+  const { cookies: getCookies } = await import('next/headers');
+  const cookieStore = await getCookies();
+  const userId = cookieStore.get(AUTH.SESSION_USER_ID)?.value || 'dashboard-user';
+
+  const { getIdentityManager, Permission } = await import('@claw/core/lib/session/identity');
+  const identityManager = await getIdentityManager();
+
+  const hasAccess = await identityManager.hasPermission(userId, Permission.TRACE_VIEW, 'default');
+  if (!hasAccess) {
+    redirect('/unauthorized');
+  }
+
   const nodes = await getTraceNodes(id);
 
   return <TraceDetailView id={id} nodes={nodes} />;

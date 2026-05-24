@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useCallback, useEffect } from 'react';
 import { logger } from '@claw/core/lib/logger';
 import { AGENT_ERRORS } from '@claw/core/lib/constants';
@@ -9,7 +10,7 @@ interface ChatApiResponse {
   thought?: string;
   messageId?: string;
   agentName?: string;
-  tool_calls?: unknown[];
+  tool_calls?: any[];
   error?: string;
   details?: string;
   model?: string;
