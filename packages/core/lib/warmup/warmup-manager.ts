@@ -66,15 +66,16 @@ export class WarmupManager extends BaseMemoryProvider {
    */
   async getWarmState(serverName: string, workspaceId?: string): Promise<WarmupState | null> {
     try {
-      const pk = `WARM#${serverName}`;
-      const scopedPk = this.getScopedUserId(pk, { workspaceId });
+      const userId = this.getScopedUserId(`WARM#${serverName}`, { workspaceId });
 
       const items = await this.queryItemsPaginated({
-        TableName: this.tableName,
-        KeyConditionExpression: 'pk = :pk AND sk = :sk',
+        KeyConditionExpression: 'userId = :userId AND #timestamp = :timestamp',
+        ExpressionAttributeNames: {
+          '#timestamp': 'timestamp',
+        },
         ExpressionAttributeValues: {
-          ':pk': scopedPk,
-          ':sk': 'STATE',
+          ':userId': userId,
+          ':timestamp': 0,
         },
       });
       return items.items.length > 0 ? (items.items[0] as unknown as WarmupState) : null;
@@ -89,12 +90,12 @@ export class WarmupManager extends BaseMemoryProvider {
    */
   async recordWarmState(state: WarmupState, workspaceId?: string): Promise<void> {
     try {
-      const pk = `WARM#${state.server}`;
-      const scopedPk = this.getScopedUserId(pk, { workspaceId });
+      const userId = this.getScopedUserId(`WARM#${state.server}`, { workspaceId });
 
       await this.putItem({
-        pk: scopedPk,
-        sk: 'STATE',
+        userId,
+        timestamp: 0,
+        type: 'WARMUP_STATE',
         ...state,
         workspaceId,
       });
@@ -343,21 +344,11 @@ export class WarmupManager extends BaseMemoryProvider {
    */
   async getWarmServers(workspaceId?: string): Promise<WarmupState[]> {
     try {
-      const pkPrefix = this.getScopedUserId('WARM#', { workspaceId });
-
-      const items = await this.queryItemsPaginated({
-        TableName: this.tableName,
-        KeyConditionExpression: 'begins_with(pk, :prefix) AND sk = :sk',
-        ExpressionAttributeValues: {
-          ':prefix': pkPrefix,
-          ':sk': 'STATE',
-        },
-      });
+      const userIdPrefix = this.getScopedUserId('WARM#', { workspaceId });
+      const items = await this.scanByPrefix(userIdPrefix);
 
       const now = Math.floor(Date.now() / 1000);
-      return items.items
-        .map((item) => item as unknown as WarmupState)
-        .filter((state) => state.ttl > now);
+      return items.map((item) => item as unknown as WarmupState).filter((state) => state.ttl > now);
     } catch (error) {
       logger.error('[WARMUP] Failed to get warm servers:', error);
       return [];
@@ -369,29 +360,21 @@ export class WarmupManager extends BaseMemoryProvider {
    */
   async cleanupExpiredStates(workspaceId?: string): Promise<number> {
     try {
-      const pkPrefix = this.getScopedUserId('WARM#', { workspaceId });
-
-      const items = await this.queryItemsPaginated({
-        TableName: this.tableName,
-        KeyConditionExpression: 'begins_with(pk, :prefix) AND sk = :sk',
-        ExpressionAttributeValues: {
-          ':prefix': pkPrefix,
-          ':sk': 'STATE',
-        },
-      });
+      const userIdPrefix = this.getScopedUserId('WARM#', { workspaceId });
+      const items = await this.scanByPrefix(userIdPrefix);
 
       const now = Math.floor(Date.now() / 1000);
       let deleted = 0;
 
-      for (const item of items.items) {
+      for (const item of items) {
         const state = item as Record<string, unknown>;
         if (typeof state.ttl === 'number' && state.ttl <= now) {
           await this.docClient.send(
             new DeleteCommand({
               TableName: this.tableName,
               Key: {
-                pk: item.pk,
-                sk: 'STATE',
+                userId: item.userId,
+                timestamp: item.timestamp,
               },
             })
           );
