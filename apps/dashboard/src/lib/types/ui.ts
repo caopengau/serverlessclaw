@@ -304,6 +304,7 @@ export interface Trace {
   nodes: Trace[];
   parentId: string;
   nodeId: string;
+  toolNames?: string[];
   // Derived fields used in UI processing
   agentId: string;
   totalTokens: number;

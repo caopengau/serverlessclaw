@@ -82,9 +82,19 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
   }
 
   if (collaborationId) {
-    await sendToCollaboration(collaborationId, message, attachments, options);
+    try {
+      await sendToCollaboration(collaborationId, message, attachments, options);
+    } catch (e) {
+      logger.error('[NOTIFIER] Fan-out delivery failed, falling back to direct user delivery:', e);
+      await sendToSingleUser(baseUserId, message, attachments, options);
+    }
   } else if (workspaceId) {
-    await sendToWorkspace(workspaceId, message, attachments, options);
+    try {
+      await sendToWorkspace(workspaceId, message, attachments, options);
+    } catch (e) {
+      logger.error('[NOTIFIER] Fan-out delivery failed, falling back to direct user delivery:', e);
+      await sendToSingleUser(baseUserId, message, attachments, options);
+    }
   } else {
     await sendToSingleUser(baseUserId, message, attachments, options);
   }

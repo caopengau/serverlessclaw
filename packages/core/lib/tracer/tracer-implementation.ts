@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { TraceSource } from '../types/agent';
 import { v4 as uuidv4 } from 'uuid';
-import { TRACE_STATUS, TIME } from '../constants';
+import { TRACE_STATUS, TIME, TRACE_TYPES } from '../constants';
 import { logger } from '../logger';
 import { filterPIIFromObject } from '../utils/pii';
 import { getDocClient, getTraceTableName } from '../utils/ddb-client';
@@ -103,42 +103,66 @@ export class ClawTracer {
 
     await this.bestEffort(async () => {
       if (isNew) {
+        const item: Record<string, unknown> = {
+          traceId: this.traceId,
+          nodeId: '__summary__',
+          userId: this.userId,
+          source: this.source,
+          agentId: this.agentId,
+          timestamp: this.startTime,
+          status,
+          workspaceId: this.workspaceId,
+          orgId: this.orgId,
+          teamId: this.teamId,
+          staffId: this.staffId,
+          totalTokens: extra.totalTokens ?? 0,
+          ...extra,
+        };
+
+        const toolNamesArray = extra.toolNames as string[] | undefined;
+        if (toolNamesArray && toolNamesArray.length > 0) {
+          item.toolNames = new Set(toolNamesArray);
+        }
+
         await this.docClient.send(
           new PutCommand({
             TableName: this.getTableName(),
-            Item: {
-              traceId: this.traceId,
-              nodeId: '__summary__',
-              userId: this.userId,
-              source: this.source,
-              agentId: this.agentId,
-              timestamp: this.startTime,
-              status,
-              workspaceId: this.workspaceId,
-              orgId: this.orgId,
-              teamId: this.teamId,
-              staffId: this.staffId,
-              ...extra,
-            },
+            Item: item,
             ConditionExpression: 'attribute_not_exists(traceId)',
           })
         );
       } else {
-        const updateExprParts = ['#status = :status', '#ts = :ts'];
+        const setActions = ['#status = :status', '#ts = :ts'];
+        const addActions: string[] = [];
         const attrNames: Record<string, string> = { '#status': 'status', '#ts': 'timestamp' };
         const attrValues: Record<string, unknown> = { ':status': status, ':ts': Date.now() };
 
         Object.entries(extra).forEach(([key, val], i) => {
-          const valKey = `:v${i}`;
-          updateExprParts.push(`#k${i} = ${valKey}`);
-          attrNames[`#k${i}`] = key;
-          attrValues[valKey] = val;
+          if (key === 'totalTokens' && typeof val === 'number' && val > 0) {
+            addActions.push('#tokens :tokens');
+            attrNames['#tokens'] = 'totalTokens';
+            attrValues[':tokens'] = val;
+          } else if (key === 'toolNames' && Array.isArray(val) && val.length > 0) {
+            addActions.push('#tools :tools');
+            attrNames['#tools'] = 'toolNames';
+            attrValues[':tools'] = new Set(val);
+          } else if (key !== 'totalTokens' && key !== 'toolNames') {
+            const valKey = `:v${i}`;
+            setActions.push(`#k${i} = ${valKey}`);
+            attrNames[`#k${i}`] = key;
+            attrValues[valKey] = val;
+          }
         });
 
-        const updateParams: any = {
+        let updateExpression = `SET ${setActions.join(', ')}`;
+        if (addActions.length > 0) {
+          updateExpression += ` ADD ${addActions.join(', ')}`;
+        }
+
+        const updateParams: Record<string, unknown> = {
           TableName: this.getTableName(),
           Key: { traceId: this.traceId, nodeId: '__summary__' },
-          UpdateExpression: `SET ${updateExprParts.join(', ')}`,
+          UpdateExpression: updateExpression,
           ConditionExpression: this.workspaceId
             ? 'attribute_exists(traceId) AND workspaceId = :wsId'
             : 'attribute_exists(traceId)',
@@ -147,10 +171,11 @@ export class ClawTracer {
         };
 
         if (this.workspaceId) {
-          updateParams.ExpressionAttributeValues[':wsId'] = this.workspaceId;
+          const values = updateParams.ExpressionAttributeValues as Record<string, unknown>;
+          values[':wsId'] = this.workspaceId;
         }
 
-        await this.docClient.send(new UpdateCommand(updateParams));
+        await this.docClient.send(new UpdateCommand(updateParams as any));
       }
     }, 'UpdateSummary');
   }
@@ -252,7 +277,7 @@ export class ClawTracer {
       timestamp: Date.now(),
     }) as TraceStep;
 
-    const updateParams: any = {
+    const updateParams: Record<string, unknown> = {
       TableName: this.getTableName(),
       Key: { traceId: this.traceId, nodeId: this.nodeId },
       UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :step)',
@@ -267,13 +292,34 @@ export class ClawTracer {
     };
 
     if (this.workspaceId) {
-      updateParams.ExpressionAttributeValues[':wsId'] = this.workspaceId;
+      const values = updateParams.ExpressionAttributeValues as Record<string, unknown>;
+      values[':wsId'] = this.workspaceId;
     }
 
-    await this.docClient.send(new UpdateCommand(updateParams));
+    await this.docClient.send(new UpdateCommand(updateParams as any));
+
+    const extra: Record<string, unknown> = { lastStepType: step.type };
+
+    // Sh5: Accumulate metrics for the summary view to avoid N+1 queries in the dashboard
+    if (step.type === TRACE_TYPES.LLM_RESPONSE) {
+      const content = step.content as {
+        usage?: { total_tokens?: number; totalInputTokens?: number; totalOutputTokens?: number };
+      };
+      if (content?.usage) {
+        extra.totalTokens =
+          content.usage.total_tokens ||
+          (content.usage.totalInputTokens ?? 0) + (content.usage.totalOutputTokens ?? 0);
+      }
+    } else if (step.type === TRACE_TYPES.TOOL_CALL) {
+      const content = step.content as { toolName?: string; tool?: string };
+      const toolName = content?.toolName || content?.tool;
+      if (toolName) {
+        extra.toolNames = [toolName];
+      }
+    }
 
     await this.updateSummary(TRACE_STATUS.STARTED, {
-      extra: { lastStepType: step.type },
+      extra,
     });
   }
 
@@ -294,7 +340,7 @@ export class ClawTracer {
       })
     ) as TraceStep[];
 
-    const updateParams: any = {
+    const updateParams: Record<string, unknown> = {
       TableName: this.getTableName(),
       Key: { traceId: this.traceId, nodeId: this.nodeId },
       UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :steps)',
@@ -309,13 +355,43 @@ export class ClawTracer {
     };
 
     if (this.workspaceId) {
-      updateParams.ExpressionAttributeValues[':wsId'] = this.workspaceId;
+      const values = updateParams.ExpressionAttributeValues as Record<string, unknown>;
+      values[':wsId'] = this.workspaceId;
     }
 
-    await this.docClient.send(new UpdateCommand(updateParams));
+    await this.docClient.send(new UpdateCommand(updateParams as any));
+
+    let totalTokens = 0;
+    const toolNames = new Set<string>();
+
+    steps.forEach((step) => {
+      if (step.type === TRACE_TYPES.LLM_RESPONSE) {
+        const content = step.content as {
+          usage?: { total_tokens?: number; totalInputTokens?: number; totalOutputTokens?: number };
+        };
+        if (content?.usage) {
+          totalTokens +=
+            content.usage.total_tokens ||
+            (content.usage.totalInputTokens ?? 0) + (content.usage.totalOutputTokens ?? 0);
+        }
+      } else if (step.type === TRACE_TYPES.TOOL_CALL) {
+        const content = step.content as { toolName?: string; tool?: string };
+        const toolName = content?.toolName || content?.tool;
+        if (toolName) {
+          toolNames.add(toolName);
+        }
+      }
+    });
+
+    const extra: Record<string, unknown> = {
+      lastStepType: steps[steps.length - 1].type,
+    };
+
+    if (totalTokens > 0) extra.totalTokens = totalTokens;
+    if (toolNames.size > 0) extra.toolNames = Array.from(toolNames);
 
     await this.updateSummary(TRACE_STATUS.STARTED, {
-      extra: { lastStepType: steps[steps.length - 1].type },
+      extra,
     });
   }
 

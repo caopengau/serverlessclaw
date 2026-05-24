@@ -28,9 +28,15 @@ function findFilesRecursively(dir: string, fileRegex: RegExp): string[] {
 
   const list = fs.readdirSync(dir);
   for (const file of list) {
+<<<<<<< HEAD
     if (file === 'node_modules') continue; // Skip node_modules to avoid log spam and speed up scan
 
     if (file === 'node_modules' || file === '.git') continue;
+=======
+    // Skip node_modules and hidden git directory
+    if (file === 'node_modules' || file === '.git') continue;
+
+>>>>>>> f8934c59bab33060336d087f4734296ba7f9f5ed
     const filePath = path.join(dir, file);
     const stat = fs.statSync(filePath);
 

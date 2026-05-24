@@ -71,18 +71,19 @@ export default function TraceIntelligenceView({
 
   const traces = useMemo<EnrichedTrace[]>(() => {
     return initialTraces.map((trace) => {
-      const toolsUsed = trace.steps
-        ? Array.from(
-            new Set(
-              trace.steps
-                .filter((s: TraceStep) => s.type === TRACE_TYPES.TOOL_CALL)
-                .map((s: TraceStep) => {
-                  const content = s.content as ToolCallContent;
-                  return content.toolName || content.tool || '';
-                })
+      const toolsUsed =
+        trace.steps && trace.steps.length > 0
+          ? Array.from(
+              new Set(
+                trace.steps
+                  .filter((s: TraceStep) => s.type === TRACE_TYPES.TOOL_CALL)
+                  .map((s: TraceStep) => {
+                    const content = s.content as ToolCallContent;
+                    return content.toolName || content.tool || '';
+                  })
+              )
             )
-          )
-        : [];
+          : trace.toolNames || trace.toolsUsed || [];
 
       const llmCallStep = trace.steps?.find((s: TraceStep) => s.type === TRACE_TYPES.LLM_CALL);
       const llmResponseStep = trace.steps?.find(
@@ -100,13 +101,17 @@ export default function TraceIntelligenceView({
         t('TRACE_UNKNOWN_MODEL');
 
       let totalTokens = 0;
-      trace.steps?.forEach((s: TraceStep) => {
-        if (s.type === TRACE_TYPES.LLM_RESPONSE && (s.content as LlmResponseContent).usage) {
-          const usage = (s.content as LlmResponseContent).usage!;
-          totalTokens +=
-            usage.total_tokens || (usage.totalInputTokens ?? 0) + (usage.totalOutputTokens ?? 0);
-        }
-      });
+      if (trace.steps && trace.steps.length > 0) {
+        trace.steps.forEach((s: TraceStep) => {
+          if (s.type === TRACE_TYPES.LLM_RESPONSE && (s.content as LlmResponseContent).usage) {
+            const usage = (s.content as LlmResponseContent).usage!;
+            totalTokens +=
+              usage.total_tokens || (usage.totalInputTokens ?? 0) + (usage.totalOutputTokens ?? 0);
+          }
+        });
+      } else {
+        totalTokens = trace.totalTokens || 0;
+      }
 
       return {
         ...trace,

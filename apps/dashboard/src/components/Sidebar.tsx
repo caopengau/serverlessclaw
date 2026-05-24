@@ -62,6 +62,9 @@ export default function Sidebar() {
   const { isConnected } = useRealtimeContext();
   const [mounted, setMounted] = useState(false);
 
+  const rawTitle = t('DASHBOARD_TITLE');
+  const displayTitle = rawTitle;
+
   useEffect(() => {
     setTimeout(() => setMounted(true), 0);
   }, []);
@@ -247,19 +250,19 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 border-b border-border bg-background/80 backdrop-blur-md z-40 px-6 flex items-center justify-between">
-        <Link href={ROUTES.HOME} className="flex items-center gap-3 group shrink-0">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 border-b border-border bg-background/80 backdrop-blur-md z-40 px-6 flex items-center justify-between gap-4">
+        <Link href={ROUTES.HOME} className="flex items-center gap-3 group min-w-0 flex-1">
           <div className="relative w-8 h-8 shrink-0 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
             <Image
               src={UI_STRINGS.APP_LOGO}
-              alt={`${t('DASHBOARD_TITLE')} Logo`}
+              alt={`${rawTitle} Logo`}
               width={32}
               height={32}
               className="object-contain"
             />
           </div>
-          <Typography variant="h3" weight="black" className="text-lg tracking-tighter shrink-0">
-            {t('DASHBOARD_TITLE')}
+          <Typography variant="h3" weight="black" className="text-lg tracking-tighter truncate">
+            {displayTitle}
           </Typography>
         </Link>
         <Button
@@ -291,11 +294,11 @@ export default function Sidebar() {
         <div
           className={`flex items-center justify-between gap-3 mb-6 ${isCollapsed ? 'flex-col' : 'px-2'} pt-4`}
         >
-          <Link href={ROUTES.HOME} className="flex items-center gap-3 group shrink-0">
+          <Link href={ROUTES.HOME} className="flex items-center gap-3 group min-w-0 flex-1">
             <div className="relative w-8 h-8 shrink-0 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
               <Image
                 src={UI_STRINGS.APP_LOGO}
-                alt={`${t('DASHBOARD_TITLE')} Logo`}
+                alt={`${rawTitle} Logo`}
                 width={32}
                 height={32}
                 className="object-contain"
@@ -305,9 +308,9 @@ export default function Sidebar() {
               <Typography
                 variant="h2"
                 weight="black"
-                className="text-xl tracking-tighter shrink-0 transition-opacity"
+                className="text-xl tracking-tighter truncate transition-opacity"
               >
-                {t('DASHBOARD_TITLE')}
+                {displayTitle}
               </Typography>
             )}
           </Link>

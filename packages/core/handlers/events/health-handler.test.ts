@@ -123,5 +123,41 @@ describe('health-handler', () => {
 
       expect(mockProcessEventWithAgent).toHaveBeenCalled();
     });
+
+    it('suppresses LOW severity reports — no agent invoked', async () => {
+      const { HEALTH_REPORT_EVENT_SCHEMA } = await import('../../lib/schema/events');
+      (HEALTH_REPORT_EVENT_SCHEMA.parse as any).mockReturnValueOnce({
+        ...baseEventDetail,
+        severity: 'low',
+      });
+
+      await handleHealthReport({ ...baseEventDetail, severity: 'low' }, mockContext as any);
+
+      expect(mockProcessEventWithAgent).not.toHaveBeenCalled();
+    });
+
+    it('suppresses MEDIUM severity reports — no agent invoked', async () => {
+      const { HEALTH_REPORT_EVENT_SCHEMA } = await import('../../lib/schema/events');
+      (HEALTH_REPORT_EVENT_SCHEMA.parse as any).mockReturnValueOnce({
+        ...baseEventDetail,
+        severity: 'medium',
+      });
+
+      await handleHealthReport({ ...baseEventDetail, severity: 'medium' }, mockContext as any);
+
+      expect(mockProcessEventWithAgent).not.toHaveBeenCalled();
+    });
+
+    it('processes HIGH severity reports with full agent', async () => {
+      const { HEALTH_REPORT_EVENT_SCHEMA } = await import('../../lib/schema/events');
+      (HEALTH_REPORT_EVENT_SCHEMA.parse as any).mockReturnValueOnce({
+        ...baseEventDetail,
+        severity: 'high',
+      });
+
+      await handleHealthReport({ ...baseEventDetail, severity: 'high' }, mockContext as any);
+
+      expect(mockProcessEventWithAgent).toHaveBeenCalled();
+    });
   });
 });

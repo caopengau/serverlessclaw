@@ -9,10 +9,11 @@ interface WarmupEvent {
 /**
  * MCP Warmup Handler
  * Uses WarmupManager to warm MCP servers with state tracking.
- * Called by EventBridge Scheduler on a regular basis.
  *
- * Note: The smart warmup strategy now triggers on human activity.
- * This scheduled handler provides fallback warming if no activity occurs.
+ * Primary warmup is activity-based: the webhook handler triggers smartWarmup on
+ * every incoming human message using intent detection (lib/warmup).
+ * This handler is retained as a manual/on-demand invocation target only
+ * (e.g. after a cold deploy or recovery). It is NOT scheduled.
  */
 export const handler: Handler = async (event: WarmupEvent, _context: Context) => {
   const serverArns: Record<string, string> = JSON.parse(process.env.MCP_SERVER_ARNS ?? '{}');
