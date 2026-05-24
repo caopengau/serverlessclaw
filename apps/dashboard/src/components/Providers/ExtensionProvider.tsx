@@ -47,7 +47,7 @@ const ExtensionContext = createContext<ExtensionContextType | undefined>(undefin
 export function ExtensionProvider({ children }: { children: ReactNode }) {
   const [sidebarExtensions, setSidebarExtensions] = useState<SidebarExtension[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [dynamicComponents] = useState<Map<string, React.ComponentType<any>>>(new Map());
+  const [dynamicComponents, setDynamicComponents] = useState<Map<string, React.ComponentType<any>>>(new Map());
   const [layoutExtensions, setLayoutExtensions] = useState<Map<LayoutSlot, LayoutExtension[]>>(
     new Map()
   );
@@ -60,7 +60,11 @@ export function ExtensionProvider({ children }: { children: ReactNode }) {
   };
 
   const registerDynamicComponent = (extension: DynamicComponentExtension) => {
-    dynamicComponents.set(extension.type, extension.component);
+    setDynamicComponents((prev) => {
+      const next = new Map(prev);
+      next.set(extension.type, extension.component);
+      return next;
+    });
   };
 
   const registerLayoutExtension = (extension: LayoutExtension) => {

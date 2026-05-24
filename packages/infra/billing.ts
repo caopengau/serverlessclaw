@@ -18,7 +18,7 @@ export function createBilling() {
   // Create an SNS Topic for billing alerts
   const billingTopic = new sst.aws.SnsTopic('BillingAlerts', {
     transform: {
-      topic: (args: any) => {
+      topic: (args: unknown) => {
         args.displayName = 'System Billing Alerts';
       },
     },
