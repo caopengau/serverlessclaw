@@ -266,7 +266,7 @@ describe('Notifier Handler — Multi-Platform', () => {
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    it('should throw when collaboration fan-out fails', async () => {
+    it('should fall back to direct delivery when collaboration fan-out fails', async () => {
       mockGetCollaboration.mockRejectedValue(new Error('DB error'));
 
       const event = {
@@ -277,7 +277,10 @@ describe('Notifier Handler — Multi-Platform', () => {
         },
       } as any;
 
-      await expect(handler(event)).rejects.toThrow('DB error');
+      // Fan-out failure is caught; fallback to direct delivery attempted.
+      // userId 'system' is not a numeric Telegram chat ID so no fetch call is made.
+      await expect(handler(event)).resolves.not.toThrow();
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('should skip disabled channels in collaboration', async () => {

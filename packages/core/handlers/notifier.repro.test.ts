@@ -17,6 +17,17 @@ vi.mock('../lib/memory', () => ({
   }),
 }));
 
+vi.mock('../lib/memory/workspace-operations', () => ({
+  getWorkspace: vi
+    .fn()
+    .mockRejectedValue(
+      new Error(
+        "DynamoDB - { '$fault': 'client', '$retryable': undefined, '$metadata': { httpStatusCode: 400 } }"
+      )
+    ),
+  getHumanMembersWithChannels: vi.fn().mockReturnValue([]),
+}));
+
 import { handler } from './notifier';
 
 // Mock global fetch
@@ -125,6 +136,26 @@ describe('Notifier Remediation Tests', () => {
 
       // It should NOT throw
       await expect(handler(event)).resolves.not.toThrow();
+    });
+  });
+
+  describe('A.5 Notifier Fan-out Fallback', () => {
+    it('should not throw when workspace fan-out lookup fails with DynamoDB error', async () => {
+      const event = {
+        detail: {
+          userId: '123456789',
+          message: 'health alert',
+          workspaceId: 'ws-dev',
+        },
+      } as any;
+
+      (global.fetch as any).mockResolvedValue({ ok: true });
+
+      await expect(handler(event)).resolves.not.toThrow();
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('api.telegram.org/bottg-token/sendMessage'),
+        expect.any(Object)
+      );
     });
   });
 });

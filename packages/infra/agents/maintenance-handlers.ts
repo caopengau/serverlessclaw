@@ -138,7 +138,7 @@ export function setupMaintenanceSchedules(
   concurrencyMonitor: sst.aws.Function,
   concurrencyMonitorRate: string
 ) {
-  const { maintenanceHandler, traceCleanupHandler, mcpWarmupHandler } = handlers;
+  const { maintenanceHandler, traceCleanupHandler } = handlers;
 
   createScheduledInvocation(
     'Maintenance',
@@ -155,13 +155,6 @@ export function setupMaintenanceSchedules(
   );
 
   createScheduledInvocation(
-    'MCPWarmup',
-    'rate(1 hour)',
-    mcpWarmupHandler,
-    'Warms up MCP servers to reduce cold starts for tool execution'
-  );
-
-  createScheduledInvocation(
     'Concurrency',
     concurrencyMonitorRate,
     concurrencyMonitor,
@@ -170,7 +163,7 @@ export function setupMaintenanceSchedules(
 
   createScheduledInvocation(
     'CognitiveHealth',
-    'rate(4 hours)',
+    'rate(12 hours)', // Reduced from 4h: LLM agent runs 2x/day vs 6x/day
     eventHandler,
     'Triggers cognitive health check to update Trust scores based on anomalies',
     {
