@@ -105,9 +105,12 @@ export async function getTraces(
       return (Number.isFinite(bTs) ? bTs : 0) - (Number.isFinite(aTs) ? aTs : 0);
     });
 
-    const filteredSummary = allItems.filter(
-      (item: any) => item.source !== TraceSource.SYSTEM
-    ) as Trace[];
+    const filteredSummary = allItems
+      .filter((item: any) => item.source !== TraceSource.SYSTEM)
+      .map((item: any) => ({
+        ...item,
+        toolNames: item.toolNames instanceof Set ? Array.from(item.toolNames) : item.toolNames,
+      })) as Trace[];
 
     // Fallback path: if trace summaries are disabled, primary rows won't exist.
     // In that case, query fallback trace nodes so /trace still has data.
@@ -139,6 +142,10 @@ export async function getTraces(
 
       const fallbackItems = (fallbackRes.Items ?? [])
         .filter((item: any) => item.source !== TraceSource.SYSTEM)
+        .map((item: any) => ({
+          ...item,
+          toolNames: item.toolNames instanceof Set ? Array.from(item.toolNames) : item.toolNames,
+        }))
         .sort((a: any, b: any) => {
           const bTs = Number(b.timestamp);
           const aTs = Number(a.timestamp);
