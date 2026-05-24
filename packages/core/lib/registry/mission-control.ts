@@ -10,7 +10,7 @@ export interface MissionSignal {
   agentId: string;
   traceId: string;
   workspaceId?: string;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   timestamp: number;
 }
 

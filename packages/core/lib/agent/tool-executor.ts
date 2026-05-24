@@ -65,7 +65,7 @@ export class ToolExecutor {
           tool,
           messages,
           attachments,
-          execContext,
+          execContext as any, // Cast to any to avoid property mismatch for now
           tracer,
           approvedToolCalls
         );
@@ -91,14 +91,14 @@ export class ToolExecutor {
         const tool = availableTools.find((t) => t.name === toolCall.function.name);
         const localMessages: Message[] = [];
         const localAttachments: NonNullable<Message['attachments']> = [];
-        const localSteps: any[] = [];
+        const localSteps: Record<string, unknown>[] = [];
 
         const result = await executeSingleToolCall(
           toolCall,
           tool,
           localMessages,
           localAttachments,
-          execContext,
+          execContext as any, // Simple any cast for complex object alignment
           tracer,
           approvedToolCalls,
           localSteps
@@ -108,7 +108,7 @@ export class ToolExecutor {
       })
     );
 
-    const allBatchedSteps: any[] = [];
+    const allBatchedSteps: Record<string, unknown>[] = [];
     for (const res of parallelResults) {
       if (res.result.ui_blocks) ui_blocks.push(...res.result.ui_blocks);
       if (res.result.toolCallCount) toolCallCount += res.result.toolCallCount;
@@ -118,7 +118,9 @@ export class ToolExecutor {
       allBatchedSteps.push(...res.localSteps);
 
       if (res.result.paused) {
-        await (tracer as any).batchAddSteps(allBatchedSteps);
+        await tracer.batchAddSteps(
+          allBatchedSteps as unknown as Parameters<typeof tracer.batchAddSteps>[0]
+        );
         logger.warn(`[EXECUTOR] Parallel execution paused by tool ${res.result.responseText}`);
         return {
           ...res.result,
@@ -128,7 +130,9 @@ export class ToolExecutor {
       }
     }
 
-    await (tracer as any).batchAddSteps(allBatchedSteps);
+    await tracer.batchAddSteps(
+      allBatchedSteps as unknown as Parameters<typeof tracer.batchAddSteps>[0]
+    );
     return { toolCallCount, ui_blocks: ui_blocks.length > 0 ? ui_blocks : undefined };
   }
 }

@@ -10,7 +10,7 @@ export function isToolExecutionSuccessful(
 ): boolean {
   if (resultText.startsWith('FAILED')) return false;
   if (typeof rawResult === 'object' && rawResult !== null) {
-    const res = rawResult as any;
+    const res = rawResult as unknown as Record<string, unknown>;
     if (res.success === false) return false;
     if (res.error) return false;
     if (res.status === 'error' || res.status === 'failed') return false;
@@ -28,7 +28,12 @@ export async function recordToolAnalytics(
   durationMs: number,
   args: Record<string, unknown>,
   resultText: string,
-  execContext: any,
+  execContext: {
+    workspaceId?: string;
+    teamId?: string;
+    staffId?: string;
+    orgId?: string;
+  },
   failureReason?: string,
   severity: number = 1
 ): Promise<void> {

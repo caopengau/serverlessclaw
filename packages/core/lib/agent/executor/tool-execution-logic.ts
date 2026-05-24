@@ -20,9 +20,12 @@ export async function executeSingleToolCall(
   tool: ITool | undefined,
   messages: Message[],
   attachments: NonNullable<Message['attachments']>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   execContext: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tracer: any,
   approvedToolCalls?: string[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stepCollector?: any[]
 ): Promise<{
   paused?: boolean;
@@ -31,6 +34,7 @@ export async function executeSingleToolCall(
   toolCallCount: number;
   ui_blocks?: Message['ui_blocks'];
 }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const addStep = async (step: any) => {
     if (stepCollector) stepCollector.push(step);
     else await tracer.addStep(step);
@@ -281,7 +285,8 @@ export async function executeSingleToolCall(
     if (res.ui_blocks) ui_blocks.push(...res.ui_blocks);
     if (res.metadata?.attachments && Array.isArray(res.metadata.attachments)) {
       res.metadata.attachments.forEach((rawAtt) => {
-        if (isValidAttachment(rawAtt)) attachments.push(rawAtt as any);
+        if (isValidAttachment(rawAtt))
+          attachments.push(rawAtt as unknown as NonNullable<Message['attachments']>[0]);
       });
     }
   }

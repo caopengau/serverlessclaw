@@ -180,7 +180,7 @@ export class SessionMessageHandler {
   ): Promise<void> {
     if (messageIds && messageIds.length > 0) {
       for (const id of messageIds) {
-        await this.remove(undefined as any, id, tableName, key, expiresAt);
+        await this.remove(undefined as unknown as string, id, tableName, key, expiresAt);
       }
       return;
     }

@@ -9,8 +9,8 @@ import {
 interface MonitorOptions {
   prefix: string;
   liveInLocalOnly: boolean | undefined;
-  baseLink: any[];
-  basePermissions: any[];
+  baseLink: unknown[];
+  basePermissions: unknown[];
 }
 
 export function createMonitors(ctx: SharedContext, options: MonitorOptions) {
@@ -20,13 +20,13 @@ export function createMonitors(ctx: SharedContext, options: MonitorOptions) {
   // 2. Build Monitor
   const buildMonitor = new sst.aws.Function('BuildMonitor', {
     handler: `${prefix}packages/core/handlers/monitor.handler`,
-    dev: liveInLocalOnly as any,
+    dev: liveInLocalOnly,
     link: [
       ...baseLink,
       stagingBucket,
       deployerLink,
       ...(ctx.multiplexer ? [ctx.multiplexer] : []),
-    ].filter(Boolean),
+    ].filter(Boolean) as sst.Linkable<Record<string, unknown>>[],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
     environment: { TRACE_SUMMARIES_ENABLED: 'true' },
@@ -45,7 +45,7 @@ export function createMonitors(ctx: SharedContext, options: MonitorOptions) {
           ),
         ],
       },
-    ],
+    ] as any,
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.MEDIUM,
     logging: {
@@ -81,7 +81,7 @@ export function createMonitors(ctx: SharedContext, options: MonitorOptions) {
   // 10. Concurrency Monitor (System health)
   const concurrencyMonitor = new sst.aws.Function('ConcurrencyMonitor', {
     handler: `${prefix}packages/core/handlers/concurrency-monitor.handler`,
-    dev: liveInLocalOnly as any,
+    dev: liveInLocalOnly,
     link: [memoryTable, bus],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },

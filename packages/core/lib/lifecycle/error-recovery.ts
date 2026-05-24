@@ -153,7 +153,7 @@ export function classifyError(error: Error | string | Record<string, unknown>): 
 
   // Check for specific AWS/DynamoDB errors by name or message
   if (error instanceof Error || (typeof error === 'object' && error !== null)) {
-    const errorName = (error as any).name || '';
+    const errorName = (error as Record<string, unknown>).name || '';
     if (
       errorName === 'ConditionalCheckFailedException' ||
       message.includes('ConditionalCheckFailedException')

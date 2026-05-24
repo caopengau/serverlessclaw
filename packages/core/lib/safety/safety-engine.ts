@@ -159,7 +159,7 @@ export class SafetyEngine extends SafetyBase {
       ctx,
       tier,
       policy,
-      this,
+      this as any, // Cast to avoid deep interface implementation mismatch
       this.validator
     );
     if (!accessResult.allowed || accessResult.requiresApproval) return accessResult;

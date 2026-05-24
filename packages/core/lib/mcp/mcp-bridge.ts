@@ -89,7 +89,7 @@ export class MCPBridge {
     serverName: string,
     connectionString: string,
     env: Record<string, string> | undefined,
-    options: any,
+    options: { workspaceId?: string; skipHubRouting?: boolean; isRecursive?: boolean } | undefined,
     cacheKey: string,
     scope: EffectiveScope
   ): Promise<ITool[]> {
@@ -297,8 +297,8 @@ export class MCPBridge {
             const freshConfig = await AgentRegistry.getRawConfig(DYNAMO_KEYS.MCP_SERVERS, {
               workspaceId,
             });
-            if (freshConfig && (freshConfig as any)[name]) {
-              finalConfig[name] = (freshConfig as any)[name];
+            if (freshConfig && (freshConfig as Record<string, string | MCPServerConfig>)[name]) {
+              finalConfig[name] = (freshConfig as Record<string, string | MCPServerConfig>)[name];
             }
           }
         }

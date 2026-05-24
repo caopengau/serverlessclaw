@@ -309,7 +309,7 @@ export class MiniMaxProvider implements IProvider {
           anthropicMessages.push({
             role: 'assistant',
             content: [
-              ...(msg.content ? [{ type: BLOCK_TYPE_TEXT as any, text: msg.content }] : []),
+              ...(msg.content ? [{ type: BLOCK_TYPE_TEXT as unknown, text: msg.content }] : []),
               ...toolUseBlocks,
             ] as Anthropic.MessageParam['content'],
           });

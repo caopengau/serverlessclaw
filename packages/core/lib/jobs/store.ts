@@ -91,7 +91,7 @@ export class JobStore extends BaseMemoryProvider {
       timestamp: sk,
     };
 
-    await this.putItem(mergedRun as any);
+    await this.putItem(mergedRun as Record<string, unknown>);
   }
 
   /**

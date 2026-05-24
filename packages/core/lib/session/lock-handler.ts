@@ -63,8 +63,9 @@ export class SessionLockHandler {
             },
           })
         );
-      } catch (error: any) {
-        if (error.name === 'ConditionalCheckFailedException') {
+      } catch (error: unknown) {
+        const err = error as { name?: string };
+        if (err.name === 'ConditionalCheckFailedException') {
           logger.warn(
             `Session ${sessionId}: LockManager said yes, but state table says no. Reverting lock.`
           );

@@ -41,9 +41,9 @@ export async function runEval(options: CLIEvalOptions): Promise<void> {
   // For the harness, we simulate loading a local trace file for TDAD (Test-Driven Agent Development).
   const mockTracePath = path.resolve(process.cwd(), 'e2e/fixtures/mock-trace.json');
 
-  let traceData: any;
+  let traceData: Record<string, unknown>;
   if (existsSync(mockTracePath)) {
-    traceData = JSON.parse(await fs.readFile(mockTracePath, 'utf-8'));
+    traceData = JSON.parse(await fs.readFile(mockTracePath, 'utf-8')) as Record<string, unknown>;
     log(`Loaded trace from ${mockTracePath}`, options);
   } else {
     log(`Warning: No trace found at ${mockTracePath}. Using generic mock data.`, options);
@@ -66,7 +66,7 @@ export async function runEval(options: CLIEvalOptions): Promise<void> {
       outputJson(
         {
           suite: options.suite,
-          traceId: traceData.traceId || 'unknown',
+          traceId: (traceData as Record<string, unknown>).traceId || 'unknown',
           ...result,
         },
         options
@@ -82,8 +82,9 @@ export async function runEval(options: CLIEvalOptions): Promise<void> {
       log('Evaluation failed. Circuit breaker tripped.', options);
       process.exit(1);
     }
-  } catch (error: any) {
-    log(`Evaluation encountered an error: ${error.message}`, options);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log(`Evaluation encountered an error: ${errorMessage}`, options);
     process.exit(1);
   }
 }

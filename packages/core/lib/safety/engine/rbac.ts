@@ -8,10 +8,10 @@ import { SecurityRegistry } from '../../registry/SecurityRegistry';
  */
 export function validateStaticPolicies(
   action: string,
-  ctx: any,
+  ctx: Record<string, unknown>,
   tier: SafetyTier,
   handleViolation: (
-    ctx: any,
+    ctx: Record<string, unknown>,
     tier: SafetyTier,
     action: string,
     policy: string,
@@ -43,7 +43,7 @@ export async function validateRBAC(
   },
   tier: SafetyTier,
   handleViolation: (
-    ctx: any,
+    ctx: Record<string, unknown>,
     tier: SafetyTier,
     action: string,
     policy: string,

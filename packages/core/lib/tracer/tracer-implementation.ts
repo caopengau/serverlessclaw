@@ -3,6 +3,8 @@ import {
   PutCommand,
   UpdateCommand,
   QueryCommand,
+  type UpdateCommandInput,
+  type PutCommandInput,
 } from '@aws-sdk/lib-dynamodb';
 import { TraceSource } from '../types/agent';
 import { v4 as uuidv4 } from 'uuid';
@@ -129,7 +131,7 @@ export class ClawTracer {
             TableName: this.getTableName(),
             Item: item,
             ConditionExpression: 'attribute_not_exists(traceId)',
-          })
+          } as PutCommandInput)
         );
       } else {
         const setActions = ['#status = :status', '#ts = :ts'];
@@ -159,7 +161,7 @@ export class ClawTracer {
           updateExpression += ` ADD ${addActions.join(', ')}`;
         }
 
-        const updateParams: Record<string, unknown> = {
+        const updateParams: UpdateCommandInput = {
           TableName: this.getTableName(),
           Key: { traceId: this.traceId, nodeId: '__summary__' },
           UpdateExpression: updateExpression,
@@ -175,7 +177,7 @@ export class ClawTracer {
           values[':wsId'] = this.workspaceId;
         }
 
-        await this.docClient.send(new UpdateCommand(updateParams as any));
+        await this.docClient.send(new UpdateCommand(updateParams));
       }
     }, 'UpdateSummary');
   }
@@ -214,7 +216,7 @@ export class ClawTracer {
             expiresAt,
           },
           ConditionExpression: 'attribute_not_exists(traceId) AND attribute_not_exists(nodeId)',
-        })
+        } as PutCommandInput)
       );
 
       await this.updateSummary(TRACE_STATUS.STARTED, {
@@ -229,7 +231,7 @@ export class ClawTracer {
         e &&
         typeof e === 'object' &&
         'name' in e &&
-        e.name === 'ConditionalCheckFailedException'
+        (e as { name: string }).name === 'ConditionalCheckFailedException'
       ) {
         logger.info(`Trace node ${this.traceId}/${this.nodeId} already exists, skipping.`);
       } else {
@@ -277,7 +279,7 @@ export class ClawTracer {
       timestamp: Date.now(),
     }) as TraceStep;
 
-    const updateParams: Record<string, unknown> = {
+    const updateParams: UpdateCommandInput = {
       TableName: this.getTableName(),
       Key: { traceId: this.traceId, nodeId: this.nodeId },
       UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :step)',
@@ -296,7 +298,7 @@ export class ClawTracer {
       values[':wsId'] = this.workspaceId;
     }
 
-    await this.docClient.send(new UpdateCommand(updateParams as any));
+    await this.docClient.send(new UpdateCommand(updateParams));
 
     const extra: Record<string, unknown> = { lastStepType: step.type };
 
@@ -340,7 +342,7 @@ export class ClawTracer {
       })
     ) as TraceStep[];
 
-    const updateParams: Record<string, unknown> = {
+    const updateParams: UpdateCommandInput = {
       TableName: this.getTableName(),
       Key: { traceId: this.traceId, nodeId: this.nodeId },
       UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :steps)',
@@ -359,7 +361,7 @@ export class ClawTracer {
       values[':wsId'] = this.workspaceId;
     }
 
-    await this.docClient.send(new UpdateCommand(updateParams as any));
+    await this.docClient.send(new UpdateCommand(updateParams));
 
     let totalTokens = 0;
     const toolNames = new Set<string>();
@@ -405,7 +407,7 @@ export class ClawTracer {
   async endTrace(finalResponse: string, metadata?: Record<string, unknown>): Promise<void> {
     const endTime = Date.now();
 
-    const updateParams: any = {
+    const updateParams: UpdateCommandInput = {
       TableName: this.getTableName(),
       Key: { traceId: this.traceId, nodeId: this.nodeId },
       UpdateExpression:
@@ -423,7 +425,8 @@ export class ClawTracer {
     };
 
     if (this.workspaceId) {
-      updateParams.ExpressionAttributeValues[':wsId'] = this.workspaceId;
+      const values = updateParams.ExpressionAttributeValues as Record<string, unknown>;
+      values[':wsId'] = this.workspaceId;
     }
 
     await this.docClient.send(new UpdateCommand(updateParams));
@@ -473,7 +476,7 @@ export class ClawTracer {
     const finalMetadata = { ...metadata, failureReason: reason };
     const endTime = Date.now();
 
-    const updateParams: any = {
+    const updateParams: UpdateCommandInput = {
       TableName: this.getTableName(),
       Key: { traceId: this.traceId, nodeId: this.nodeId },
       UpdateExpression:
@@ -491,7 +494,8 @@ export class ClawTracer {
     };
 
     if (this.workspaceId) {
-      updateParams.ExpressionAttributeValues[':wsId'] = this.workspaceId;
+      const values = updateParams.ExpressionAttributeValues as Record<string, unknown>;
+      values[':wsId'] = this.workspaceId;
     }
 
     await this.docClient.send(new UpdateCommand(updateParams));
@@ -626,15 +630,20 @@ export class ClawTracer {
   private async bestEffort(fn: () => Promise<void>, label: string): Promise<void> {
     try {
       await fn();
-    } catch (e: any) {
+    } catch (e: unknown) {
       logger.warn(`[Tracer] Best-effort ${label} failed for ${this.traceId}:`, e);
       try {
         const { emitMetrics } = await import('../metrics/metrics');
         await emitMetrics([
-          METRICS.storageError(label, e?.name || 'UnknownError', this.getTableName(), {
-            workspaceId: this.workspaceId,
-            orgId: this.orgId,
-          }),
+          METRICS.storageError(
+            label,
+            e instanceof Error ? e.name : 'UnknownError',
+            this.getTableName(),
+            {
+              workspaceId: this.workspaceId,
+              orgId: this.orgId,
+            }
+          ),
         ]);
       } catch {
         // Suppress metrics emission errors to avoid infinite loops/nested failures

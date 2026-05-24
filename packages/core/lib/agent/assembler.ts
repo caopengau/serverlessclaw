@@ -5,6 +5,10 @@ import {
   InsightCategory,
   AttachmentType,
   Message,
+  ContextualScope,
+  MemoryInsight,
+  Attachment,
+  ReasoningProfile,
 } from '../types/index';
 import { SYSTEM, LIMITS } from '../constants';
 import { AgentContext } from './context';
@@ -22,14 +26,53 @@ export interface ContextResult {
   activeProvider: string;
 }
 
+export interface AssemblerOptions {
+  isIsolated?: boolean;
+  depth?: number;
+  activeModel: string;
+  activeProvider: string;
+  activeProfile?: ReasoningProfile;
+  systemPrompt: string;
+  pageContext?: {
+    url: string;
+    title?: string;
+    traceId?: string;
+    sessionId?: string;
+    agentId?: string;
+    data?: Record<string, unknown>;
+  };
+  activeUser?: {
+    id: string;
+    displayName?: string;
+    role?: string;
+    workspaceIds?: string[];
+  };
+  locale?: string;
+  workspaceId?: string;
+  orgId?: string;
+  teamId?: string;
+  staffId?: string;
+  agentId?: string;
+}
+
+interface MemoryState {
+  history: Message[];
+  distilled: string;
+  lessons: string[];
+  preferences: { items: MemoryInsight[] };
+  globalLessons: string[];
+  negativeContext: string | null;
+  recoveryContext: string;
+}
+
 export class AgentAssembler {
   private static async retrieveMemoryState(
     memory: IMemory,
     baseUserId: string,
     storageId: string,
     agentId: string,
-    scope: any
-  ) {
+    scope: ContextualScope
+  ): Promise<MemoryState> {
     const { NegativeMemory } = await import('../memory/negative-memory');
     const negMemory = new NegativeMemory(memory);
 
@@ -78,8 +121,8 @@ export class AgentAssembler {
   private static async buildContextPrompt(
     provider: IProvider,
     config: IAgentConfig | undefined,
-    memoryState: any,
-    options: any
+    memoryState: MemoryState,
+    options: AssemblerOptions
   ) {
     const {
       isIsolated,
@@ -97,7 +140,7 @@ export class AgentAssembler {
 
     const facts = [
       ...distilled.split('\n').filter(Boolean),
-      ...(preferences.items?.map((i: any) => i.content) ?? []),
+      ...(preferences.items?.map((i: MemoryInsight) => i.content) ?? []),
     ].join('\n');
 
     const pageContextBlock = pageContext
@@ -144,8 +187,8 @@ export class AgentAssembler {
       config,
       activeModel,
       activeProvider,
-      activeProfile,
-      depth
+      activeProfile ?? ReasoningProfile.STANDARD,
+      depth ?? 0
     )}`;
 
     contextPrompt += `
@@ -173,12 +216,12 @@ export class AgentAssembler {
     provider: IProvider,
     history: Message[],
     userText: string,
-    incomingAttachments: any[] | undefined,
+    incomingAttachments: Attachment[] | undefined,
     contextPrompt: string,
     contextLimit: number,
     storageId: string,
-    options: any,
-    scope: any
+    options: AssemblerOptions,
+    scope: ContextualScope
   ) {
     const { activeModel, activeProvider, pageContext } = options;
     const [{ MessageRole }, summary] = await Promise.all([
@@ -238,10 +281,10 @@ export class AgentAssembler {
     baseUserId: string,
     storageId: string,
     userText: string,
-    incomingAttachments: import('../types/index').Attachment[] | undefined,
-    options: any
+    incomingAttachments: Attachment[] | undefined,
+    options: AssemblerOptions
   ): Promise<ContextResult> {
-    const scope = {
+    const scope: ContextualScope = {
       workspaceId: options.workspaceId,
       orgId: options.orgId,
       teamId: options.teamId,

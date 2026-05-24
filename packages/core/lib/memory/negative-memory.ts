@@ -57,7 +57,7 @@ export class NegativeMemory {
 
     try {
       const { putWithCollisionRetry } = await import('./utils/atomic');
-      await putWithCollisionRetry(this.base as any, {
+      await putWithCollisionRetry(this.base as unknown as import('./base').BaseMemoryProvider, {
         userId: scopedPk,
         type: 'FAILED_PLAN',
         workspaceId: options?.scope?.workspaceId,

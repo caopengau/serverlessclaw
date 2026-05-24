@@ -4,7 +4,7 @@ export interface PromptDecorationContext {
   workspaceId?: string;
   agentId: string;
   userId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type PromptDecorator = (

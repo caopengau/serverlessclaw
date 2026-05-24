@@ -3,7 +3,7 @@ import { logger } from '../lib/logger';
 /**
  * Handles GitHub release events and notifies relevant channels.
  */
-export const handler = async (event: any) => {
+export const handler = async (event: unknown) => {
   logger.info('Received GitHub release event:', event);
 
   // Basic implementation to satisfy the deployment

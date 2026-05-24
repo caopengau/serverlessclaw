@@ -151,7 +151,7 @@ export class BaseMemoryProvider {
     } catch (error) {
       const errorName = (error as Error).name || 'UnknownError';
       const { emitMetrics, METRICS } = await import('../metrics/metrics');
-      const workspaceId = (item as any).workspaceId || undefined;
+      const workspaceId = item.workspaceId || undefined;
       await emitMetrics([
         METRICS.storageError('putItem', errorName, tableName, {
           workspaceId: workspaceId as string,
@@ -188,11 +188,11 @@ export class BaseMemoryProvider {
     } catch (error) {
       const errorName = (error as Error).name || 'UnknownError';
       const { emitMetrics, METRICS } = await import('../metrics/metrics');
-      const workspaceId = (params as Record<string, Record<string, unknown>>)
-        .ExpressionAttributeValues?.[':workspaceId'];
+      const values = (params.ExpressionAttributeValues as Record<string, unknown>) || {};
+      const workspaceId = values[':workspaceId'];
       await emitMetrics([
         METRICS.storageError('queryItems', errorName, tableName, {
-          workspaceId: workspaceId as any,
+          workspaceId: workspaceId as string | undefined,
         }),
       ]).catch(() => {});
       logger.error('Error querying DynamoDB:', error);
@@ -283,12 +283,11 @@ export class BaseMemoryProvider {
     } catch (error) {
       const errorName = (error as Error).name || 'UnknownError';
       const { emitMetrics, METRICS } = await import('../metrics/metrics');
-      const workspaceId = (command.input.ExpressionAttributeValues as Record<string, unknown>)?.[
-        ':workspaceId'
-      ];
+      const values = (command.input.ExpressionAttributeValues as Record<string, unknown>) || {};
+      const workspaceId = values[':workspaceId'];
       await emitMetrics([
         METRICS.storageError('updateItem', errorName, tableName, {
-          workspaceId: workspaceId as any,
+          workspaceId: workspaceId as string | undefined,
         }),
       ]).catch(() => {});
       throw error;

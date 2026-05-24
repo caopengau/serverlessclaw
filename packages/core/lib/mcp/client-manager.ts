@@ -124,7 +124,7 @@ export class MCPClientManager {
     const transport = await TransportFactory.createTransport(serverName, connectionString, {
       ...env,
       workspaceId,
-    } as any);
+    } as Record<string, unknown>);
 
     const newClient = new Client(
       { name: 'Framework-MCP-Client', version: '1.0.0' },
@@ -202,10 +202,14 @@ class TransportFactory {
   static async createTransport(
     serverName: string,
     connectionString: string,
-    env?: Record<string, string>
+    env?: Record<string, unknown>
   ): Promise<Transport> {
     if (connectionString.startsWith('arn:aws:lambda:')) {
-      return new LambdaInvokeTransport(connectionString, serverName, (env as any)?.workspaceId);
+      return new LambdaInvokeTransport(
+        connectionString,
+        serverName,
+        env?.workspaceId as string | undefined
+      );
     }
 
     if (connectionString.startsWith('http')) {
@@ -214,8 +218,8 @@ class TransportFactory {
 
     return await this.createStdioTransport(serverName, connectionString, {
       ...env,
-      workspaceId: (env as any)?.workspaceId,
-    } as any);
+      workspaceId: env?.workspaceId,
+    } as Record<string, string>);
   }
 
   private static async createStdioTransport(

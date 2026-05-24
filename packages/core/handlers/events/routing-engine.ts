@@ -1,8 +1,10 @@
+import { EventRoutingEntry } from '../../lib/types/agent';
+
 /**
  * Resolves the appropriate handler for a given event type.
  */
 export async function getHandlerForEvent(
-  event: unknown,
+  event: { 'detail-type': string; detail: Record<string, unknown>; id?: string },
   detailType: string,
   traceId: string,
   sessionId: string,
@@ -21,20 +23,17 @@ export async function getHandlerForEvent(
     { workspaceId }
   );
   const ALLOWED_COMBINATIONS = new Set(
-    Object.values(DEFAULT_EVENT_ROUTING).map(
-      (r: { module: string; function: string }) => `${r.module}:${r.function}`
-    )
+    Object.values(DEFAULT_EVENT_ROUTING).map((r: EventRoutingEntry) => `${r.module}:${r.function}`)
   );
 
-  const routingTable: Record<string, { module: string; function: string; passContext?: boolean }> =
-    {
-      ...DEFAULT_EVENT_ROUTING,
-    };
+  const routingTable: Record<string, EventRoutingEntry> = {
+    ...DEFAULT_EVENT_ROUTING,
+  };
   if (rawRoutingTable !== DEFAULT_EVENT_ROUTING) {
     for (const [eventType, entry] of Object.entries(
-      rawRoutingTable as Record<string, { module: string; function: string }>
+      rawRoutingTable as Record<string, EventRoutingEntry>
     )) {
-      const routeEntry = entry as { module: string; function: string };
+      const routeEntry = entry as EventRoutingEntry;
       const combination = `${routeEntry.module}:${routeEntry.function}`;
       if (ALLOWED_COMBINATIONS.has(combination)) {
         routingTable[eventType] = routeEntry;
@@ -46,15 +45,13 @@ export async function getHandlerForEvent(
     }
   }
 
-  const routing =
-    routingTable[detailType] ||
-    (DEFAULT_EVENT_ROUTING as Record<string, { module: string; function: string }>)[detailType];
+  const routing = routingTable[detailType] || DEFAULT_EVENT_ROUTING[detailType];
   if (!routing) {
     localLogger.error(`[ROUTING] No handler found for event type: ${detailType}`);
     const { routeToDlq } = await import('../route-to-dlq');
     const { emitMetrics, METRICS } = await import('../../lib/metrics');
     await routeToDlq(
-      event as { 'detail-type': string; detail: Record<string, unknown>; id?: string },
+      event,
       detailType,
       'SYSTEM',
       traceId,
@@ -67,11 +64,11 @@ export async function getHandlerForEvent(
   }
 
   const { HANDLER_LOADERS } = await import('./handlers-map');
-  const loader = (HANDLER_LOADERS as Record<string, () => Promise<any>>)[routing.module];
+  const loader = HANDLER_LOADERS[routing.module];
   if (!loader) {
     throw new Error(`Unknown handler module requested: ${routing.module}`);
   }
 
-  const handlerModule = await loader();
+  const handlerModule = (await loader()) as Record<string, unknown>;
   return { handlerModule, routing };
 }

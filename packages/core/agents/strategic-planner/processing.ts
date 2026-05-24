@@ -224,21 +224,18 @@ export async function postProcessPlan(
           const parsed = JSON.parse(trimmedPlan);
           strategy = parsed.plan || parsed.strategy || plan;
 
-          const rawTasks = parsed.tasks || parsed.subTasks || [];
-          subTasks = rawTasks.map((t: Record<string, unknown> | string, idx: number) => {
-            const isString = typeof t === 'string';
-            const taskObj = isString ? {} : (t as Record<string, unknown>);
-            return {
-              id: (taskObj.id as string | number) || `${gapIdToSave}-task-${idx + 1}`,
-              description:
-                (taskObj.task as string) ||
-                (taskObj.description as string) ||
-                (isString ? t : JSON.stringify(t)),
-              status:
-                (taskObj.status as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED') ||
-                'PENDING',
-            };
-          });
+          const rawTasks = (parsed.tasks || parsed.subTasks || []) as Array<{
+            id?: string | number;
+            task?: string;
+            description?: string;
+            status?: string;
+          }>;
+          subTasks = rawTasks.map((t, idx: number) => ({
+            id: t.id || `${gapIdToSave}-task-${idx + 1}`,
+            description: t.task || t.description || (typeof t === 'string' ? t : JSON.stringify(t)),
+            status:
+              (t.status as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED') || 'PENDING',
+          }));
 
           spec = parsed.spec || '';
         } else {

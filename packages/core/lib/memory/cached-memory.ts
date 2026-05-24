@@ -107,15 +107,24 @@ export class CachedMemory implements IMemory {
     return this.insights.addGlobalLesson(lesson, metadata);
   }
   async searchInsights(
-    queryOrUserId?: any,
+    queryOrUserId?:
+      | string
+      | {
+          query?: string;
+          tags?: string[];
+          category?: InsightCategory;
+          limit?: number;
+          scope?: ContextualScope;
+          userId?: string;
+        },
     queryText?: string,
     category?: InsightCategory,
     limit?: number,
-    lastEvaluatedKey?: any,
+    lastEvaluatedKey?: Record<string, unknown>,
     tags?: string[],
     orgId?: string,
     scope?: Scope
-  ): Promise<any> {
+  ): Promise<{ items: MemoryInsight[]; lastEvaluatedKey?: Record<string, unknown> }> {
     return this.insights.searchInsights(
       queryOrUserId,
       queryText,
@@ -132,9 +141,9 @@ export class CachedMemory implements IMemory {
     planContent: string,
     gapIds: string[],
     failureReason: string,
-    metadata?: any,
+    metadata?: Partial<InsightMetadata>,
     scope?: Scope
-  ): Promise<any> {
+  ): Promise<number | string> {
     return this.underlying.recordFailurePattern(
       planHash,
       planContent,
@@ -149,32 +158,36 @@ export class CachedMemory implements IMemory {
   }
   async addMemory(
     scopeId: string,
-    category: any,
+    category: InsightCategory | string,
     content: string,
-    metadata?: any,
+    metadata?: Partial<InsightMetadata> & { tags?: string[] },
     scope?: Scope
-  ): Promise<any> {
+  ): Promise<number | string> {
     return this.insights.addMemory(scopeId, category, content, metadata, scope);
   }
   async saveDistilledRecoveryLog(traceId: string, task: string, scope?: Scope): Promise<void> {
     return this.underlying.saveDistilledRecoveryLog(traceId, task, scope);
   }
-  async searchInsightsForPreferences(userId: string, scope?: Scope): Promise<any> {
-    return this.insights.searchInsightsForPreferences(userId, scope);
+  async searchInsightsForPreferences(
+    userId: string,
+    scope?: Scope
+  ): Promise<{ items: MemoryInsight[] }> {
+    const result = await this.insights.searchInsightsForPreferences(userId, scope);
+    return { items: result.raw || [] };
   }
   async updateInsightMetadata(
     userId: string,
-    timestamp: any,
-    metadata: any,
+    timestamp: number | string,
+    metadata: Partial<InsightMetadata>,
     scope?: Scope
   ): Promise<void> {
     return this.insights.updateInsightMetadata(userId, timestamp, metadata, scope);
   }
   async refineMemory(
     userId: string,
-    timestamp: any,
+    timestamp: number | string,
     content?: string,
-    metadata?: any,
+    metadata?: Partial<InsightMetadata> & { tags?: string[] },
     scope?: Scope
   ): Promise<void> {
     return this.insights.refineMemory(userId, timestamp, content, metadata, scope);
@@ -196,7 +209,7 @@ export class CachedMemory implements IMemory {
     gapId: string,
     status: GapStatus,
     scope?: Scope,
-    metadata?: any
+    metadata?: Record<string, unknown>
   ): Promise<GapTransitionResult> {
     return this.gaps.updateGapStatus(gapId, status, scope, metadata);
   }
@@ -209,7 +222,11 @@ export class CachedMemory implements IMemory {
   async incrementGapAttemptCount(gapId: string, scope?: Scope): Promise<number> {
     return this.gaps.incrementGapAttemptCount(gapId, scope);
   }
-  async updateGapMetadata(gapId: string, metadata: any, scope?: Scope): Promise<void> {
+  async updateGapMetadata(
+    gapId: string,
+    metadata: Partial<InsightMetadata>,
+    scope?: Scope
+  ): Promise<void> {
     return this.gaps.updateGapMetadata(gapId, metadata, scope);
   }
   async getGap(gapId: string, scope?: Scope): Promise<MemoryInsight | null> {
@@ -232,7 +249,9 @@ export class CachedMemory implements IMemory {
   ): Promise<void> {
     return this.gaps.releaseGapLock(gapId, agentId, expectedVersion, force, scope);
   }
-  async getGapLock(gapId: string): Promise<any> {
+  async getGapLock(
+    gapId: string
+  ): Promise<{ agentId: string; expiresAt: number; lockVersion?: number } | null> {
     return this.gaps.getGapLock(gapId);
   }
 
@@ -261,7 +280,7 @@ export class CachedMemory implements IMemory {
   async createCollaboration(
     ownerId: string,
     ownerType: ParticipantType,
-    input: any,
+    input: import('../types/collaboration').CreateCollaborationInput,
     scope?: Scope
   ) {
     return this.collaboration.createCollaboration(ownerId, ownerType, input, scope);
@@ -283,7 +302,10 @@ export class CachedMemory implements IMemory {
   ): Promise<Record<string, unknown> | undefined> {
     return this.system.getConfig(key, scope);
   }
-  async findStaleCollaborations(defaultTimeoutMs: number, scope?: Scope): Promise<any[]> {
+  async findStaleCollaborations(
+    defaultTimeoutMs: number,
+    scope?: Scope
+  ): Promise<import('../types/collaboration').Collaboration[]> {
     return this.system.findStaleCollaborations(defaultTimeoutMs, scope);
   }
   async transitToCollaboration(
@@ -292,7 +314,7 @@ export class CachedMemory implements IMemory {
     sourceSessionId: string,
     invitedAgentIds: string[],
     name?: string
-  ): Promise<any> {
+  ): Promise<import('../types/collaboration').Collaboration> {
     return this.collaboration.transitToCollaboration(
       userId,
       scope,
@@ -306,19 +328,28 @@ export class CachedMemory implements IMemory {
   }
 
   // --- SYSTEM OPERATIONS ---
-  async getMemoryByTypePaginated(type: string, limit?: number, lastKey?: any, scope?: Scope) {
+  async getMemoryByTypePaginated(
+    type: string,
+    limit?: number,
+    lastKey?: Record<string, unknown>,
+    scope?: Scope
+  ): Promise<{ items: Record<string, unknown>[]; lastEvaluatedKey?: Record<string, unknown> }> {
     return this.system.getMemoryByTypePaginated(type, limit, lastKey, scope);
   }
-  async getMemoryByType(type: string, limit?: number, scope?: Scope) {
+  async getMemoryByType(
+    type: string,
+    limit?: number,
+    scope?: Scope
+  ): Promise<Record<string, unknown>[]> {
     return this.system.getMemoryByType(type, limit, scope);
   }
-  async getLowUtilizationMemory(limit?: number): Promise<any[]> {
+  async getLowUtilizationMemory(limit?: number): Promise<Record<string, unknown>[]> {
     return this.system.getLowUtilizationMemory(limit);
   }
   async getRegisteredMemoryTypes() {
     return this.system.getRegisteredMemoryTypes();
   }
-  async recordMemoryHit(userId: string, timestamp: any, scope?: Scope) {
+  async recordMemoryHit(userId: string, timestamp: number | string, scope?: Scope) {
     return this.system.recordMemoryHit(userId, timestamp, scope);
   }
   async saveLKGHash(hash: string) {
@@ -336,10 +367,10 @@ export class CachedMemory implements IMemory {
   async listByPrefix(prefix: string) {
     return this.system.listByPrefix(prefix);
   }
-  async queryItems(params: any): Promise<any[]> {
+  async queryItems(params: Record<string, unknown>): Promise<Record<string, unknown>[]> {
     return this.system.queryItems(params);
   }
-  async putItem(item: any, params?: any): Promise<void> {
+  async putItem(item: Record<string, unknown>, params?: Record<string, unknown>): Promise<void> {
     return this.system.putItem(item, params);
   }
   async saveClarificationRequest(state: ClarificationState, scope?: Scope) {

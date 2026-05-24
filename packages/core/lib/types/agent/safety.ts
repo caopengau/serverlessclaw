@@ -91,6 +91,7 @@ export interface SafetyContext {
   staffId?: string;
   isProactive?: boolean;
   args?: Record<string, unknown>;
+  pathKeys?: string[];
   [key: string]: unknown;
 }
 

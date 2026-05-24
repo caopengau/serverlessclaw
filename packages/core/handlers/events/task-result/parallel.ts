@@ -23,7 +23,7 @@ export async function handleParallelTaskRetry({
   taskId: string;
   agentId: string;
   response: string;
-  existingState: Record<string, unknown>;
+  existingState: Record<string, unknown> | null | undefined;
   sessionId?: string;
   depth?: number;
   workspaceId?: string;
@@ -32,15 +32,15 @@ export async function handleParallelTaskRetry({
 }): Promise<boolean> {
   if (!existingState) return false;
 
-  const stateMetadata = existingState.metadata as Record<string, unknown> | undefined;
-  const retries = (stateMetadata?.retries as Record<string, number> | undefined) ?? {};
+  const metadata = existingState.metadata as Record<string, unknown> | undefined;
+  const retries = (metadata?.retries as Record<string, number> | undefined) ?? {};
   if (retries[taskId] && retries[taskId] > 0) {
     return false; // Already retried this task once
   }
 
   // Find the original task definition
   const tasks =
-    (stateMetadata?.tasks as
+    (metadata?.tasks as
       | Array<{
           taskId: string;
           agentId: string;

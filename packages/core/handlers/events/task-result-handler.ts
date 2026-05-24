@@ -5,7 +5,6 @@ import { LRUSet } from '../../lib/utils/lru';
 import * as crypto from 'crypto';
 import { checkAndMarkProcessed } from './task-result/idempotency';
 import { recordTaskReputation } from './task-result/reputation';
-import type { AggregateState } from '../../lib/agent/parallel-aggregator';
 
 const DEDUP_MAX_SIZE = 10_000;
 const processedEvents = new LRUSet<string>(DEDUP_MAX_SIZE);
@@ -98,7 +97,7 @@ export async function handleTaskResult(
 
   if (traceId) {
     const { aggregator } = await import('../../lib/agent/parallel-aggregator');
-    const existingState = (await aggregator.getRawState(userId, traceId, workspaceId)) as any;
+    const existingState = await aggregator.getState(userId, traceId, workspaceId);
 
     if (existingState) {
       if (isFailure) {
@@ -157,10 +156,10 @@ export async function handleTaskResult(
       if (aggregateState?.isComplete) {
         const { finalizeParallelDispatch } = await import('./task-result/dag-orchestrator');
         await finalizeParallelDispatch(
-          aggregateState as AggregateState,
+          aggregateState,
           existingState,
           { workspaceId, teamId, staffId },
-          aggregator
+          aggregator as any
         );
       }
       return;
@@ -179,7 +178,7 @@ export async function handleTaskResult(
     userNotified,
     undefined,
     traceId,
-    EventType.CONTINUATION_TASK as EventType,
+    EventType.CONTINUATION_TASK,
     workspaceId,
     teamId,
     staffId,

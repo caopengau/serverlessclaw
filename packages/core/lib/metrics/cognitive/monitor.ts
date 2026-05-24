@@ -174,18 +174,21 @@ export class CognitiveHealthMonitor {
       );
       const prefix = workspaceId ? `WS#${workspaceId}#` : '';
       for (const metrics of snapshot.agentMetrics) {
-        await putWithCollisionRetry(this.base as any, {
-          userId: `${prefix}${MEMORY_KEYS.HEALTH_PREFIX}SNAPSHOT#${metrics.agentId}`,
-          timestamp: snapshot.timestamp,
-          type: 'COGNITIVE_SNAPSHOT',
-          overallScore: snapshot.overallScore,
-          taskCompletionRate: metrics.taskCompletionRate,
-          reasoningCoherence: metrics.reasoningCoherence,
-          errorRate: metrics.errorRate,
-          memoryFragmentation: snapshot.memory.fragmentationScore,
-          expiresAt,
-          workspaceId,
-        });
+        await putWithCollisionRetry(
+          this.base as unknown as Parameters<typeof putWithCollisionRetry>[0],
+          {
+            userId: `${prefix}${MEMORY_KEYS.HEALTH_PREFIX}SNAPSHOT#${metrics.agentId}`,
+            timestamp: snapshot.timestamp,
+            type: 'COGNITIVE_SNAPSHOT',
+            overallScore: snapshot.overallScore,
+            taskCompletionRate: metrics.taskCompletionRate,
+            reasoningCoherence: metrics.reasoningCoherence,
+            errorRate: metrics.errorRate,
+            memoryFragmentation: snapshot.memory.fragmentationScore,
+            expiresAt,
+            workspaceId,
+          }
+        );
       }
     } catch (error) {
       logger.error('Failed to persist cognitive health snapshot', { error, workspaceId });

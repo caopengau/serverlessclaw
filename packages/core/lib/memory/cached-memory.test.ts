@@ -359,12 +359,11 @@ describe('CachedMemory', () => {
   });
 
   describe('searchInsightsForPreferences', () => {
-    it('should cache both prefixed and raw results', async () => {
+    it('should cache results', async () => {
       mockDynamo.searchInsights.mockResolvedValue({ items: [{ id: 'p1' }] });
       const result = await cached.searchInsightsForPreferences('user1');
 
-      expect(result.prefixed).toEqual([{ id: 'p1' }]);
-      expect(result.raw).toEqual([{ id: 'p1' }]);
+      expect(result.items).toEqual([{ id: 'p1' }]);
       expect(mockDynamo.searchInsights).toHaveBeenCalledTimes(2);
     });
 
@@ -375,7 +374,7 @@ describe('CachedMemory', () => {
       mockDynamo.searchInsights.mockResolvedValue({ items: [] });
       const result = await cached.searchInsightsForPreferences('user1');
 
-      expect(result.prefixed).toEqual([{ id: 'p1' }]);
+      expect(result.items).toEqual([{ id: 'p1' }]);
       expect(mockDynamo.searchInsights).toHaveBeenCalledTimes(2);
     });
   });

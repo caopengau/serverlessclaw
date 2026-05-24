@@ -170,7 +170,7 @@ export class DynamoMemoryInsights extends DynamoMemoryGaps implements IKnowledge
       {
         type: 'RECOVERY_LOG',
         traceId,
-      } as any,
+      } as Partial<InsightMetadata>,
       scope
     );
   }

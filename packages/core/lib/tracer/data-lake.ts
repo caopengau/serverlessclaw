@@ -19,7 +19,8 @@ export async function exportToDataLake(
 ): Promise<void> {
   try {
     // 1. Check if DataLakeBucket is configured
-    const bucketName = (Resource as any).DataLakeBucket?.name;
+    const bucketName = (Resource as unknown as Record<string, { name: string }>).DataLakeBucket
+      ?.name;
     if (!bucketName) {
       logger.debug('[DataLake] DataLakeBucket not configured, skipping export.');
       return;
