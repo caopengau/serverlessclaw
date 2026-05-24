@@ -83,23 +83,33 @@ This structure allows a single `Query` operation to retrieve the complete neural
 
 The system uses a **Dual-Layer Retrieval** strategy to ensure trace visibility even if summary generation is delayed or disabled.
 
-### 1. Primary Path (Optimized)
+### 1. Configuration-Guided Routing (Primary)
 
-The dashboard primarily queries for `__summary__` rows. These rows contain pre-calculated aggregation data for the entire trace context, providing the fastest response time for listing traces.
+The dashboard checks whether `trace_summaries_enabled` is configured for the active workspace (via dynamic `ConfigManager` configuration).
+* If **enabled** (default in production), it queries the `'__summary__'` partition.
+* If **disabled** (default in development), it immediately queries the `'root'` partition.
 
-### 2. Fallback Path (Fail-Safe)
+### 2. Fail-Safe Swapping (Fallback)
 
-If no `__summary__` rows are found (e.g., in development or if `trace_summaries` is disabled), the system falls back to a **Scan** for root nodes (`nodeId = 'root'`).
+If the primary query yields no items, the system automatically falls back to the opposite partition (`'root'` or `'__summary__'`). This ensures that older traces or live development traces are never hidden by environment transitions.
 
 ```text
 [ getTraces Request ]
       |
       ▼
-[ Query __summary__ ] ───(Items Found)───▶ [ Return Summary Results ]
+[ Check trace_summaries_enabled ]
       |
-      (No Items)
-      ▼
-[ Scan nodeId = 'root' ] ───────────────▶ [ Return Root Nodes ]
+      +───(true)───▶ [ Query __summary__ ] ───(Items Found)───▶ [ Return Summaries ]
+      |                                            |
+      |                                        (No Items)
+      |                                            ▼
+      |                                      [ Query root ] ────▶ [ Return Root Nodes ]
+      |
+      +───(false)───▶ [ Query root ] ────────(Items Found)───▶ [ Return Root Nodes ]
+                                                   |
+                                               (No Items)
+                                                   ▼
+                                           [ Query __summary__ ] ──▶ [ Return Summaries ]
 ```
 
 > [!IMPORTANT]
