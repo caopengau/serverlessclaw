@@ -65,7 +65,7 @@ export class ToolExecutor {
           tool,
           messages,
           attachments,
-          execContext as any, // Cast to any to avoid property mismatch for now
+          execContext as unknown, // Cast to any to avoid property mismatch for now
           tracer,
           approvedToolCalls
         );
@@ -98,7 +98,7 @@ export class ToolExecutor {
           tool,
           localMessages,
           localAttachments,
-          execContext as any, // Simple any cast for complex object alignment
+          execContext as unknown, // Simple any cast for complex object alignment
           tracer,
           approvedToolCalls,
           localSteps

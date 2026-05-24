@@ -25,6 +25,7 @@ export function createMaintenanceHandlers(ctx: SharedContext, options: Maintenan
     handler: `${prefix}packages/core/handlers/heartbeat.handler`,
     dev: liveInLocalOnly,
     link: baseLink as sst.Linkable<Record<string, unknown>>[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     permissions: basePermissions as any,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
@@ -47,6 +48,7 @@ export function createMaintenanceHandlers(ctx: SharedContext, options: Maintenan
         actions: ['codebuild:StartBuild'],
         resources: [deployer.arn],
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as any,
     environment: {
       ...agentEnv,
@@ -83,6 +85,7 @@ export function createMaintenanceHandlers(ctx: SharedContext, options: Maintenan
     handler: `${prefix}packages/core/handlers/maintenance.handler`,
     dev: liveInLocalOnly,
     link: [memoryTable, bus],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     permissions: basePermissions as any,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
@@ -97,6 +100,7 @@ export function createMaintenanceHandlers(ctx: SharedContext, options: Maintenan
     handler: `${prefix}packages/core/handlers/trace-cleanup.handler`,
     dev: liveInLocalOnly,
     link: [traceTable],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     permissions: basePermissions as any,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
@@ -111,6 +115,7 @@ export function createMaintenanceHandlers(ctx: SharedContext, options: Maintenan
     handler: `${prefix}packages/core/handlers/mcp-warmup.handler`,
     dev: liveInLocalOnly,
     link: baseLink as sst.Linkable<Record<string, unknown>>[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     permissions: basePermissions as any,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
