@@ -183,7 +183,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // 1. Fetch target specification from config
     const specs = loadJobsConfig();
-    const spec = specs.find(s => s.jobType === jobType);
+    const spec = specs.find((s) => s.jobType === jobType);
     if (!spec) {
       return NextResponse.json(
         { error: `Job Specification of type '${jobType}' not found in configuration.` },
