@@ -15,10 +15,12 @@ export const dynamic = 'force-dynamic';
  * Can be replaced with a domain-specific implementation (e.g., GoldexModelRegistry).
  */
 class DefaultModelRegistry implements ModelRegistry {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async read(_workspaceId: string): Promise<ModelRegistryPayload> {
     return { models: {} };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async write(_workspaceId: string, _payload: ModelRegistryPayload): Promise<void> {
     // No-op
   }
@@ -40,11 +42,18 @@ export function setModelRegistry(registry: ModelRegistry): void {
   logger.info('[Models API] Custom model registry registered');
 }
 
-async function assertAuthorized(req: NextRequest, workspaceId: string): Promise<NextResponse | null> {
+async function assertAuthorized(
+  req: NextRequest,
+  workspaceId: string
+): Promise<NextResponse | null> {
   const userId = getUserId(req);
   const { getIdentityManager, Permission } = await import('@claw/core/lib/session/identity');
   const identityManager = await getIdentityManager();
-  const hasPermission = await identityManager.hasPermission(userId, Permission.TASK_CREATE, workspaceId);
+  const hasPermission = await identityManager.hasPermission(
+    userId,
+    Permission.TASK_CREATE,
+    workspaceId
+  );
 
   if (!hasPermission) {
     return NextResponse.json(
@@ -71,8 +80,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         ...record,
       }))
       .sort((a, b) => {
-        const aTime = new Date((a as ModelRegistryRecord & { registeredAt?: string }).registeredAt || 0).getTime();
-        const bTime = new Date((b as ModelRegistryRecord & { registeredAt?: string }).registeredAt || 0).getTime();
+        const aTime = new Date(
+          (a as ModelRegistryRecord & { registeredAt?: string }).registeredAt || 0
+        ).getTime();
+        const bTime = new Date(
+          (b as ModelRegistryRecord & { registeredAt?: string }).registeredAt || 0
+        ).getTime();
         return bTime - aTime;
       });
 
@@ -101,7 +114,10 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const body = (await req.json()) as { modelName?: unknown; label?: unknown };
     const modelName = String(body.modelName || '').trim();
     if (!modelName) {
-      return NextResponse.json({ error: 'Missing parameter: modelName' }, { status: HTTP_STATUS.BAD_REQUEST });
+      return NextResponse.json(
+        { error: 'Missing parameter: modelName' },
+        { status: HTTP_STATUS.BAD_REQUEST }
+      );
     }
 
     const rawLabel = typeof body.label === 'string' ? body.label.trim() : '';

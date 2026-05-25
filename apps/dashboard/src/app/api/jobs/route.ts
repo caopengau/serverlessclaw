@@ -3,7 +3,10 @@ import { getUserId } from '@/lib/auth-utils';
 import { JobStore } from '@claw/core/lib/jobs/store';
 import { JobExecutorService } from '@claw/core/lib/jobs/executor';
 import { JobSpec, JobRun } from '@claw/core/lib/jobs/types';
-import { JobInputNormalizer, DefaultJobInputNormalizer } from '@claw/core/lib/jobs/normalizer.interface';
+import {
+  JobInputNormalizer,
+  DefaultJobInputNormalizer,
+} from '@claw/core/lib/jobs/normalizer.interface';
 import { logger } from '@claw/core/lib/logger';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
 import fs from 'fs';

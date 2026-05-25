@@ -81,14 +81,8 @@ export class JobExecutorService {
       env: runtimeEnv,
     });
 
-    const maxRuntimeMs = this.resolvePositiveInt(
-      process.env.JOB_MAX_RUNTIME_MS,
-      45 * 60 * 1000
-    );
-    const idleTimeoutMs = this.resolvePositiveInt(
-      process.env.JOB_IDLE_TIMEOUT_MS,
-      5 * 60 * 1000
-    );
+    const maxRuntimeMs = this.resolvePositiveInt(process.env.JOB_MAX_RUNTIME_MS, 45 * 60 * 1000);
+    const idleTimeoutMs = this.resolvePositiveInt(process.env.JOB_IDLE_TIMEOUT_MS, 5 * 60 * 1000);
 
     let runtimeTimer: NodeJS.Timeout | null = null;
     let idleTimer: NodeJS.Timeout | null = null;
@@ -127,13 +121,15 @@ export class JobExecutorService {
     const scheduleIdleTimer = () => {
       clearIdleTimer();
       idleTimer = setTimeout(() => {
-        terminateProcess(`Idle timeout exceeded (${Math.floor(idleTimeoutMs / 1000)}s) without job output`);
-      }, idleTimeoutMs);
+        terminateProcess(
+          `Idle timeout exceeded (${Math.floor(idleTimeoutMs / 1000)}s) without job output`
+        );
+      }, idleTimeoutMs) as NodeJS.Timeout;
     };
 
     runtimeTimer = setTimeout(() => {
       terminateProcess(`Max runtime exceeded (${Math.floor(maxRuntimeMs / 1000)}s)`);
-    }, maxRuntimeMs);
+    }, maxRuntimeMs) as NodeJS.Timeout;
 
     scheduleIdleTimer();
 
