@@ -193,7 +193,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // 2. Normalize job inputs using the registered normalizer (domain-specific transformations)
-    const normalizedInputs = getJobInputNormalizer().normalize(spec, inputs as Record<string, unknown>);
+    const normalizedInputs = getJobInputNormalizer().normalize(
+      spec,
+      inputs as Record<string, unknown>
+    );
 
     // 3. Cache Matching Layer: Avoid retraining if parameters match and the file exists in storage
     if (spec.executor.outputPath) {

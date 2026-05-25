@@ -1,4 +1,7 @@
-import { JobInputNormalizer, DefaultJobInputNormalizer } from '@claw/core/lib/jobs/normalizer.interface';
+import {
+  JobInputNormalizer,
+  DefaultJobInputNormalizer,
+} from '@claw/core/lib/jobs/normalizer.interface';
 import { logger } from '@claw/core/lib/logger';
 
 /**

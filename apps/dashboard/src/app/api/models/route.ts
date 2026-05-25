@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserId } from '@/lib/auth-utils';
 import { logger } from '@claw/core/lib/logger';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
-import {
-  ModelRegistryRecord,
-} from '@claw/core/lib/models/registry.interface';
+import { ModelRegistryRecord } from '@claw/core/lib/models/registry.interface';
 import { getModelRegistry } from './state';
 
 export const dynamic = 'force-dynamic';
