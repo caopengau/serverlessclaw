@@ -11,4 +11,6 @@ export * from './jobs/types';
 export * from './jobs/store';
 export * from './jobs/parser';
 export * from './jobs/executor';
+export * from './jobs/normalizer.interface';
+export * from './models/registry.interface';
 export * from './plugin-manager';

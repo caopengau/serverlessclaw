@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { JobSpec, JobRun, JobStatus } from './types';
@@ -31,19 +31,7 @@ export class JobExecutorService {
     });
 
     // 3. Resolve execution CWD and environment variables
-    const baseCwd = spec.executor.cwd || '';
-    let executionCwd = baseCwd;
-    if (!baseCwd.startsWith('/')) {
-      const localPath = path.resolve(process.cwd(), baseCwd);
-      const parentPath = path.resolve(process.cwd(), '../../', baseCwd);
-      if (fs.existsSync(localPath)) {
-        executionCwd = localPath;
-      } else if (fs.existsSync(parentPath)) {
-        executionCwd = parentPath;
-      } else {
-        executionCwd = localPath; // fallback
-      }
-    }
+    const executionCwd = this.resolveExecutionCwd(spec.executor.cwd || '');
 
     const resolvedShell = this.resolveShellPath();
     if (!resolvedShell) {
@@ -70,18 +58,84 @@ export class JobExecutorService {
       return;
     }
 
+    const runtimeEnv: NodeJS.ProcessEnv = {
+      ...process.env,
+      PYTHONUNBUFFERED: '1',
+      WORKSPACE_ID: workspaceId,
+      STAGING_BUCKET_NAME: process.env.STAGING_BUCKET_NAME || '',
+      ...this.injectEnv(spec.executor.envOverrides || {}, run.inputsApplied),
+    };
+
+    // Prevent boto3 from trying to resolve an empty profile name like "()".
+    if ((runtimeEnv.AWS_PROFILE || '').trim() === '') {
+      delete runtimeEnv.AWS_PROFILE;
+    }
+    if ((runtimeEnv.AWS_DEFAULT_PROFILE || '').trim() === '') {
+      delete runtimeEnv.AWS_DEFAULT_PROFILE;
+    }
+
     // Spawn standard shell process
     const child = spawn(formattedCmd, {
       shell: resolvedShell,
       cwd: executionCwd,
-      env: {
-        ...process.env,
-        PYTHONUNBUFFERED: '1',
-        WORKSPACE_ID: workspaceId,
-        STAGING_BUCKET_NAME: process.env.STAGING_BUCKET_NAME || '',
-        ...this.injectEnv(spec.executor.envOverrides || {}, run.inputsApplied),
-      },
+      env: runtimeEnv,
     });
+
+    const maxRuntimeMs = this.resolvePositiveInt(
+      process.env.JOB_MAX_RUNTIME_MS,
+      45 * 60 * 1000
+    );
+    const idleTimeoutMs = this.resolvePositiveInt(
+      process.env.JOB_IDLE_TIMEOUT_MS,
+      5 * 60 * 1000
+    );
+
+    let runtimeTimer: NodeJS.Timeout | null = null;
+    let idleTimer: NodeJS.Timeout | null = null;
+
+    const publishTimeoutLog = (reason: string) => {
+      const text = `[JobExecutor] ${reason}\n`;
+      const logTopic = `workspaces/${workspaceId}/jobs/${run.jobId}/logs`;
+      publishToRealtime(logTopic, { text }).catch((err) => {
+        logger.error(`[JobExecutor] Realtime log publish failed:`, err);
+      });
+    };
+
+    const terminateProcess = (reason: string) => {
+      if (child.exitCode !== null || child.killed) {
+        return;
+      }
+
+      logger.warn(`[JobExecutor] ${reason} (job=${run.jobId})`);
+      publishTimeoutLog(reason);
+      child.kill('SIGTERM');
+
+      setTimeout(() => {
+        if (child.exitCode === null && !child.killed) {
+          child.kill('SIGKILL');
+        }
+      }, 5000);
+    };
+
+    const clearIdleTimer = () => {
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+        idleTimer = null;
+      }
+    };
+
+    const scheduleIdleTimer = () => {
+      clearIdleTimer();
+      idleTimer = setTimeout(() => {
+        terminateProcess(`Idle timeout exceeded (${Math.floor(idleTimeoutMs / 1000)}s) without job output`);
+      }, idleTimeoutMs);
+    };
+
+    runtimeTimer = setTimeout(() => {
+      terminateProcess(`Max runtime exceeded (${Math.floor(maxRuntimeMs / 1000)}s)`);
+    }, maxRuntimeMs);
+
+    scheduleIdleTimer();
 
     let stdoutBuffer = '';
 
@@ -89,6 +143,7 @@ export class JobExecutorService {
     const handleOutput = (data: Buffer) => {
       const text = data.toString();
       stdoutBuffer += text;
+      scheduleIdleTimer();
 
       // Publish raw log chunk to realtime
       const logTopic = `workspaces/${workspaceId}/jobs/${run.jobId}/logs`;
@@ -123,7 +178,7 @@ export class JobExecutorService {
     // Register error handler to catch execution/spawn failures and mark job as FAILED
     child.on('error', (err) => {
       logger.error(`[JobExecutor] Process spawn error for job ${run.jobId}:`, err);
-      const errMsg = `Failed to spawn command process (shell=${resolvedShell}): ${err.message}\n`;
+      const errMsg = `Failed to spawn command process (shell=${resolvedShell}, cwd=${executionCwd}): ${err.message}\n`;
       const logTopic = `workspaces/${workspaceId}/jobs/${run.jobId}/logs`;
       publishToRealtime(logTopic, { text: errMsg }).catch((pubErr) => {
         logger.error(`[JobExecutor] Realtime log publish failed:`, pubErr);
@@ -146,6 +201,12 @@ export class JobExecutorService {
     });
 
     child.on('close', async (code) => {
+      if (runtimeTimer) {
+        clearTimeout(runtimeTimer);
+        runtimeTimer = null;
+      }
+      clearIdleTimer();
+
       const finalStatus: JobStatus = code === 0 ? 'COMPLETED' : 'FAILED';
       run.status = finalStatus;
       run.completedAt = new Date().toISOString();
@@ -206,19 +267,74 @@ export class JobExecutorService {
    */
   private static resolveShellPath(): string | null {
     const candidates = [
-      process.env.SHELL,
       '/bin/sh',
       '/usr/bin/sh',
       '/bin/bash',
       '/usr/bin/bash',
+      process.env.SHELL,
     ].filter((value): value is string => Boolean(value));
 
     for (const shellPath of candidates) {
-      if (fs.existsSync(shellPath)) {
+      if (!fs.existsSync(shellPath)) {
+        continue;
+      }
+
+      // Some runtimes expose SHELL but cannot actually execute it. Probe once.
+      const probe = spawnSync(shellPath, ['-lc', 'true'], {
+        stdio: 'ignore',
+        timeout: 1000,
+      });
+
+      if (!probe.error) {
         return shellPath;
       }
     }
 
     return null;
+  }
+
+  private static resolvePositiveInt(rawValue: string | undefined, fallback: number): number {
+    if (!rawValue) {
+      return fallback;
+    }
+
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return fallback;
+    }
+
+    return Math.floor(parsed);
+  }
+
+  /**
+   * Resolve executor cwd robustly across monorepo package roots.
+   * The dashboard can run from different working directories in local/dev runtimes.
+   */
+  private static resolveExecutionCwd(baseCwd: string): string {
+    if (!baseCwd) {
+      return process.cwd();
+    }
+
+    if (path.isAbsolute(baseCwd)) {
+      return baseCwd;
+    }
+
+    const start = process.cwd();
+    const ancestorRoots = [
+      start,
+      path.resolve(start, '..'),
+      path.resolve(start, '../..'),
+      path.resolve(start, '../../..'),
+      path.resolve(start, '../../../..'),
+    ];
+
+    for (const root of ancestorRoots) {
+      const candidate = path.resolve(root, baseCwd);
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+
+    return path.resolve(start, baseCwd);
   }
 }
