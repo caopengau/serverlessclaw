@@ -45,9 +45,34 @@ export class JobExecutorService {
       }
     }
 
+    const resolvedShell = this.resolveShellPath();
+    if (!resolvedShell) {
+      const errMsg =
+        'Failed to spawn command process: no executable shell found. Checked SHELL, /bin/sh, /usr/bin/sh, /bin/bash, /usr/bin/bash.\n';
+      logger.error(`[JobExecutor] ${errMsg.trim()}`);
+
+      const logTopic = `workspaces/${workspaceId}/jobs/${run.jobId}/logs`;
+      publishToRealtime(logTopic, { text: errMsg }).catch((pubErr) => {
+        logger.error(`[JobExecutor] Realtime log publish failed:`, pubErr);
+      });
+
+      run.status = 'FAILED';
+      run.completedAt = new Date().toISOString();
+      await store.updateJobRun(workspaceId, run, {
+        status: 'FAILED',
+        completedAt: run.completedAt,
+      });
+
+      const statusTopic = `workspaces/${workspaceId}/jobs/${run.jobId}/status`;
+      publishToRealtime(statusTopic, { status: 'FAILED', metrics: run.metrics }).catch((pubErr) => {
+        logger.error(`[JobExecutor] Realtime status publish failed:`, pubErr);
+      });
+      return;
+    }
+
     // Spawn standard shell process
     const child = spawn(formattedCmd, {
-      shell: true,
+      shell: resolvedShell,
       cwd: executionCwd,
       env: {
         ...process.env,
@@ -98,7 +123,7 @@ export class JobExecutorService {
     // Register error handler to catch execution/spawn failures and mark job as FAILED
     child.on('error', (err) => {
       logger.error(`[JobExecutor] Process spawn error for job ${run.jobId}:`, err);
-      const errMsg = `Failed to spawn command process: ${err.message}\n`;
+      const errMsg = `Failed to spawn command process (shell=${resolvedShell}): ${err.message}\n`;
       const logTopic = `workspaces/${workspaceId}/jobs/${run.jobId}/logs`;
       publishToRealtime(logTopic, { text: errMsg }).catch((pubErr) => {
         logger.error(`[JobExecutor] Realtime log publish failed:`, pubErr);
@@ -173,5 +198,27 @@ export class JobExecutorService {
       result[key] = this.injectInputs(value, inputs);
     }
     return result;
+  }
+
+  /**
+   * Resolve a shell executable path that exists in the current runtime.
+   * Some serverless runtimes do not provide /bin/sh, so we probe alternatives.
+   */
+  private static resolveShellPath(): string | null {
+    const candidates = [
+      process.env.SHELL,
+      '/bin/sh',
+      '/usr/bin/sh',
+      '/bin/bash',
+      '/usr/bin/bash',
+    ].filter((value): value is string => Boolean(value));
+
+    for (const shellPath of candidates) {
+      if (fs.existsSync(shellPath)) {
+        return shellPath;
+      }
+    }
+
+    return null;
   }
 }
