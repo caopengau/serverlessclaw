@@ -30,9 +30,7 @@ function resolveUiLocale(): 'en' | 'cn' {
   if (typeof window === 'undefined') return 'cn';
 
   const rawLocale =
-    window.localStorage.getItem('clawcenter_locale') ||
-    document.documentElement.lang ||
-    'cn';
+    window.localStorage.getItem('clawcenter_locale') || document.documentElement.lang || 'cn';
 
   const normalized = rawLocale.toLowerCase();
   if (normalized === 'cn' || normalized.startsWith('zh')) return 'cn';
