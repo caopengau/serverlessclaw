@@ -1,8 +1,10 @@
 import path from 'path';
+import fs from 'fs';
 import { test as setup, expect } from 'playwright/test';
 
 // Use path resolution to ensure the auth file is saved in the same directory as the setup script
 const authFile = path.join(__dirname, '.auth/user.json');
+const cwdAuthFile = path.join(process.cwd(), 'e2e/.auth/user.json');
 
 /**
  * Extract domain from URL for cookie configuration.
@@ -101,7 +103,17 @@ setup('authenticate', async ({ request, browserName }, _testInfo) => {
 
   // Save authentication state from the API context
   // The request context automatically includes cookies for the current domain
+  fs.mkdirSync(path.dirname(authFile), { recursive: true });
   await request.storageState({ path: authFile });
+
+  // Some release flows execute Playwright from repository root while specs use
+  // `e2e/.auth/user.json` relative to CWD. Persist there too for portability.
+  fs.mkdirSync(path.dirname(cwdAuthFile), { recursive: true });
+  await request.storageState({ path: cwdAuthFile });
+
   console.log(`[E2E:Auth] Authentication state saved to ${authFile}`);
+  if (cwdAuthFile !== authFile) {
+    console.log(`[E2E:Auth] Authentication state also saved to ${cwdAuthFile}`);
+  }
   console.log(`[E2E:Auth] Cookies will be applied for domain: ${domain}`);
 });
