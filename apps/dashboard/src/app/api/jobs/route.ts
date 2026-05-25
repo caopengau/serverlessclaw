@@ -3,33 +3,14 @@ import { getUserId } from '@/lib/auth-utils';
 import { JobStore } from '@claw/core/lib/jobs/store';
 import { JobExecutorService } from '@claw/core/lib/jobs/executor';
 import { JobSpec, JobRun } from '@claw/core/lib/jobs/types';
-import {
-  JobInputNormalizer,
-  DefaultJobInputNormalizer,
-} from '@claw/core/lib/jobs/normalizer.interface';
 import { logger } from '@claw/core/lib/logger';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
 import fs from 'fs';
 import path from 'path';
 import defaultJobsConfig from 'virtual-jobs-config';
+import { getJobInputNormalizer } from './state';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Optional custom job input normalizer for domain-specific transformations.
- * Can be replaced with a domain-specific implementation (e.g., GoldexJobInputNormalizer).
- * Defaults to a pass-through normalizer if not provided.
- */
-let jobInputNormalizer: JobInputNormalizer = new DefaultJobInputNormalizer();
-
-/**
- * Set custom job input normalizer.
- * This allows domain-specific implementations to be injected.
- */
-export function setJobInputNormalizer(normalizer: JobInputNormalizer): void {
-  jobInputNormalizer = normalizer;
-  logger.info('[Jobs API] Custom job input normalizer registered');
-}
 
 /**
  * Dynamically resolves and loads jobs.config.json from the virtual webpack alias
@@ -212,7 +193,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // 2. Normalize job inputs using the registered normalizer (domain-specific transformations)
-    const normalizedInputs = jobInputNormalizer.normalize(spec, inputs as Record<string, unknown>);
+    const normalizedInputs = getJobInputNormalizer().normalize(spec, inputs as Record<string, unknown>);
 
     // 3. Cache Matching Layer: Avoid retraining if parameters match and the file exists in storage
     if (spec.executor.outputPath) {

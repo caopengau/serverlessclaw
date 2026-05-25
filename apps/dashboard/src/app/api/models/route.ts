@@ -3,44 +3,11 @@ import { getUserId } from '@/lib/auth-utils';
 import { logger } from '@claw/core/lib/logger';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
 import {
-  ModelRegistry,
-  ModelRegistryPayload,
   ModelRegistryRecord,
 } from '@claw/core/lib/models/registry.interface';
+import { getModelRegistry } from './state';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Default model registry that returns empty records.
- * Can be replaced with a domain-specific implementation (e.g., GoldexModelRegistry).
- */
-class DefaultModelRegistry implements ModelRegistry {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async read(_workspaceId: string): Promise<ModelRegistryPayload> {
-    return { models: {} };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async write(_workspaceId: string, _payload: ModelRegistryPayload): Promise<void> {
-    // No-op
-  }
-}
-
-/**
- * Optional custom model registry implementation.
- * Can be replaced with a domain-specific implementation (e.g., GoldexModelRegistry).
- * Defaults to a no-op registry if not provided.
- */
-let modelRegistry: ModelRegistry = new DefaultModelRegistry();
-
-/**
- * Set custom model registry implementation.
- * This allows domain-specific implementations to be injected.
- */
-export function setModelRegistry(registry: ModelRegistry): void {
-  modelRegistry = registry;
-  logger.info('[Models API] Custom model registry registered');
-}
 
 async function assertAuthorized(
   req: NextRequest,
@@ -73,7 +40,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       return unauthorized;
     }
 
-    const payload = await modelRegistry.read(workspaceId);
+    const payload = await getModelRegistry().read(workspaceId);
     const models = Object.entries(payload.models || {})
       .map(([modelName, record]) => ({
         modelName,
@@ -123,7 +90,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const rawLabel = typeof body.label === 'string' ? body.label.trim() : '';
     const label = rawLabel.slice(0, 120);
 
-    const payload = await modelRegistry.read(workspaceId);
+    const payload = await getModelRegistry().read(workspaceId);
     const record = payload.models?.[modelName];
     if (!record || typeof record !== 'object') {
       return NextResponse.json(
@@ -142,7 +109,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     payload.models[modelName] = record;
     (payload as { lastUpdatedAt?: string }).lastUpdatedAt = new Date().toISOString();
-    await modelRegistry.write(workspaceId, payload);
+    await getModelRegistry().write(workspaceId, payload);
 
     return NextResponse.json({
       success: true,
