@@ -48,12 +48,14 @@ async function getTraceNodes(traceId: string): Promise<Trace[]> {
  */
 export default async function TraceDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ workspaceId?: string }>;
 }): Promise<React.ReactElement> {
   const { id } = await params;
+  const sParams = await searchParams;
 
-  // RBAC Gating check for TRACE_VIEW permission
   const { cookies: getCookies } = await import('next/headers');
   const cookieStore = await getCookies();
   const userId = cookieStore.get(AUTH.SESSION_USER_ID)?.value || 'dashboard-user';
@@ -61,7 +63,9 @@ export default async function TraceDetailPage({
   const { getIdentityManager, Permission } = await import('@claw/core/lib/session/identity');
   const identityManager = await getIdentityManager();
 
-  const hasAccess = await identityManager.hasPermission(userId, Permission.TRACE_VIEW, 'default');
+  const workspaceId = sParams.workspaceId || 'default';
+  const hasAccess = await identityManager.hasPermission(userId, Permission.AGENT_VIEW, workspaceId);
+
   if (!hasAccess) {
     redirect('/unauthorized');
   }

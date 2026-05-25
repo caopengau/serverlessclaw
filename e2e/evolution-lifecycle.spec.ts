@@ -1,7 +1,8 @@
+import path from 'path';
 import { test, expect } from 'playwright/test';
 
 test.describe('Full Evolution Lifecycle (E2E)', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' });
+  test.use({ storageState: path.join(__dirname, '.auth/user.json') });
 
   test('should complete full lifecycle', async ({ page: _page }) => {
     test.skip(

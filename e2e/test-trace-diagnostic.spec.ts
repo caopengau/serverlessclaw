@@ -1,7 +1,8 @@
+import path from 'path';
 import { test } from 'playwright/test';
 
 test.describe('Trace Page Diagnostics', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' });
+  test.use({ storageState: path.join(__dirname, '.auth/user.json') });
 
   test('queries traces and logs results', async ({ page }) => {
     // Listen to console logs
