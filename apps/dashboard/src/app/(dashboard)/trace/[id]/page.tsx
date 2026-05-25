@@ -64,7 +64,7 @@ export default async function TraceDetailPage({
   const identityManager = await getIdentityManager();
 
   const workspaceId = sParams.workspaceId || 'default';
-  const hasAccess = await identityManager.hasPermission(userId, Permission.AGENT_VIEW, workspaceId);
+  const hasAccess = await identityManager.hasPermission(userId, Permission.TRACE_VIEW, workspaceId);
 
   if (!hasAccess) {
     redirect('/unauthorized');
