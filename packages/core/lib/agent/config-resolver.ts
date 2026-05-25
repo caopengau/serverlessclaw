@@ -2,6 +2,39 @@ import { IAgentConfig, ReasoningProfile } from '../types/index';
 import { SYSTEM, CONFIG_KEYS, OPTIMIZATION_POLICIES } from '../constants';
 import { ConfigManager } from '../registry/config';
 import { logger } from '../logger';
+import {
+  LLMProvider,
+  OpenAIModel,
+  BedrockModel,
+  OpenRouterModel,
+  MiniMaxModel,
+  DeepSeekModel,
+} from '../types/llm';
+
+const PROVIDER_DEFAULT_MODELS: Record<string, string> = {
+  [LLMProvider.OPENAI]: SYSTEM.DEFAULT_OPENAI_MODEL,
+  [LLMProvider.BEDROCK]: SYSTEM.DEFAULT_BEDROCK_MODEL,
+  [LLMProvider.OPENROUTER]: SYSTEM.DEFAULT_OPENROUTER_MODEL,
+  [LLMProvider.MINIMAX]: SYSTEM.DEFAULT_MINIMAX_MODEL,
+  [LLMProvider.DEEPSEEK]: SYSTEM.DEFAULT_DEEPSEEK_MODEL,
+};
+
+function isModelCompatibleWithProvider(provider: string, model: string): boolean {
+  switch (provider) {
+    case LLMProvider.OPENAI:
+      return Object.values(OpenAIModel).includes(model as OpenAIModel);
+    case LLMProvider.BEDROCK:
+      return Object.values(BedrockModel).includes(model as BedrockModel);
+    case LLMProvider.OPENROUTER:
+      return Object.values(OpenRouterModel).includes(model as OpenRouterModel);
+    case LLMProvider.MINIMAX:
+      return Object.values(MiniMaxModel).includes(model as MiniMaxModel);
+    case LLMProvider.DEEPSEEK:
+      return Object.values(DeepSeekModel).includes(model as DeepSeekModel);
+    default:
+      return true;
+  }
+}
 
 /**
  * Resolves the active model, provider, and reasoning profile for an agent.
@@ -45,6 +78,14 @@ export async function resolveAgentConfig(
     }
   } catch {
     logger.warn('Failed to fetch config from DDB, using defaults.');
+  }
+
+  if (!isModelCompatibleWithProvider(activeProvider, activeModel)) {
+    const fallbackModel = PROVIDER_DEFAULT_MODELS[activeProvider] ?? SYSTEM.DEFAULT_MODEL;
+    logger.warn(
+      `[resolveAgentConfig] Incompatible provider/model detected: ${activeProvider}/${activeModel}. Falling back to ${fallbackModel}.`
+    );
+    activeModel = fallbackModel;
   }
 
   return { activeModel, activeProvider, activeProfile };

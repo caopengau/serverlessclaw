@@ -122,4 +122,20 @@ describe('resolveAgentConfig', () => {
       activeProfile: ReasoningProfile.STANDARD,
     });
   });
+
+  it('falls back to provider default model when global model is incompatible', async () => {
+    (ConfigManager.getRawConfig as any).mockImplementation((key: string) => {
+      if (key === CONFIG_KEYS.ACTIVE_PROVIDER) return Promise.resolve('openai');
+      if (key === CONFIG_KEYS.ACTIVE_MODEL) return Promise.resolve('MiniMax-M2.7');
+      return Promise.resolve(undefined);
+    });
+
+    const result = await resolveAgentConfig(undefined);
+
+    expect(result).toEqual({
+      activeModel: SYSTEM.DEFAULT_OPENAI_MODEL,
+      activeProvider: 'openai',
+      activeProfile: ReasoningProfile.STANDARD,
+    });
+  });
 });

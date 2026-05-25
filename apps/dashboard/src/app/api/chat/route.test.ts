@@ -112,6 +112,12 @@ vi.mock('@claw/core/lib/registry', () => ({
   },
 }));
 
+vi.mock('@claw/core/lib/registry/config', () => ({
+  ConfigManager: {
+    getTypedConfig: vi.fn().mockResolvedValue('cn'),
+  },
+}));
+
 vi.mock('@claw/core/lib/types/index', () => ({
   TraceSource: { DASHBOARD: 'dashboard' },
   MessageRole: { ASSISTANT: 'assistant' },
@@ -127,6 +133,9 @@ vi.mock('@claw/core/lib/constants', () => ({
     INTERNAL_SERVER_ERROR: 500,
     OK: 200,
     TOO_MANY_REQUESTS: 429,
+  },
+  CONFIG_KEYS: {
+    ACTIVE_LOCALE: 'active_locale',
   },
   AGENT_ERRORS: { PROCESS_FAILURE: 'Process failure' },
   RETENTION: { SESSION_METADATA_DAYS: 30 },
