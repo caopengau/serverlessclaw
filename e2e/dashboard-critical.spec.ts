@@ -1,7 +1,8 @@
+import path from 'path';
 import { test, expect } from 'playwright/test';
 
 test.describe('Dashboard Critical Flows', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' });
+  test.use({ storageState: path.join(__dirname, '.auth/user.json') });
 
   test('direct navigation to observability tabs works', async ({ page }) => {
     // Navigate directly to a specific tab via URL if supported,

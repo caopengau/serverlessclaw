@@ -1,0 +1,8 @@
+.aiready/
+.turbo/
+coverage/
+scratch/
+reports/
+diagnostics/
+.opencode/
+.kilo/

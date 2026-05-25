@@ -1,3 +1,4 @@
+import path from 'path';
 import { test, expect, type Page } from 'playwright/test';
 
 async function openAnyTraceDetail(page: Page) {
@@ -23,7 +24,7 @@ async function openAnyTraceDetail(page: Page) {
 }
 
 test.describe('Agent Collaboration & Swarm Intelligence', () => {
-  test.use({ storageState: 'e2e/.auth/user.json' });
+  test.use({ storageState: path.join(__dirname, '.auth/user.json') });
 
   test('renders collaboration canvas on trace detail page', async ({ page }) => {
     const opened = await openAnyTraceDetail(page);

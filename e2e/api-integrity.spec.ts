@@ -1,8 +1,9 @@
+import path from 'path';
 import { test, expect } from 'playwright/test';
 
 test.describe('Dashboard API Integrity (Black-box)', () => {
   // Use the setup auth state for protected routes
-  test.use({ storageState: 'e2e/.auth/user.json' });
+  test.use({ storageState: path.join(__dirname, '.auth/user.json') });
 
   test('config api returns valid configuration', async ({ request }) => {
     const response = await request.get('/api/config', { timeout: 10000 });
