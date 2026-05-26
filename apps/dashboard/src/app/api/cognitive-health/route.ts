@@ -39,9 +39,11 @@ export async function GET(req: NextRequest) {
     }
 
     const { DynamoMemory } = await import('@claw/core/lib/memory');
+    const { getMemoryByType } = await import('@claw/core/lib/memory/utils/query');
     const memory = new DynamoMemory();
-    // Use scoped prefix
-    const items = await memory.listByPrefix(`WS#${workspaceId}#HEALTH#`);
+
+    // Use GSI for efficient querying instead of full table scan via listByPrefix
+    const items = await getMemoryByType(memory, 'COGNITIVE_SNAPSHOT', 100, workspaceId);
 
     if (!items || items.length === 0) {
       return NextResponse.json({ agents: [], message: 'No health data recorded' });

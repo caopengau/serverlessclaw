@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Default model registry that returns empty records.
- * Can be replaced with a domain-specific implementation (e.g., GoldexModelRegistry).
+ * Can be replaced with a domain-specific implementation (e.g., CustomModelRegistry).
  */
 class DefaultModelRegistry implements ModelRegistry {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -28,7 +28,7 @@ class DefaultModelRegistry implements ModelRegistry {
 
 /**
  * Optional custom model registry implementation.
- * Can be replaced with a domain-specific implementation (e.g., GoldexModelRegistry).
+ * Can be replaced with a domain-specific implementation (e.g., CustomModelRegistry).
  * Defaults to a no-op registry if not provided.
  */
 let modelRegistry: ModelRegistry = new DefaultModelRegistry();

@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Optional custom job input normalizer for domain-specific transformations.
- * Can be replaced with a domain-specific implementation (e.g., GoldexJobInputNormalizer).
+ * Can be replaced with a domain-specific implementation (e.g., CustomJobInputNormalizer).
  * Defaults to a pass-through normalizer if not provided.
  */
 let jobInputNormalizer: JobInputNormalizer = new DefaultJobInputNormalizer();

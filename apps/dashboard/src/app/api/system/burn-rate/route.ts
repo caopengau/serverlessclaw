@@ -33,15 +33,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { BaseMemoryProvider } = await import('@claw/core/lib/memory/base');
     const { CONFIG_DEFAULTS } = await import('@claw/core/lib/config/config-defaults');
     const { ConfigManager } = await import('@claw/core/lib/registry/config');
+    const { AgentRegistry } = await import('@claw/core/lib/registry/AgentRegistry');
+    const { TokenTracker } = await import('@claw/core/lib/metrics/token-usage');
 
-    const memory = new BaseMemoryProvider();
-
-    // List all token rollups for today, scoped to workspace
-    // Format: WS#<workspaceId>#TOKEN_ROLLUP#<agentId>
-    const rollups = await memory.listByPrefix(`WS#${workspaceId}#TOKEN_ROLLUP#`);
+    const configs = await AgentRegistry.getAllConfigs({ workspaceId });
+    const agents = Object.keys(configs);
 
     const now = Date.now();
     const todayStart = new Date(now).setUTCHours(0, 0, 0, 0);
@@ -50,14 +48,18 @@ export async function GET(req: NextRequest) {
     let totalOutputTokens = 0;
     let invocationCount = 0;
 
-    for (const item of rollups) {
-      // Only count rollups for today
-      if ((item.timestamp as number) >= todayStart) {
-        totalInputTokens += (item.totalInputTokens as number) ?? 0;
-        totalOutputTokens += (item.totalOutputTokens as number) ?? 0;
-        invocationCount += (item.invocationCount as number) ?? 0;
-      }
-    }
+    await Promise.all(
+      agents.map(async (agentId) => {
+        const rollups = await TokenTracker.getRollupRange(agentId, 1, { workspaceId });
+        for (const item of rollups) {
+          if (item.timestamp >= todayStart) {
+            totalInputTokens += item.totalInputTokens ?? 0;
+            totalOutputTokens += item.totalOutputTokens ?? 0;
+            invocationCount += item.invocationCount ?? 0;
+          }
+        }
+      })
+    );
 
     const totalTokens = totalInputTokens + totalOutputTokens;
 

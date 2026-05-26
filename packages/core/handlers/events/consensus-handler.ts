@@ -47,6 +47,7 @@ export async function handleConsensus(
         participants,
         mode = 'majority',
       } = event.detail as ConsensusRequestDetail;
+      const workspaceId = (event.detail as { workspaceId?: string }).workspaceId;
 
       logger.info(`[Consensus] New request ${requestId} from ${initiatorId} (Mode: ${mode})`);
 
@@ -55,7 +56,10 @@ export async function handleConsensus(
           TableName: tableName,
           Key: { userId: `CONSENSUS#${requestId}`, timestamp: 0 },
           UpdateExpression:
-            'SET proposal = :prop, initiatorId = :init, participants = :parts, mode = :mode, votes = :empty_list, status = :status, createdAt = :now, expiresAt = :ttl',
+            'SET proposal = :prop, initiatorId = :init, participants = :parts, mode = :mode, votes = :empty_list, status = :status, createdAt = :now, expiresAt = :ttl, #tp = :type, workspaceId = :wsId',
+          ExpressionAttributeNames: {
+            '#tp': 'type',
+          },
           ExpressionAttributeValues: {
             ':prop': proposal,
             ':init': initiatorId,
@@ -65,6 +69,8 @@ export async function handleConsensus(
             ':status': 'PENDING',
             ':now': Date.now(),
             ':ttl': Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days
+            ':type': 'CONSENSUS',
+            ':wsId': workspaceId || 'default',
           },
         })
       );
