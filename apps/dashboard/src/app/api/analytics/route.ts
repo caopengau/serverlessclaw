@@ -66,8 +66,9 @@ export async function GET(request: NextRequest) {
           }))
       : [];
 
-    // Fetch recent cognitive health metrics - scoped to workspace
-    const healthItems = await memory.listByPrefix(`WS#${workspaceId}#HEALTH#METRIC#`);
+    // Fetch recent cognitive health metrics - scoped to workspace using GSI
+    const { getMemoryByType } = await import('@claw/core/lib/memory/utils/query');
+    const healthItems = await getMemoryByType(memory, 'COGNITIVE_METRIC', 500, workspaceId);
     const recentMetrics = healthItems
       .filter((item) => {
         const ts = (item.timestamp as number) ?? 0;

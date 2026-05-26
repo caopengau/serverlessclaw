@@ -29,9 +29,11 @@ export async function GET(req: NextRequest) {
     }
 
     const { DynamoMemory } = await import('@claw/core/lib/memory');
+    const { getMemoryByType } = await import('@claw/core/lib/memory/utils/query');
     const memory = new DynamoMemory();
-    // Use scoped prefix
-    const items = await memory.listByPrefix(`WS#${workspaceId}#REPUTATION#`);
+
+    // Use GSI for efficient querying instead of full table scan
+    const items = await getMemoryByType(memory, 'REPUTATION', 100, workspaceId);
     const reputation = items.map((item) => {
       const rawUserId = item.userId as string;
       const agentId = rawUserId.split('REPUTATION#').pop() || 'unknown';

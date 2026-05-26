@@ -358,6 +358,7 @@ export const triggerDeployment = {
             Item: {
               userId: `BUILD#${buildId}`,
               timestamp: Date.now(),
+              type: 'BUILD',
               initiatorUserId: userId,
               traceId: traceId,
               initiatorId: initiatorId,
