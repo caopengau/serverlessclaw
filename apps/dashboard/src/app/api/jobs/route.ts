@@ -26,7 +26,7 @@ let jobInputNormalizer: JobInputNormalizer = new DefaultJobInputNormalizer();
  * Set custom job input normalizer.
  * This allows domain-specific implementations to be injected.
  */
-export function setJobInputNormalizer(normalizer: JobInputNormalizer): void {
+function setJobInputNormalizer(normalizer: JobInputNormalizer): void {
   jobInputNormalizer = normalizer;
   logger.info('[Jobs API] Custom job input normalizer registered');
 }

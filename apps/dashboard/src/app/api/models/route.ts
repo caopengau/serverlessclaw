@@ -37,7 +37,7 @@ let modelRegistry: ModelRegistry = new DefaultModelRegistry();
  * Set custom model registry implementation.
  * This allows domain-specific implementations to be injected.
  */
-export function setModelRegistry(registry: ModelRegistry): void {
+function setModelRegistry(registry: ModelRegistry): void {
   modelRegistry = registry;
   logger.info('[Models API] Custom model registry registered');
 }
