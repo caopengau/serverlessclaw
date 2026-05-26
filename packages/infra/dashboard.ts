@@ -18,6 +18,8 @@ export function createDashboard(
       accentColor?: string;
       accentColorDark?: string;
       appTitle?: string;
+      logo?: string;
+      logoBanner?: string;
     };
   } = {}
 ): { dashboard: sst.aws.Nextjs } {
@@ -70,6 +72,7 @@ export function createDashboard(
       IOT_ENDPOINT: ctx.realtime?.endpoint || '',
       IOT_AUTHORIZER: ctx.realtime?.authorizer || '',
       DASHBOARD_PASSWORD: process.env.DASHBOARD_PASSWORD || '',
+      JOBS_CONFIG_PATH: 'apps/dashboard/jobs.config.json',
       AWS_PROFILE: '', // Clear profile to avoid conflict warning as SST injects static credentials
       NEXT_PUBLIC_PRIMARY_COLOR:
         options.theme?.primaryColor || process.env.NEXT_PUBLIC_PRIMARY_COLOR || '',
@@ -80,8 +83,9 @@ export function createDashboard(
       NEXT_PUBLIC_ACCENT_COLOR_DARK:
         options.theme?.accentColorDark || process.env.NEXT_PUBLIC_ACCENT_COLOR_DARK || '',
       NEXT_PUBLIC_APP_TITLE: options.theme?.appTitle || process.env.NEXT_PUBLIC_APP_TITLE || '',
-      NEXT_PUBLIC_APP_LOGO: process.env.NEXT_PUBLIC_APP_LOGO || '/icon.png',
-      NEXT_PUBLIC_APP_LOGO_BANNER: process.env.NEXT_PUBLIC_APP_LOGO_BANNER || '',
+      NEXT_PUBLIC_APP_LOGO: options.theme?.logo || process.env.NEXT_PUBLIC_APP_LOGO || '/icon.png',
+      NEXT_PUBLIC_APP_LOGO_BANNER:
+        options.theme?.logoBanner || process.env.NEXT_PUBLIC_APP_LOGO_BANNER || '',
       ...(options.extensionSource
         ? { NEXT_PUBLIC_ACTIVE_EXTENSIONS: './src/extensions/project/index.tsx' }
         : {}),

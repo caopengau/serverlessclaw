@@ -10,6 +10,7 @@ import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 export default function LoginPage() {
   const { t } = useTranslations();
+  const logoSrc = process.env.NEXT_PUBLIC_APP_LOGO;
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,13 +53,13 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md p-8 glass-card border-white/10 relative z-10">
         <div className="flex flex-col items-center mb-8 text-center">
-          {process.env.NEXT_PUBLIC_APP_LOGO_BANNER ? (
+          {logoSrc ? (
             <div className="mb-6">
               <Image
-                src={process.env.NEXT_PUBLIC_APP_LOGO_BANNER}
+                src={logoSrc}
                 alt={process.env.NEXT_PUBLIC_APP_NAME || 'App Logo'}
-                width={220}
-                height={80}
+                width={72}
+                height={72}
                 className="object-contain"
                 priority
               />

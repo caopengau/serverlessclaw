@@ -50,6 +50,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.TRACE_VIEW,
     Permission.DASHBOARD_VIEW,
   ],
+  [UserRole.TRADER]: [
+    Permission.AGENT_VIEW,
+    Permission.AGENT_INVOKE,
+    Permission.TASK_VIEW,
+    Permission.TASK_CREATE,
+    Permission.DASHBOARD_VIEW,
+    Permission.ACTION_FINANCIAL,
+  ],
 };
 
 /**

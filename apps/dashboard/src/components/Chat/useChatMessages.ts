@@ -26,6 +26,18 @@ interface ChatApiResponse {
   };
 }
 
+function resolveUiLocale(): 'en' | 'cn' {
+  if (typeof window === 'undefined') return 'cn';
+
+  const rawLocale =
+    window.localStorage.getItem('clawcenter_locale') || document.documentElement.lang || 'cn';
+
+  const normalized = rawLocale.toLowerCase();
+  if (normalized === 'cn' || normalized.startsWith('zh')) return 'cn';
+  if (normalized === 'en' || normalized.startsWith('en')) return 'en';
+  return 'cn';
+}
+
 export function useChatMessages(
   activeSessionId: string,
   setActiveSessionId: (id: string) => void,
@@ -211,6 +223,7 @@ export function useChatMessages(
       overrideConfig?: Record<string, unknown>;
       promptOverrides?: Record<string, string>;
       force?: boolean;
+      locale?: 'en' | 'cn';
     } = {}
   ) => {
     const {
@@ -224,6 +237,7 @@ export function useChatMessages(
       overrideConfig,
       promptOverrides,
       force = false,
+      locale,
     } = options;
 
     if (!text.trim() && attachments.length === 0) return;
@@ -303,6 +317,7 @@ export function useChatMessages(
           overrideConfig,
           promptOverrides,
           force,
+          locale: locale ?? resolveUiLocale(),
         }),
       });
 
@@ -388,6 +403,7 @@ export function useChatMessages(
           sessionId: currentSessionId,
           workspaceId: workspaceId || undefined,
           approvedToolCalls: [callId],
+          locale: resolveUiLocale(),
         }),
       });
 

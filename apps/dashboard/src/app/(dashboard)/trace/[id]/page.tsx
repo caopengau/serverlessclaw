@@ -64,6 +64,7 @@ export default async function TraceDetailPage({
   const identityManager = await getIdentityManager();
 
   const workspaceId = sParams.workspaceId || 'default';
+  // Match trace list RBAC: trace detail must require TRACE_VIEW, not generic agent view.
   const hasAccess = await identityManager.hasPermission(userId, Permission.TRACE_VIEW, workspaceId);
 
   if (!hasAccess) {

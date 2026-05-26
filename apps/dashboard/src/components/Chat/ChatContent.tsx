@@ -110,7 +110,7 @@ const CHAT_STYLES = {
  * Manages chat messages, sessions, file uploads, and session settings.
  */
 export default function ChatContent() {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const { setActiveModal, activeModal } = useUICommand();
   const { activeWorkspaceId } = useTenant();
   // --- UI and Session State ---
@@ -372,6 +372,7 @@ export default function ChatContent() {
             agentId: currentAgentId,
             collaborationId: collaborationId || undefined,
             profile: showThinking ? 'thinking' : 'fast',
+            locale,
           }),
         500
       );
@@ -453,6 +454,7 @@ export default function ChatContent() {
           collaborationId: collaborationId || undefined,
           profile: showThinking ? 'thinking' : 'fast',
           force: true,
+          locale,
         });
       }
       return;
@@ -472,6 +474,7 @@ export default function ChatContent() {
         agentId: currentAgentId,
         collaborationId: collaborationId || undefined,
         profile: showThinking ? 'thinking' : 'fast',
+        locale,
       });
     }
   };
@@ -685,6 +688,7 @@ export default function ChatContent() {
                   agentId: currentAgentId,
                   collaborationId: collaborationId || undefined,
                   profile: showThinking ? 'thinking' : 'fast',
+                  locale,
                 });
                 setInput('');
                 // Force scroll to bottom on user send

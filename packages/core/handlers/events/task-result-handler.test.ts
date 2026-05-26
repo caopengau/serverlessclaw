@@ -81,6 +81,7 @@ vi.mock('../../lib/agent/parallel-aggregator', () => ({
   aggregator: {
     getState: mockGetState,
     addResult: mockAddResult,
+    getRawState: mockGetState,
   },
 }));
 

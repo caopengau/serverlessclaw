@@ -17,13 +17,12 @@ export class JobStore extends BaseMemoryProvider {
    */
   async saveJobSpec(workspaceId: string, spec: JobSpec): Promise<void> {
     const pk = `WS#${workspaceId}#JOBSPEC`;
-    const sk = `SPEC#${spec.jobType}`;
 
     logger.info(`[JobStore] Saving JobSpec: ${spec.jobType} in workspace: ${workspaceId}`);
 
     await this.putItem({
       userId: pk,
-      timestamp: sk,
+      timestamp: 1, // Fixed number, specs are just fetched by pk
       ...spec,
       updatedAt: new Date().toISOString(),
     });
@@ -33,22 +32,8 @@ export class JobStore extends BaseMemoryProvider {
    * Retrieves a Job Specification by type.
    */
   async getJobSpec(workspaceId: string, jobType: string): Promise<JobSpec | undefined> {
-    const pk = `WS#${workspaceId}#JOBSPEC`;
-    const sk = `SPEC#${jobType}`;
-
-    const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
-    try {
-      const response = await this.docClient.send(
-        new GetCommand({
-          TableName: this.tableName || '',
-          Key: { userId: pk, timestamp: sk },
-        })
-      );
-      return response.Item as JobSpec | undefined;
-    } catch (error) {
-      logger.error(`[JobStore] Error getting JobSpec ${jobType}:`, error);
-      return undefined;
-    }
+    const specs = await this.listJobSpecs(workspaceId);
+    return specs.find((s) => s.jobType === jobType);
   }
 
   /**
@@ -58,13 +43,9 @@ export class JobStore extends BaseMemoryProvider {
     const pk = `WS#${workspaceId}#JOBSPEC`;
     try {
       const items = await this.queryItems({
-        KeyConditionExpression: 'userId = :pk AND begins_with(#ts, :prefix)',
-        ExpressionAttributeNames: {
-          '#ts': 'timestamp',
-        },
+        KeyConditionExpression: 'userId = :pk',
         ExpressionAttributeValues: {
           ':pk': pk,
-          ':prefix': 'SPEC#',
         },
       });
       return items as unknown as JobSpec[];
@@ -79,7 +60,7 @@ export class JobStore extends BaseMemoryProvider {
    */
   async createJobRun(workspaceId: string, run: JobRun): Promise<void> {
     const pk = `WS#${workspaceId}#JOBRUN`;
-    const sk = `RUN#${run.jobType}#${run.createdAt}#${run.jobId}`;
+    const sk = new Date(run.createdAt).getTime();
 
     logger.info(`[JobStore] Creating JobRun: ${run.jobId} of type: ${run.jobType}`);
 
@@ -99,7 +80,7 @@ export class JobStore extends BaseMemoryProvider {
     updates: Partial<Omit<JobRun, 'jobId' | 'jobType' | 'createdAt'>>
   ): Promise<void> {
     const pk = `WS#${workspaceId}#JOBRUN`;
-    const sk = `RUN#${run.jobType}#${run.createdAt}#${run.jobId}`;
+    const sk = new Date(run.createdAt).getTime();
 
     logger.info(`[JobStore] Updating JobRun: ${run.jobId} of type: ${run.jobType}`);
 
@@ -118,18 +99,16 @@ export class JobStore extends BaseMemoryProvider {
    */
   async listJobRuns(workspaceId: string, jobType?: string): Promise<JobRun[]> {
     const pk = `WS#${workspaceId}#JOBRUN`;
-    const prefix = jobType ? `RUN#${jobType}#` : 'RUN#';
     try {
-      const items = await this.queryItems({
-        KeyConditionExpression: 'userId = :pk AND begins_with(#ts, :prefix)',
-        ExpressionAttributeNames: {
-          '#ts': 'timestamp',
-        },
+      let items = await this.queryItems({
+        KeyConditionExpression: 'userId = :pk',
         ExpressionAttributeValues: {
           ':pk': pk,
-          ':prefix': prefix,
         },
       });
+      if (jobType) {
+        items = items.filter((item) => item.jobType === jobType);
+      }
       // Sort chronologically descending (newest first)
       const sorted = (items as unknown as JobRun[]).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

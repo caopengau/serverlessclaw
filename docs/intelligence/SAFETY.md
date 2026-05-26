@@ -149,14 +149,22 @@ graph TD
 
 ### 2. Custom Role Extension
 
-Plugins can register new roles (e.g., `TRADER`, `OPERATOR`) or add granular permissions to existing roles using the `SecurityRegistry`:
+Plugins can register new roles (e.g., `trader`, `OPERATOR`) or add granular permissions to existing roles using the `SecurityRegistry` on plugin initialization. For example, the GoldEx plugin registers:
 
 ```typescript
 SecurityRegistry.registerRolePermissions('trader', [
+  Permission.AGENT_VIEW,
   Permission.AGENT_INVOKE,
+  Permission.TASK_VIEW,
+  Permission.DASHBOARD_VIEW,
+  Permission.ACTION_FINANCIAL,
   'goldex:trade_execute',
+  'goldex:risk_override',
 ]);
 ```
+
+> [!IMPORTANT]
+> The `trader` role explicitly lacks `Permission.TRACE_VIEW` and is blocked from observing full backend execution traces (`/trace` and `/trace/[id]` paths).
 
 ### 3. Role-Gated Action Classes
 

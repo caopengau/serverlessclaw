@@ -19,10 +19,16 @@ vi.mock('@claw/core/lib/session/identity', () => ({
 }));
 
 // Mock the core dependencies
-const mockListByPrefix = vi.fn();
-vi.mock('@claw/core/lib/memory/base', () => ({
-  BaseMemoryProvider: class {
-    listByPrefix = mockListByPrefix;
+const mockGetRollupRange = vi.fn();
+vi.mock('@claw/core/lib/metrics/token-usage', () => ({
+  TokenTracker: {
+    getRollupRange: mockGetRollupRange,
+  },
+}));
+
+vi.mock('@claw/core/lib/registry/AgentRegistry', () => ({
+  AgentRegistry: {
+    getAllConfigs: vi.fn().mockResolvedValue({ agent1: {}, agent2: {} }),
   },
 }));
 
@@ -52,22 +58,28 @@ describe('Burn-Rate API', () => {
 
   it('should calculate daily burn rate against budget with workspace scoping', async () => {
     const now = Date.now();
-    mockListByPrefix.mockResolvedValue([
-      {
-        userId: 'WS#ws-1#TOKEN_ROLLUP#agent1',
-        totalInputTokens: 1000,
-        totalOutputTokens: 500,
-        invocationCount: 10,
-        timestamp: now,
-      },
-      {
-        userId: 'WS#ws-1#TOKEN_ROLLUP#agent2',
-        totalInputTokens: 2000,
-        totalOutputTokens: 1000,
-        invocationCount: 20,
-        timestamp: now,
-      },
-    ]);
+    mockGetRollupRange.mockImplementation((agentId) => {
+      if (agentId === 'agent1') {
+        return Promise.resolve([
+          {
+            totalInputTokens: 1000,
+            totalOutputTokens: 500,
+            invocationCount: 10,
+            timestamp: now,
+          },
+        ]);
+      } else if (agentId === 'agent2') {
+        return Promise.resolve([
+          {
+            totalInputTokens: 2000,
+            totalOutputTokens: 1000,
+            invocationCount: 20,
+            timestamp: now,
+          },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
 
     const req = new NextRequest('http://localhost/api/system/burn-rate?workspaceId=ws-1');
     const response = await GET(req);
@@ -77,7 +89,8 @@ describe('Burn-Rate API', () => {
     expect(data).toHaveProperty('burnRatePerHour');
     expect(data.totalTokens).toBe(4500); // (1000+500) + (2000+1000)
     expect(data.usageRatio).toBe(4500 / 1000000);
-    expect(mockListByPrefix).toHaveBeenCalledWith('WS#ws-1#TOKEN_ROLLUP#');
+    expect(mockGetRollupRange).toHaveBeenCalledWith('agent1', 1, { workspaceId: 'ws-1' });
+    expect(mockGetRollupRange).toHaveBeenCalledWith('agent2', 1, { workspaceId: 'ws-1' });
   });
 
   it('should return 403 if user lacks permission', async () => {

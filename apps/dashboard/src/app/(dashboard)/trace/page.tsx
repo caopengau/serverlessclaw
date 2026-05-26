@@ -101,7 +101,7 @@ export default async function AnalyticsTab({
 
   const workspaceId = params.workspaceId || 'default';
 
-  const hasAccess = await identityManager.hasPermission(userId, Permission.AGENT_VIEW, workspaceId);
+  const hasAccess = await identityManager.hasPermission(userId, Permission.TRACE_VIEW, workspaceId);
 
   if (!hasAccess) {
     redirect('/unauthorized');

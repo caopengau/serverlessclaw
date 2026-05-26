@@ -3,47 +3,68 @@ import { getUserId } from '@/lib/auth-utils';
 import { JobStore } from '@claw/core/lib/jobs/store';
 import { JobExecutorService } from '@claw/core/lib/jobs/executor';
 import { JobSpec, JobRun } from '@claw/core/lib/jobs/types';
+import {
+  JobInputNormalizer,
+  DefaultJobInputNormalizer,
+} from '@claw/core/lib/jobs/normalizer.interface';
 import { logger } from '@claw/core/lib/logger';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
 import fs from 'fs';
 import path from 'path';
+import defaultJobsConfig from 'virtual-jobs-config';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Dynamically resolves and loads jobs.config.json from candidate paths
- * to prevent leaking domain-specific logic into the Serverless Claw core.
+ * Optional custom job input normalizer for domain-specific transformations.
+ * Can be replaced with a domain-specific implementation (e.g., CustomJobInputNormalizer).
+ * Defaults to a pass-through normalizer if not provided.
+ */
+let jobInputNormalizer: JobInputNormalizer = new DefaultJobInputNormalizer();
+
+/**
+ * Set custom job input normalizer.
+ * This allows domain-specific implementations to be injected.
+ */
+export function setJobInputNormalizer(normalizer: JobInputNormalizer): void {
+  jobInputNormalizer = normalizer;
+  logger.info('[Jobs API] Custom job input normalizer registered');
+}
+
+/**
+ * Dynamically resolves and loads jobs.config.json from the virtual webpack alias
+ * to prevent leaking domain-specific logic into the Serverless Claw core,
+ * and to guarantee availability in the Open-Next deployed Lambda environment.
  */
 function loadJobsConfig(): JobSpec[] {
-  const candidatePaths = [
-    // 1. Path provided by environment variable
-    process.env.JOBS_CONFIG_PATH ? path.resolve(process.cwd(), process.env.JOBS_CONFIG_PATH) : '',
-    // 2. NextJS CWD (usually root of the dashboard app)
-    path.join(process.cwd(), 'jobs.config.json'),
-    // 3. Monorepo root fallback candidates
-    path.resolve(process.cwd(), '../../jobs.config.json'),
-    path.resolve(process.cwd(), '../../../jobs.config.json'),
-  ].filter(Boolean) as string[];
-
-  for (const filePath of candidatePaths) {
-    if (fs.existsSync(filePath)) {
-      try {
-        const raw = fs.readFileSync(filePath, 'utf-8');
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          logger.info(
-            `[Jobs API] Successfully loaded ${parsed.length} specifications from config: ${filePath}`
-          );
-          return parsed as JobSpec[];
-        }
-      } catch (err) {
-        logger.error(`[Jobs API] Error parsing config file at ${filePath}:`, err);
-      }
+  try {
+    let configData: unknown = defaultJobsConfig;
+    if (
+      configData &&
+      typeof configData === 'object' &&
+      !Array.isArray(configData) &&
+      'default' in configData
+    ) {
+      configData = (configData as Record<string, unknown>).default;
     }
+
+    if (Array.isArray(configData)) {
+      const specs = configData as unknown as JobSpec[];
+      logger.info(
+        `[Jobs API] Successfully loaded ${specs.length} specifications from virtual-jobs-config`
+      );
+      return specs;
+    } else {
+      logger.warn(
+        '[Jobs API] virtual-jobs-config did not export an array, returning empty specs list.'
+      );
+    }
+  } catch (e) {
+    logger.error('[Jobs API] Failed to parse virtual-jobs-config:', e);
   }
 
   logger.warn(
-    '[Jobs API] No jobs.config.json found in candidate paths. Running with empty specifications.'
+    '[Jobs API] No jobs.config.json found via virtual module. Running with empty specifications.'
   );
   return [];
 }
@@ -76,14 +97,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     const store = JobStore.getInstance();
 
-    // 1. Dynamic Seeding: Load local jobs config and save to store
-    const specsFromConfig = loadJobsConfig();
-    for (const spec of specsFromConfig) {
-      await store.saveJobSpec(workspaceId, spec);
-    }
+    // 1. Load local jobs config
+    const specs = loadJobsConfig();
 
-    // 2. Fetch specs and runs from database
-    const specs = await store.listJobSpecs(workspaceId);
+    // 2. Fetch runs from database
     const runs = await store.listJobRuns(workspaceId);
 
     return NextResponse.json({
@@ -184,29 +201,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const store = JobStore.getInstance();
 
-    // 1. Fetch target specification
-    const spec = await store.getJobSpec(workspaceId, jobType);
+    // 1. Fetch target specification from config
+    const specs = loadJobsConfig();
+    const spec = specs.find((s) => s.jobType === jobType);
     if (!spec) {
       return NextResponse.json(
-        { error: `Job Specification of type '${jobType}' not found in database.` },
+        { error: `Job Specification of type '${jobType}' not found in configuration.` },
         { status: HTTP_STATUS.NOT_FOUND }
       );
     }
 
-    // 2. Cache Matching Layer: Avoid retraining if parameters match and the file exists in storage
+    // 2. Normalize job inputs using the registered normalizer (domain-specific transformations)
+    const normalizedInputs = jobInputNormalizer.normalize(spec, inputs as Record<string, unknown>);
+
+    // 3. Cache Matching Layer: Avoid retraining if parameters match and the file exists in storage
     if (spec.executor.outputPath) {
       const pastRuns = await store.listJobRuns(workspaceId);
       const duplicateRun = pastRuns.find(
         (r) =>
           r.jobType === jobType &&
           r.status === 'COMPLETED' &&
-          JSON.stringify(r.inputsApplied) === JSON.stringify(inputs)
+          JSON.stringify(r.inputsApplied) === JSON.stringify(normalizedInputs)
       );
 
       if (duplicateRun) {
-        const fileExists = await checkModelFileExists(workspaceId, spec, inputs);
+        const fileExists = await checkModelFileExists(workspaceId, spec, normalizedInputs);
         if (fileExists) {
-          logger.info(`[Jobs API] Cache Hit! Reusing existing completed model for inputs:`, inputs);
+          logger.info(
+            `[Jobs API] Cache Hit! Reusing existing completed model for inputs:`,
+            normalizedInputs
+          );
           return NextResponse.json(
             {
               success: true,
@@ -227,7 +251,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       status: 'PENDING',
       createdAt: new Date().toISOString(),
       triggeredBy: userId,
-      inputsApplied: inputs,
+      inputsApplied: normalizedInputs,
       metrics: {},
     };
 

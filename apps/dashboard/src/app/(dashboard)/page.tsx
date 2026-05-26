@@ -21,6 +21,8 @@ import PageHeader from '@/components/PageHeader';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/components/Providers/TenantProvider';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
+import { useUser } from '@/components/Providers/UserProvider';
+import { UserRole } from '@claw/core/lib/types/common';
 
 interface SessionMetadata {
   sessionId: string;
@@ -35,8 +37,12 @@ interface SessionMetadata {
 export default function MissionDashboard() {
   const { activeWorkspaceId } = useTenant();
   const { t, formatDate, formatTime } = useTranslations();
+  const { user } = useUser();
   const [recentSessions, setRecentSessions] = useState<SessionMetadata[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const userRole = (user?.role as UserRole) || UserRole.MEMBER;
+  const isTrader = userRole === UserRole.TRADER;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -60,7 +66,7 @@ export default function MissionDashboard() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Sector 1: Active Missions */}
-        <div className="xl:col-span-2 space-y-6">
+        <div className={isTrader ? 'xl:col-span-3 space-y-6' : 'xl:col-span-2 space-y-6'}>
           <div className="flex items-center justify-between">
             <Typography
               variant="caption"
@@ -81,7 +87,9 @@ export default function MissionDashboard() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div
+            className={`grid grid-cols-1 ${isTrader ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}
+          >
             {loading ? (
               <>
                 <Card variant="glass" padding="lg" className="h-32 border-border/40 bg-card/60">
@@ -183,104 +191,107 @@ export default function MissionDashboard() {
         </div>
 
         {/* Sector 2: Quick Status HUD */}
-        <div className="space-y-6">
-          <Typography
-            variant="caption"
-            weight="black"
-            className="tracking-[0.2em] flex items-center gap-2"
-          >
-            <Activity size={14} className="text-cyber-blue" /> {t('DASHBOARD_NERVE_CENTER_SUMMARY')}
-          </Typography>
+        {!isTrader && (
+          <div className="space-y-6">
+            <Typography
+              variant="caption"
+              weight="black"
+              className="tracking-[0.2em] flex items-center gap-2"
+            >
+              <Activity size={14} className="text-cyber-blue" />{' '}
+              {t('DASHBOARD_NERVE_CENTER_SUMMARY')}
+            </Typography>
 
-          <Card
-            variant="glass"
-            padding="lg"
-            className="border-cyber-blue/20 bg-cyber-blue/[0.02] space-y-6"
-          >
-            <div className="flex items-center justify-between border-b border-border/20 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded bg-cyber-blue/10 flex items-center justify-center text-cyber-blue">
-                  <ShieldCheck size={18} />
+            <Card
+              variant="glass"
+              padding="lg"
+              className="border-cyber-blue/20 bg-cyber-blue/[0.02] space-y-6"
+            >
+              <div className="flex items-center justify-between border-b border-border/20 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded bg-cyber-blue/10 flex items-center justify-center text-cyber-blue">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <Typography
+                      variant="mono"
+                      className="text-[10px] font-bold uppercase tracking-wider block"
+                    >
+                      {t('DASHBOARD_SYSTEM_STABILITY')}
+                    </Typography>
+                    <Typography variant="caption" color="muted" className="text-[8px]">
+                      {t('DASHBOARD_ALL_CIRCUITS_OPERATIONAL')}
+                    </Typography>
+                  </div>
                 </div>
-                <div>
-                  <Typography
-                    variant="mono"
-                    className="text-[10px] font-bold uppercase tracking-wider block"
-                  >
-                    {t('DASHBOARD_SYSTEM_STABILITY')}
-                  </Typography>
-                  <Typography variant="caption" color="muted" className="text-[8px]">
-                    {t('DASHBOARD_ALL_CIRCUITS_OPERATIONAL')}
-                  </Typography>
-                </div>
+                <Typography
+                  variant="mono"
+                  className="text-cyber-green font-bold text-xs uppercase tracking-tighter"
+                >
+                  {t('DASHBOARD_NOMINAL')}
+                </Typography>
               </div>
-              <Typography
-                variant="mono"
-                className="text-cyber-green font-bold text-xs uppercase tracking-tighter"
-              >
-                {t('DASHBOARD_NOMINAL')}
-              </Typography>
-            </div>
 
-            <div className="flex items-center justify-between border-b border-border/20 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded bg-cyan-400/10 flex items-center justify-center text-cyan-400">
-                  <Brain size={18} />
+              <div className="flex items-center justify-between border-b border-border/20 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded bg-cyan-400/10 flex items-center justify-center text-cyan-400">
+                    <Brain size={18} />
+                  </div>
+                  <div>
+                    <Typography
+                      variant="mono"
+                      className="text-[10px] font-bold uppercase tracking-wider block"
+                    >
+                      {t('DASHBOARD_COGNITIVE_HEALTH')}
+                    </Typography>
+                    <Typography variant="caption" color="muted" className="text-[8px]">
+                      {t('DASHBOARD_CROSS_AGENT_TRUST').replace('{percent}', '98.4')}
+                    </Typography>
+                  </div>
                 </div>
-                <div>
-                  <Typography
-                    variant="mono"
-                    className="text-[10px] font-bold uppercase tracking-wider block"
-                  >
-                    {t('DASHBOARD_COGNITIVE_HEALTH')}
-                  </Typography>
-                  <Typography variant="caption" color="muted" className="text-[8px]">
-                    {t('DASHBOARD_CROSS_AGENT_TRUST').replace('{percent}', '98.4')}
-                  </Typography>
-                </div>
+                <Typography
+                  variant="mono"
+                  className="text-cyan-400 font-bold text-xs uppercase tracking-tighter"
+                >
+                  {t('DASHBOARD_GOOD')}
+                </Typography>
               </div>
-              <Typography
-                variant="mono"
-                className="text-cyan-400 font-bold text-xs uppercase tracking-tighter"
-              >
-                {t('DASHBOARD_GOOD')}
-              </Typography>
-            </div>
 
-            <Link href={ROUTES.OBSERVABILITY}>
-              <Button
-                variant="outline"
-                className="w-full text-[10px] uppercase tracking-widest py-2 border-cyber-blue/30 text-cyber-blue hover:bg-cyber-blue/5"
-              >
-                {t('DASHBOARD_INSPECT_NERVE_CENTER')}
-              </Button>
-            </Link>
-          </Card>
+              <Link href={ROUTES.OBSERVABILITY}>
+                <Button
+                  variant="outline"
+                  className="w-full text-[10px] uppercase tracking-widest py-2 border-cyber-blue/30 text-cyber-blue hover:bg-cyber-blue/5"
+                >
+                  {t('DASHBOARD_INSPECT_NERVE_CENTER')}
+                </Button>
+              </Link>
+            </Card>
 
-          <Card variant="outline" padding="lg" className="border-border opacity-60">
-            <div className="flex items-center gap-2 text-muted-foreground mb-3">
-              <Settings size={14} />
-              <Typography
-                variant="mono"
-                className="text-[10px] uppercase font-bold tracking-widest"
-              >
-                {t('DASHBOARD_OPERATOR_QUICK_ACTIONS')}
-              </Typography>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Link href={ROUTES.AGENTS}>
-                <button className="w-full text-left p-2 rounded bg-card/60 hover:bg-card border border-border/40 text-[9px] uppercase font-mono tracking-wider transition-colors">
-                  {t('DASHBOARD_SYNC_AGENTS')}
-                </button>
-              </Link>
-              <Link href={ROUTES.SECURITY}>
-                <button className="w-full text-left p-2 rounded bg-card/60 hover:bg-card border border-border/40 text-[9px] uppercase font-mono tracking-wider transition-colors">
-                  {t('DASHBOARD_SAFETY_SCAN')}
-                </button>
-              </Link>
-            </div>
-          </Card>
-        </div>
+            <Card variant="outline" padding="lg" className="border-border opacity-60">
+              <div className="flex items-center gap-2 text-muted-foreground mb-3">
+                <Settings size={14} />
+                <Typography
+                  variant="mono"
+                  className="text-[10px] uppercase font-bold tracking-widest"
+                >
+                  {t('DASHBOARD_OPERATOR_QUICK_ACTIONS')}
+                </Typography>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Link href={ROUTES.AGENTS}>
+                  <button className="w-full text-left p-2 rounded bg-card/60 hover:bg-card border border-border/40 text-[9px] uppercase font-mono tracking-wider transition-colors">
+                    {t('DASHBOARD_SYNC_AGENTS')}
+                  </button>
+                </Link>
+                <Link href={ROUTES.SECURITY}>
+                  <button className="w-full text-left p-2 rounded bg-card/60 hover:bg-card border border-border/40 text-[9px] uppercase font-mono tracking-wider transition-colors">
+                    {t('DASHBOARD_SAFETY_SCAN')}
+                  </button>
+                </Link>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

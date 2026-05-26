@@ -18,11 +18,12 @@ vi.mock('@claw/core/lib/session/identity', () => ({
 }));
 
 // Mock the core memory module
-const mockListByPrefix = vi.fn();
+const mockGetMemoryByType = vi.fn();
 vi.mock('@claw/core/lib/memory', () => ({
-  DynamoMemory: class {
-    listByPrefix = mockListByPrefix;
-  },
+  DynamoMemory: class {},
+}));
+vi.mock('@claw/core/lib/memory/utils/query', () => ({
+  getMemoryByType: mockGetMemoryByType,
 }));
 
 describe('/api/cognitive-health', () => {
@@ -46,7 +47,7 @@ describe('/api/cognitive-health', () => {
       },
     ];
 
-    mockListByPrefix.mockResolvedValue(mockItems);
+    mockGetMemoryByType.mockResolvedValue(mockItems);
 
     const { GET } = await import('./route');
     const response = await GET(makeReq());
@@ -54,12 +55,17 @@ describe('/api/cognitive-health', () => {
 
     expect(response.status).toBe(200);
     expect(data.agents).toHaveLength(1);
-    expect(mockListByPrefix).toHaveBeenCalledWith('WS#ws-1#HEALTH#');
+    expect(mockGetMemoryByType).toHaveBeenCalledWith(
+      expect.any(Object),
+      'COGNITIVE_SNAPSHOT',
+      100,
+      'ws-1'
+    );
   });
 
   it('should return 403 if user lacks permission', async () => {
     mockHasPermission.mockResolvedValue(false);
-    mockListByPrefix.mockResolvedValue([]);
+    mockGetMemoryByType.mockResolvedValue([]);
 
     const { GET } = await import('./route');
     const response = await GET(makeReq());
@@ -83,7 +89,7 @@ describe('/api/cognitive-health', () => {
       },
     ];
 
-    mockListByPrefix.mockResolvedValue(mockItems);
+    mockGetMemoryByType.mockResolvedValue(mockItems);
 
     const { GET } = await import('./route');
     const response = await GET(makeReq());
@@ -95,7 +101,7 @@ describe('/api/cognitive-health', () => {
   });
 
   it('should return message when no health data exists', async () => {
-    mockListByPrefix.mockResolvedValue([]);
+    mockGetMemoryByType.mockResolvedValue([]);
 
     const { GET } = await import('./route');
     const response = await GET(makeReq());
@@ -107,7 +113,7 @@ describe('/api/cognitive-health', () => {
   });
 
   it('should return 500 on error', async () => {
-    mockListByPrefix.mockRejectedValue(new Error('DynamoDB error'));
+    mockGetMemoryByType.mockRejectedValue(new Error('DynamoDB error'));
 
     const { GET } = await import('./route');
     const response = await GET(makeReq());
@@ -130,7 +136,7 @@ describe('/api/cognitive-health', () => {
       },
     ];
 
-    mockListByPrefix.mockResolvedValue(mockItems);
+    mockGetMemoryByType.mockResolvedValue(mockItems);
 
     const { GET } = await import('./route');
     const response = await GET(makeReq());
@@ -152,7 +158,7 @@ describe('/api/cognitive-health', () => {
       },
     ];
 
-    mockListByPrefix.mockResolvedValue(mockItems);
+    mockGetMemoryByType.mockResolvedValue(mockItems);
 
     const { GET } = await import('./route');
     const response = await GET(makeReq());

@@ -47,7 +47,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
 
   const resetRouting = () => {
     setActiveProvider(LLMProvider.OPENAI);
-    setActiveModel(OpenAIModel.GPT_5_4);
+    setActiveModel(OpenAIModel.GPT_5_MINI);
   };
 
   const resetLanguage = () => {

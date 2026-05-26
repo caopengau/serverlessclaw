@@ -3,7 +3,7 @@ import { getUserId } from '@/lib/auth-utils';
 
 export const dynamic = 'force-dynamic';
 import { UI_STRINGS } from '@/lib/constants';
-import { HTTP_STATUS } from '@claw/core/lib/constants';
+import { HTTP_STATUS, CONFIG_KEYS } from '@claw/core/lib/constants';
 import { revalidatePath } from 'next/cache';
 
 // Re-usable instances for optimization
@@ -16,6 +16,7 @@ import { AGENT_TYPES, IAgentConfig, TraceSource } from '@claw/core/lib/types/ind
 import { AgentRegistry } from '@claw/core/lib/registry';
 import { logger } from '@claw/core/lib/logger';
 import { SessionStateManager } from '@claw/core/lib/session/session-state';
+import { ConfigManager } from '@claw/core/lib/registry/config';
 
 let memoryInstance: CachedMemory | null = null;
 let providerInstance: ProviderManager | null = null;
@@ -46,6 +47,14 @@ function getProvider() {
   return providerInstance;
 }
 
+function normalizeLocale(input?: string): 'en' | 'cn' | undefined {
+  if (!input) return undefined;
+  const normalized = input.toLowerCase();
+  if (normalized === 'cn' || normalized.startsWith('zh')) return 'cn';
+  if (normalized === 'en' || normalized.startsWith('en')) return 'en';
+  return undefined;
+}
+
 /**
  * Handles chat messages from the dashboard UI.
  * Simplification: Uses MQTT (SST Realtime) for token streaming.
@@ -71,6 +80,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       teamId,
       staffId,
       force,
+      locale,
     } = await req.json();
 
     const workspaceId = incomingWorkspaceId || 'default';
@@ -145,6 +155,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const config = await AgentRegistry.getAgentConfig(primaryAgentId, { workspaceId });
     const agentTools = await getAgentTools(primaryAgentId, { workspaceId });
 
+    const configuredLocale = normalizeLocale(
+      (await ConfigManager.getTypedConfig<string>(CONFIG_KEYS.ACTIVE_LOCALE, 'cn', {
+        workspaceId,
+      })) || 'cn'
+    );
+    const effectiveLocale = normalizeLocale(locale) ?? configuredLocale ?? 'cn';
+
     if (!config) {
       return NextResponse.json(
         { error: `Agent ${primaryAgentId} not found in registry.` },
@@ -183,9 +200,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       workspaceId,
       teamId,
       staffId,
+      locale: effectiveLocale,
       systemPrompt:
         promptOverrides?.[primaryAgentId] ??
         overrideConfig?.systemPrompt ??
+        config?.systemPrompts?.[effectiveLocale] ??
         config?.systemPrompt ??
         SUPERCLAW_SYSTEM_PROMPT,
     } as IAgentConfig);

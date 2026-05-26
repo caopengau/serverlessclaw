@@ -29,9 +29,11 @@ export async function GET(req: NextRequest) {
     }
 
     const { DynamoMemory } = await import('@claw/core/lib/memory');
+    const { getMemoryByType } = await import('@claw/core/lib/memory/utils/query');
     const memory = new DynamoMemory();
-    // Use scoped prefix
-    const items = await memory.listByPrefix(`WS#${workspaceId}#BUILD#`);
+
+    // Use GSI for efficient querying instead of full table scan
+    const items = await getMemoryByType(memory, 'BUILD', 50, workspaceId);
     const syncs = items.slice(0, 20).map((item) => ({
       buildId: item.buildId ?? (item.userId as string),
       status: item.status ?? 'PROGRESS',
