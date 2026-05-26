@@ -3,11 +3,12 @@
 import React from 'react';
 import { useParams } from 'next/navigation';
 import { useExtensions } from '@/components/Providers/ExtensionProvider';
+import RoleGuard from '@/components/RoleGuard';
 
 export default function ExtensionPage() {
   const params = useParams();
   const id = params.id as string;
-  const { dynamicComponents } = useExtensions();
+  const { dynamicComponents, sidebarExtensions } = useExtensions();
 
   const ActiveComponent = dynamicComponents.get(id);
 
@@ -22,5 +23,16 @@ export default function ExtensionPage() {
     );
   }
 
-  return React.createElement(ActiveComponent);
+  // Dynamically resolve and enforce access control roles registered for the extension
+  const extensionConfig = sidebarExtensions.find(
+    (ext) => ext.id === id || ext.href === `/extensions/${id}`
+  );
+
+  const componentElement = React.createElement(ActiveComponent);
+
+  if (extensionConfig?.requiredRoles && extensionConfig.requiredRoles.length > 0) {
+    return <RoleGuard requiredRoles={extensionConfig.requiredRoles}>{componentElement}</RoleGuard>;
+  }
+
+  return componentElement;
 }

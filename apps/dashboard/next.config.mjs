@@ -93,18 +93,18 @@ const nextConfig = {
     }
 
     let extensionDir = null;
-    if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
-      if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.startsWith('.')) {
-        // Resolve to ./src/extensions/project
-        extensionDir = path.resolve(__dirname, process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS, '..');
-      } else {
-        // Resolve to package root
-        extensionDir = path.resolve(
-          __dirname,
-          '../../../',
-          process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS,
-          '../../..'
-        );
+    if (extensionPath) {
+      let currentDir = path.dirname(extensionPath);
+      const rootParse = path.parse(currentDir).root;
+      while (currentDir && currentDir !== '/' && currentDir !== rootParse) {
+        if (
+          fs.existsSync(path.join(currentDir, 'messages/en.json')) ||
+          fs.existsSync(path.join(currentDir, 'jobs.config.json'))
+        ) {
+          extensionDir = currentDir;
+          break;
+        }
+        currentDir = path.dirname(currentDir);
       }
     }
 
@@ -137,6 +137,7 @@ const nextConfig = {
       '@serverlessclaw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),
       '@serverlessclaw/core/lib': path.resolve(__dirname, '../../framework/packages/core/lib'),
       '@claw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),
+      '@framework-dashboard': path.resolve(__dirname, './src'),
     };
     if (!isServer) {
       config.resolve.fallback = {
