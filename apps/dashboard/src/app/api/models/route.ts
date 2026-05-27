@@ -3,44 +3,11 @@ import { getUserId } from '@/lib/auth-utils';
 import { logger } from '@claw/core/lib/logger';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
 import {
-  ModelRegistry,
-  ModelRegistryPayload,
   ModelRegistryRecord,
 } from '@claw/core/lib/models/registry.interface';
+import { modelRegistry } from './state';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Default model registry that returns empty records.
- * Can be replaced with a domain-specific implementation (e.g., CustomModelRegistry).
- */
-class DefaultModelRegistry implements ModelRegistry {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async read(_workspaceId: string): Promise<ModelRegistryPayload> {
-    return { models: {} };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async write(_workspaceId: string, _payload: ModelRegistryPayload): Promise<void> {
-    // No-op
-  }
-}
-
-/**
- * Optional custom model registry implementation.
- * Can be replaced with a domain-specific implementation (e.g., CustomModelRegistry).
- * Defaults to a no-op registry if not provided.
- */
-let modelRegistry: ModelRegistry = new DefaultModelRegistry();
-
-/**
- * Set custom model registry implementation.
- * This allows domain-specific implementations to be injected.
- */
-function setModelRegistry(registry: ModelRegistry): void {
-  modelRegistry = registry;
-  logger.info('[Models API] Custom model registry registered');
-}
 
 async function assertAuthorized(
   req: NextRequest,
