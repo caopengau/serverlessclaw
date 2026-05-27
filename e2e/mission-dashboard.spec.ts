@@ -15,8 +15,8 @@ test.describe('Mission Dashboard & Sidebar Interactions', () => {
   });
 
   test('displays system stability status in footer status indicator', async ({ page }) => {
-    // Look for system status indicator text in the sidebar footer
-    const statusText = page.locator('text=/SYSTEM STATUS|系统状态/i');
+    // Look for system status indicator text in the sidebar footer (accepting either space or underscore)
+    const statusText = page.locator('text=/SYSTEM[_ ]STATUS|系统状态/i');
     await expect(statusText).toBeVisible({ timeout: 5000 });
   });
 
