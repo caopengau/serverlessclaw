@@ -85,5 +85,6 @@ apps/dashboard/public/branding/
 scratch/
 temp/
 tmp/
+e2e/trace-screenshot.png
 !LICENSE
 !README.md
