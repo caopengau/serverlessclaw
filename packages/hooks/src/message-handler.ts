@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChatMessage, HistoryMessage, IncomingChunk } from './types';
 
 /**
@@ -52,7 +51,8 @@ export function applyChunkToMessages(
     return prev;
   }
 
-  const chunkType = (data as any).type || (data as any)['detail-type'];
+  const chunkType =
+    (data as Record<string, unknown>).type || (data as Record<string, unknown>)['detail-type'];
   const isFinal = chunkType === 'outbound_message';
 
   const isThought = !!data.isThought;

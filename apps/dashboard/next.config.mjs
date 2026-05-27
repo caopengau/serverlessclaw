@@ -138,6 +138,7 @@ const nextConfig = {
       '@serverlessclaw/core/lib': path.resolve(__dirname, '../../framework/packages/core/lib'),
       '@claw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),
       '@framework-dashboard': path.resolve(__dirname, './src'),
+      '@serverlessclaw/dashboard': path.resolve(__dirname, './'),
     };
     if (!isServer) {
       config.resolve.fallback = {
