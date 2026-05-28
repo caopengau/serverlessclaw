@@ -1,7 +1,4 @@
-import {
-  ModelRegistry,
-  ModelRegistryPayload,
-} from '@claw/core/lib/models/registry.interface';
+import { ModelRegistry, ModelRegistryPayload } from '@claw/core/lib/models/registry.interface';
 import { logger } from '@claw/core/lib/logger';
 
 class DefaultModelRegistry implements ModelRegistry {
