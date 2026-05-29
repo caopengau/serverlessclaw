@@ -19,10 +19,22 @@ if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
   if (path.isAbsolute(rawPath)) {
     fullPath = rawPath;
   } else if (rawPath.includes('src/extensions/project') || process.env.SST_RESOURCE_App) {
+    // SST build environment
     fullPath = path.resolve(__dirname, './src/extensions/project/index.tsx');
   } else {
+    // local development
     fullPath = path.resolve(__dirname, '../../../', rawPath);
   }
+
+  // Ensure absolute path is correctly formatted for the bridge file
+  const importPath = fullPath.includes('src/extensions/project')
+    ? './project/index'
+    : fullPath.replace(/\.tsx?$/, '');
+
+  // Overwrite the active extension file to point to the desired workspace extension
+  const activePath = path.resolve(__dirname, './src/extensions/active.tsx');
+  const activeContent = `import * as ext from '${importPath}';\nexport const init = ext.init;\n`;
+  fs.writeFileSync(activePath, activeContent);
 
   const extensionDir = path.dirname(fullPath);
 
