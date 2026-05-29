@@ -4,7 +4,7 @@ import { logger } from '@claw/core/lib/logger';
 
 /**
  * Dynamic API Gateway for Plugin-registered routes.
- * 
+ *
  * Routes registered via PluginManager.dashboard.apiRoutes are accessible here.
  * Example: if a plugin registers 'goldex/simulate', it will be available at /api/x/goldex/simulate
  */
@@ -37,7 +37,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { path: str
 async function handleRequest(req: NextRequest, pathSegments: string[]) {
   const path = pathSegments.join('/');
   const routes = PluginManager.getApiRoutes();
-  
+
   const handler = routes[path];
   if (!handler) {
     logger.debug(`[Dynamic API] Route not found: ${path}`);

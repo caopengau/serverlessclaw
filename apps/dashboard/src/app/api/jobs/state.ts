@@ -13,12 +13,14 @@ export const jobInputNormalizer: JobInputNormalizer = new Proxy({} as JobInputNo
   get: (_target, prop, receiver) => {
     const normalizer = PluginManager.getJobInputNormalizer() || new DefaultJobInputNormalizer();
     return Reflect.get(normalizer, prop, receiver);
-  }
+  },
 });
 
 /**
  * @deprecated Use PluginManager.register() to register a custom job input normalizer.
  */
 export function setJobInputNormalizer(_normalizer: JobInputNormalizer): void {
-  logger.warn('[Jobs API] setJobInputNormalizer is deprecated. Register via PluginManager instead.');
+  logger.warn(
+    '[Jobs API] setJobInputNormalizer is deprecated. Register via PluginManager instead.'
+  );
 }

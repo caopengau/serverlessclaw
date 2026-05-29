@@ -13,14 +13,14 @@ class DefaultModelRegistry implements ModelRegistry {
 }
 
 /**
- * Resolves the model registry. 
+ * Resolves the model registry.
  * Prioritizes plugin-registered registries, falling back to a default implementation.
  */
 export const modelRegistry: ModelRegistry = new Proxy({} as ModelRegistry, {
   get: (_target, prop, receiver) => {
     const registry = PluginManager.getModelRegistry() || new DefaultModelRegistry();
     return Reflect.get(registry, prop, receiver);
-  }
+  },
 });
 
 /**
