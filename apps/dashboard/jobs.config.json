@@ -1,1 +1,149 @@
-[]
+[
+  {
+    "jobType": "xauusd_training",
+    "displayName": "Gold Spot ML Trainer",
+    "description": "Engineers high-dimensional indicators and trains an early-stopped LightGBM model.",
+    "inputs": [
+      {
+        "name": "fee",
+        "label": "Transaction Fee (USD points)",
+        "type": "number",
+        "default": 0.003,
+        "min": 0.001,
+        "max": 0.005,
+        "step": 0.001,
+        "helpText": "Per-trade transaction fee / spread cost in USD points (e.g. 0.001, 0.003, 0.005)."
+      },
+      {
+        "name": "barrier_horizon",
+        "label": "Prediction Horizon (min)",
+        "type": "number",
+        "default": 15,
+        "min": 5,
+        "max": 60,
+        "step": 5,
+        "helpText": "Triple barrier prediction window in minutes (forecast horizon)."
+      },
+      {
+        "name": "learning_rate",
+        "label": "Learning Rate",
+        "type": "number",
+        "default": 0.03,
+        "min": 0.01,
+        "max": 0.3,
+        "step": 0.01,
+        "helpText": "Boosting learning rate (step size shrinkage)."
+      },
+      {
+        "name": "num_leaves",
+        "label": "Max Leaves",
+        "type": "number",
+        "default": 31,
+        "min": 15,
+        "max": 255,
+        "step": 1,
+        "helpText": "Max number of leaves in one tree."
+      },
+      {
+        "name": "max_depth",
+        "label": "Max Depth",
+        "type": "number",
+        "default": 6,
+        "min": 3,
+        "max": 15,
+        "step": 1,
+        "helpText": "Limit the max depth for tree model."
+      }
+    ],
+    "executor": {
+      "type": "subprocess",
+      "command": "[ -f venv/bin/activate ] && . venv/bin/activate || true; PY_BIN=\"$(command -v python3 || command -v python || true)\"; if [ -z \"$PY_BIN\" ]; then echo 'Python runtime not found'; exit 127; fi; \"$PY_BIN\" -c \"import boto3\" >/dev/null 2>&1 || { \"$PY_BIN\" -m pip install -q boto3 botocore || true; }; \"$PY_BIN\" features.py --fee {{fee}} --barrier-horizon {{barrier_horizon}} --output xauusd_m1_features_fee_{{fee}}_bh_{{barrier_horizon}}.parquet && \"$PY_BIN\" train.py --features ../data/processed/xauusd_m1_features_fee_{{fee}}_bh_{{barrier_horizon}}.parquet --model-name {{model_name}} --run-source dashboard --fee {{fee}} --learning-rate {{learning_rate}} --num-leaves {{num_leaves}} --max-depth {{max_depth}}",
+      "cwd": "packages/goldex-core/ml",
+      "outputPath": "../models/{{model_name}}"
+    },
+    "metricsSchema": [
+      {
+        "key": "accuracy",
+        "label": "Out-of-sample Accuracy",
+        "format": "percentage",
+        "regexPattern": "Out-of-sample Accuracy:\\s+(\\d+\\.\\d+)"
+      },
+      {
+        "key": "best_iteration",
+        "label": "Best Learning Iteration",
+        "format": "integer",
+        "regexPattern": "best iteration is:\\s+\\[(\\d+)\\]"
+      }
+    ]
+  },
+  {
+    "jobType": "xauusd_simulation",
+    "displayName": "Gold Execution Backtest Simulator",
+    "description": "Simulates historical execution under custom entry/exit confidence thresholds and pips fees.",
+    "inputs": [
+      {
+        "name": "model",
+        "label": "Target Model Binary",
+        "type": "text",
+        "default": "model://latest"
+      },
+      {
+        "name": "features",
+        "label": "Target Features File",
+        "type": "text",
+        "default": "xauusd_m1_features_fee_0.3.parquet"
+      },
+      {
+        "name": "threshold",
+        "label": "Confidence Threshold (T)",
+        "type": "number",
+        "default": 0.45,
+        "min": 0.35,
+        "max": 0.6,
+        "step": 0.01,
+        "helpText": "Probability threshold required to trigger Buy or Sell trade entry (35% to 60%)."
+      },
+      {
+        "name": "fee",
+        "label": "Spread Fee (USD)",
+        "type": "number",
+        "default": 0.003,
+        "min": 0.001,
+        "max": 0.005,
+        "step": 0.001,
+        "helpText": "The USD point spread cost per trade."
+      }
+    ],
+    "executor": {
+      "type": "subprocess",
+      "command": "[ -f venv/bin/activate ] && . venv/bin/activate || true; PY_BIN=\"$(command -v python3 || command -v python || true)\"; if [ -z \"$PY_BIN\" ]; then echo 'Python runtime not found'; exit 127; fi; \"$PY_BIN\" -c \"import boto3\" >/dev/null 2>&1 || { \"$PY_BIN\" -m pip install -q boto3 botocore || true; }; \"$PY_BIN\" inference_sim.py --model {{model}} --features {{features}} --threshold {{threshold}} --fee {{fee}}",
+      "cwd": "packages/goldex-core/ml"
+    },
+    "metricsSchema": [
+      {
+        "key": "total_trades",
+        "label": "Total Trades Volume",
+        "format": "integer",
+        "regexPattern": "Total Trades Executed:\\s+([\\d,]+)"
+      },
+      {
+        "key": "win_rate",
+        "label": "Trading Win Rate",
+        "format": "percentage",
+        "regexPattern": "Win Rate:\\s+(\\d+\\.\\d+)%"
+      },
+      {
+        "key": "cumulative_return",
+        "label": "Cumulative Net Return",
+        "format": "percentage",
+        "regexPattern": "Cumulative Net Return:\\s+([+-]?\\d+\\.\\d+)%"
+      },
+      {
+        "key": "sharpe_ratio",
+        "label": "Sharpe Ratio",
+        "format": "decimal",
+        "regexPattern": "Sharpe Ratio:\\s+([+-]?\\d+\\.\\d+)"
+      }
+    ]
+  }
+]
