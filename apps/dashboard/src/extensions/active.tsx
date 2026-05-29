@@ -1,1 +1,1 @@
-../../../../apps/goldex-dashboard/index.tsx
+/Users/pengcao/projects/goldex/apps/goldex-dashboard/index.tsx
