@@ -215,4 +215,3 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     );
   }
 }
-
