@@ -7,7 +7,35 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
-// Manually load .env.local to guarantee environment variables are available during early config evaluation
+// 1. Resolve Extension Bridge early to avoid race conditions with Next.js/Webpack
+let extensionPath = path.resolve(__dirname, './src/extensions/index.ts');
+let messagesEnPath = path.resolve(__dirname, './messages/en.json');
+let messagesCnPath = path.resolve(__dirname, './messages/cn.json');
+let jobsConfigPath = path.resolve(__dirname, './jobs.config.json');
+
+if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
+  const rawPath = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS;
+  const fullPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(__dirname, '../../../', rawPath);
+
+  // Create a bridge file inside the dashboard to ensure proper resolution
+  const bridgePath = path.resolve(__dirname, './src/extensions/bridge.tsx');
+  const bridgeContent = `/** Generated Bridge */\nexport * from '${fullPath}';\nimport ext from '${fullPath}';\nexport default ext;`;
+  fs.writeFileSync(bridgePath, bridgeContent);
+  extensionPath = bridgePath;
+
+  const extensionDir = path.dirname(fullPath);
+  if (fs.existsSync(path.join(extensionDir, 'messages/en.json'))) {
+    messagesEnPath = path.join(extensionDir, 'messages/en.json');
+  }
+  if (fs.existsSync(path.join(extensionDir, 'messages/cn.json'))) {
+    messagesCnPath = path.join(extensionDir, 'messages/cn.json');
+  }
+  if (fs.existsSync(path.join(extensionDir, 'jobs.config.json'))) {
+    jobsConfigPath = path.join(extensionDir, 'jobs.config.json');
+  }
+}
+
+// 2. Manually load .env.local to guarantee environment variables are available during early config evaluation
 try {
   const envLocalPath = path.resolve(__dirname, '.env.local');
   if (fs.existsSync(envLocalPath)) {
@@ -40,6 +68,8 @@ const nextConfig = {
     '@serverlessclaw/hooks',
     '@claw/core',
     '@claw/ui',
+    '@goldex/core',
+    '@goldex/dashboard',
     ...(process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS
       ? [
           process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[0],
@@ -86,35 +116,6 @@ const nextConfig = {
       test: /\.md$/,
       use: 'raw-loader',
     });
-    // Resolve extension bridge dynamically based on the active local workspace extension
-    let extensionPath = path.resolve(__dirname, './src/extensions/index.ts');
-    let messagesEnPath = path.resolve(__dirname, './messages/en.json');
-    let messagesCnPath = path.resolve(__dirname, './messages/cn.json');
-    let jobsConfigPath = path.resolve(__dirname, './jobs.config.json');
-
-    if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
-      const rawPath = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS;
-      const fullPath = path.isAbsolute(rawPath)
-        ? rawPath
-        : path.resolve(__dirname, '../../../', rawPath);
-
-      // Create a bridge file inside the dashboard to ensure proper resolution
-      const bridgePath = path.resolve(__dirname, './src/extensions/bridge.tsx');
-      const bridgeContent = `/** Generated Bridge */\nexport * from '${fullPath}';\nimport ext from '${fullPath}';\nexport default ext;`;
-      fs.writeFileSync(bridgePath, bridgeContent);
-      extensionPath = bridgePath;
-
-      const extensionDir = path.dirname(fullPath);
-      if (fs.existsSync(path.join(extensionDir, 'messages/en.json'))) {
-        messagesEnPath = path.join(extensionDir, 'messages/en.json');
-      }
-      if (fs.existsSync(path.join(extensionDir, 'messages/cn.json'))) {
-        messagesCnPath = path.join(extensionDir, 'messages/cn.json');
-      }
-      if (fs.existsSync(path.join(extensionDir, 'jobs.config.json'))) {
-        jobsConfigPath = path.join(extensionDir, 'jobs.config.json');
-      }
-    }
 
     // Ensure cross-package resolution works for workspace packages
     config.resolve.alias = {
