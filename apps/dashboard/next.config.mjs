@@ -126,7 +126,7 @@ const nextConfig = {
     if (fs.existsSync(symlinkPath)) {
       extensionPath = symlinkPath;
     }
-    
+
     // Ensure cross-package resolution works for workspace packages
     config.resolve.alias = {
       ...config.resolve.alias,
