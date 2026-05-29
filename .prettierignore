@@ -24,3 +24,4 @@ e2e/.auth/
 **/.venv/
 # Product extension overlays (gitignored, product-specific local directories)
 **/extensions/project/**
+src/extensions/bridge.tsx
