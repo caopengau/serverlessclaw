@@ -8,7 +8,6 @@ const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
 // 1. Resolve Extension Bridge early to avoid race conditions with Next.js/Webpack
-let extensionPath = path.resolve(__dirname, './src/extensions/index.ts');
 let messagesEnPath = path.resolve(__dirname, './messages/en.json');
 let messagesCnPath = path.resolve(__dirname, './messages/cn.json');
 let jobsConfigPath = path.resolve(__dirname, './jobs.config.json');
