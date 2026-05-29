@@ -49,6 +49,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.CONFIG_VIEW,
     Permission.TRACE_VIEW,
     Permission.DASHBOARD_VIEW,
+    Permission.ACTION_FINANCIAL,
+    Permission.ACTION_DISPATCH,
   ],
 };
 
