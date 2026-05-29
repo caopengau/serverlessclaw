@@ -21,7 +21,7 @@ if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
 
   // Create a bridge file inside the dashboard to ensure proper resolution
   const bridgePath = path.resolve(__dirname, './src/extensions/bridge.tsx');
-  const bridgeContent = `/** Generated Bridge */\nexport * from '${fullPath}';\n`;
+  const bridgeContent = `import * as ext from '${fullPath}';\nexport const init = ext.init;\n`;
   fs.writeFileSync(bridgePath, bridgeContent);
   extensionPath = bridgePath;
 
