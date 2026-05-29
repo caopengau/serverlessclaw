@@ -26,3 +26,5 @@ e2e/.auth/
 **/extensions/project/**
 src/extensions/bridge.tsx
 apps/dashboard/src/extensions/bridge.tsx
+src/extensions/active.tsx
+apps/dashboard/src/extensions/active.tsx
