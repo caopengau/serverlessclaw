@@ -14,9 +14,23 @@ let jobsConfigPath = path.resolve(__dirname, './jobs.config.json');
 
 if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
   const rawPath = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS;
-  const fullPath = path.isAbsolute(rawPath)
-    ? rawPath
-    : path.resolve(__dirname, '../../../', rawPath);
+  let fullPath = '';
+
+  if (path.isAbsolute(rawPath)) {
+    fullPath = rawPath;
+  } else {
+    // 1. Try workspace root (3 levels up)
+    const rootPath = path.resolve(__dirname, '../../../', rawPath);
+    // 2. Try local app relative (if it starts with ./src or src/)
+    const localPath = path.resolve(__dirname, rawPath);
+
+    fullPath = fs.existsSync(rootPath) ? rootPath : localPath;
+
+    // Fallback log if neither exists (though Next.js will error later)
+    if (!fs.existsSync(fullPath)) {
+      console.warn(`[NextConfig] WARNING: Extension path not found: ${rawPath}. Tried ${rootPath} and ${localPath}`);
+    }
+  }
 
   // Overwrite the active extension file to point to the desired workspace extension
   const activePath = path.resolve(__dirname, './src/extensions/active.tsx');
@@ -24,6 +38,7 @@ if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
   fs.writeFileSync(activePath, activeContent);
 
   const extensionDir = path.dirname(fullPath);
+
 
   if (fs.existsSync(path.join(extensionDir, 'messages/en.json'))) {
     messagesEnPath = path.join(extensionDir, 'messages/en.json');
