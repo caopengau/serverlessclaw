@@ -92,9 +92,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           if (['admin-user', 'owner-user', 'member-user', 'viewer-user'].includes(finalUserId)) {
             await identityManager.addUserToWorkspace(finalUserId, 'default');
           }
-        }
-
- else if (
+        } else if (
           finalUserId === 'dashboard-user' &&
           authResult.user?.role !== UserRole.ADMIN &&
           authResult.user?.role !== UserRole.OWNER

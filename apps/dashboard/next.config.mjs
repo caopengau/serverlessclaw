@@ -43,9 +43,9 @@ const nextConfig = {
     ...(process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS
       ? [
           process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[0],
-          process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[1] 
+          process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[1]
             ? `${process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[0]}/${process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[1]}`
-            : null
+            : null,
         ].filter(Boolean)
       : []),
   ].filter((pkg) => {

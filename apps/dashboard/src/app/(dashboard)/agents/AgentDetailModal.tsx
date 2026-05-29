@@ -338,11 +338,7 @@ export default function AgentDetailModal({
                   <Settings2 size={12} className="text-purple-400" /> {t('PERMISSION_BOUNDARIES')}
                 </Typography>
                 <div className="space-y-2">
-                  {[
-                    'agent:control',
-                    'task:approve',
-                    'action:infra',
-                  ].map((perm) => (
+                  {['agent:control', 'task:approve', 'action:infra'].map((perm) => (
                     <div key={perm} className="flex items-center justify-between opacity-80">
                       <Typography variant="mono" className="text-[9px] uppercase">
                         {perm.replace(':', '_')}
