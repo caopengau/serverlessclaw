@@ -88,53 +88,38 @@ const nextConfig = {
     });
     // Resolve extension bridge dynamically based on the active local workspace extension
     let extensionPath = path.resolve(__dirname, './src/extensions/index.ts');
+    let messagesEnPath = path.resolve(__dirname, './messages/en.json');
+    let messagesCnPath = path.resolve(__dirname, './messages/cn.json');
+    let jobsConfigPath = path.resolve(__dirname, './jobs.config.json');
+
     if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
-      if (path.isAbsolute(process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS)) {
-        extensionPath = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS;
-      } else if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.startsWith('.')) {
-        extensionPath = path.resolve(__dirname, process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS);
+      const rawPath = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS;
+      if (path.isAbsolute(rawPath)) {
+        extensionPath = rawPath;
       } else {
-        extensionPath = path.resolve(
-          __dirname,
-          '../../../' + process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS
-        );
+        // Resolve relative to workspace root (3 levels up from framework/apps/dashboard)
+        extensionPath = path.resolve(__dirname, '../../../', rawPath);
+      }
+
+      console.log(`[NextConfig] resolved extensionPath: ${extensionPath}`);
+
+      const extensionDir = path.dirname(extensionPath);
+      if (fs.existsSync(path.join(extensionDir, 'messages/en.json'))) {
+        messagesEnPath = path.join(extensionDir, 'messages/en.json');
+      }
+      if (fs.existsSync(path.join(extensionDir, 'messages/cn.json'))) {
+        messagesCnPath = path.join(extensionDir, 'messages/cn.json');
+      }
+      if (fs.existsSync(path.join(extensionDir, 'jobs.config.json'))) {
+        jobsConfigPath = path.join(extensionDir, 'jobs.config.json');
       }
     }
 
-    let extensionDir = null;
-    if (extensionPath) {
-      let currentDir = path.dirname(extensionPath);
-      const rootParse = path.parse(currentDir).root;
-      while (currentDir && currentDir !== '/' && currentDir !== rootParse) {
-        if (
-          fs.existsSync(path.join(currentDir, 'messages/en.json')) ||
-          fs.existsSync(path.join(currentDir, 'jobs.config.json'))
-        ) {
-          extensionDir = currentDir;
-          break;
-        }
-        currentDir = path.dirname(currentDir);
-      }
-    }
-
-    const messagesEnPath =
-      extensionDir && fs.existsSync(path.join(extensionDir, 'messages/en.json'))
-        ? path.join(extensionDir, 'messages/en.json')
-        : path.resolve(__dirname, './src/extensions/messages/en.json');
-
-    const messagesCnPath =
-      extensionDir && fs.existsSync(path.join(extensionDir, 'messages/cn.json'))
-        ? path.join(extensionDir, 'messages/cn.json')
-        : path.resolve(__dirname, './src/extensions/messages/cn.json');
-
-    const jobsConfigPath =
-      extensionDir && fs.existsSync(path.join(extensionDir, 'jobs.config.json'))
-        ? path.join(extensionDir, 'jobs.config.json')
-        : path.resolve(__dirname, './jobs.config.json');
-
-    console.log('[NextConfig] resolved extensionPath:', extensionPath);
-    console.log('[NextConfig] resolved messagesEnPath:', messagesEnPath);
-    console.log('[NextConfig] resolved jobsConfigPath:', jobsConfigPath);
+    console.log(`[NextConfig] Final extension config paths:`, {
+      extensionPath,
+      messagesEnPath,
+      jobsConfigPath,
+    });
 
     // Ensure cross-package resolution works for workspace packages
     config.resolve.alias = {
