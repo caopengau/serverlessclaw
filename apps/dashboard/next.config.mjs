@@ -94,16 +94,15 @@ const nextConfig = {
 
     if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
       const rawPath = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS;
-      if (path.isAbsolute(rawPath)) {
-        extensionPath = rawPath;
-      } else {
-        // Resolve relative to workspace root (3 levels up from framework/apps/dashboard)
-        extensionPath = path.resolve(__dirname, '../../../', rawPath);
-      }
+      const fullPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(__dirname, '../../../', rawPath);
 
-      console.log(`[NextConfig] resolved extensionPath: ${extensionPath}`);
+      // Create a bridge file inside the dashboard to ensure proper resolution
+      const bridgePath = path.resolve(__dirname, './src/extensions/bridge.tsx');
+      const bridgeContent = `/** Generated Bridge */\nexport * from '${fullPath}';\nimport ext from '${fullPath}';\nexport default ext;`;
+      fs.writeFileSync(bridgePath, bridgeContent);
+      extensionPath = bridgePath;
 
-      const extensionDir = path.dirname(extensionPath);
+      const extensionDir = path.dirname(fullPath);
       if (fs.existsSync(path.join(extensionDir, 'messages/en.json'))) {
         messagesEnPath = path.join(extensionDir, 'messages/en.json');
       }
@@ -113,18 +112,6 @@ const nextConfig = {
       if (fs.existsSync(path.join(extensionDir, 'jobs.config.json'))) {
         jobsConfigPath = path.join(extensionDir, 'jobs.config.json');
       }
-    }
-
-    console.log(`[NextConfig] Final extension config paths:`, {
-      extensionPath,
-      messagesEnPath,
-      jobsConfigPath,
-    });
-
-    // Use symlink if it exists (placed by build script)
-    const symlinkPath = path.resolve(__dirname, './src/extensions/active.tsx');
-    if (fs.existsSync(symlinkPath)) {
-      extensionPath = symlinkPath;
     }
 
     // Ensure cross-package resolution works for workspace packages
