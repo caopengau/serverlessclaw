@@ -100,7 +100,7 @@ describe('SecurityManifestPage', () => {
     render(<SecurityManifestPage />);
 
     // Pre-loaded ACE entries
-    expect(screen.getByText('custom-trading-bot')).toBeInTheDocument();
+    expect(screen.getByText('analysis-agent')).toBeInTheDocument();
     expect(screen.getByText('custom-cyber-auditor')).toBeInTheDocument();
 
     // Find all delete buttons
@@ -111,7 +111,7 @@ describe('SecurityManifestPage', () => {
     fireEvent.click(deleteButtons[0].parentElement!);
 
     // Should no longer be present
-    expect(screen.queryByText('custom-trading-bot')).not.toBeInTheDocument();
+    expect(screen.queryByText('analysis-agent')).not.toBeInTheDocument();
   });
 
   it('opens glassmorphic ACE creation modal, handles entries creation', () => {
@@ -128,7 +128,7 @@ describe('SecurityManifestPage', () => {
     expect(screen.getByText('Create Access Control Entry (ACE)')).toBeInTheDocument();
 
     // Input values
-    const agentInput = screen.getByPlaceholderText('e.g. custom-trading-bot');
+    const agentInput = screen.getByPlaceholderText('e.g. analysis-agent');
     fireEvent.change(agentInput, { target: { value: 'custom-agent-3' } });
 
     // Toggle type to User ID

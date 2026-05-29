@@ -32,7 +32,7 @@ describe('SecurityRegistry', () => {
   });
 
   it('handles custom agent roles', () => {
-    const AGENT_ROLE = 'gold-trader-bot';
+    const AGENT_ROLE = 'data-analysis-agent';
     const TRADE_PERM = 'trade:execute';
 
     SecurityRegistry.registerAgentRolePermissions(AGENT_ROLE, [TRADE_PERM]);

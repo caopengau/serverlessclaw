@@ -12,7 +12,7 @@ import { UserRole } from '@claw/core/lib/types/common';
  */
 export default function ChatPage() {
   return (
-    <RoleGuard requiredRoles={[UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER, UserRole.TRADER]}>
+    <RoleGuard requiredRoles={[UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER]}>
       <Suspense
         fallback={
           <div className="h-screen w-full bg-background flex items-center justify-center">

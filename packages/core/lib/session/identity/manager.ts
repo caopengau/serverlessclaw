@@ -231,7 +231,6 @@ export class IdentityManager extends IdentityBase {
           'deployer',
           'critic',
           'researcher',
-          'trader',
           'operator',
         ].includes(resourceId.toLowerCase());
         if (isBackbone) {

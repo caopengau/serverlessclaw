@@ -59,7 +59,6 @@ export enum AgentRole {
   WORKER = 'WORKER',
   CRITIC = 'CRITIC',
   RESEARCHER = 'RESEARCHER',
-  TRADER = 'TRADER',
   OPERATOR = 'OPERATOR',
   SYSTEM = 'SYSTEM',
 }

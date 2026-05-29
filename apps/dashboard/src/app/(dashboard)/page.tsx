@@ -42,7 +42,6 @@ export default function MissionDashboard() {
   const [loading, setLoading] = useState(true);
 
   const userRole = (user?.role as UserRole) || UserRole.MEMBER;
-  const isTrader = userRole === UserRole.TRADER;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -66,7 +65,7 @@ export default function MissionDashboard() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Sector 1: Active Missions */}
-        <div className={isTrader ? 'xl:col-span-3 space-y-6' : 'xl:col-span-2 space-y-6'}>
+        <div className="xl:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <Typography
               variant="caption"
@@ -88,7 +87,7 @@ export default function MissionDashboard() {
           </div>
 
           <div
-            className={`grid grid-cols-1 ${isTrader ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
             {loading ? (
               <>
@@ -191,8 +190,7 @@ export default function MissionDashboard() {
         </div>
 
         {/* Sector 2: Quick Status HUD */}
-        {!isTrader && (
-          <div className="space-y-6">
+        <div className="space-y-6">
             <Typography
               variant="caption"
               weight="black"
@@ -291,7 +289,6 @@ export default function MissionDashboard() {
               </div>
             </Card>
           </div>
-        )}
       </div>
     </div>
   );

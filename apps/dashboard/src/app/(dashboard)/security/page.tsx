@@ -168,7 +168,7 @@ export default function SecurityManifestPage() {
   const [aceEntries, setAceEntries] = useState([
     {
       id: 'ace-1',
-      agentId: 'custom-trading-bot',
+      agentId: 'analysis-agent',
       grantee: 'ADMIN',
       granteeType: 'role',
       access: 'ALLOW',
@@ -617,7 +617,7 @@ export default function SecurityManifestPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. custom-trading-bot"
+                  placeholder="e.g. analysis-agent"
                   value={newAceAgent}
                   onChange={(e) => setNewAceAgent(e.target.value)}
                   className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground focus:outline-none focus:border-cyber-green transition-colors"

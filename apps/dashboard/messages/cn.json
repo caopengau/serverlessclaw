@@ -118,7 +118,6 @@
   "AGENT_ROLE_ORCHESTRATOR": "编排器",
   "AGENT_ROLE_RESEARCHER": "模式研究员",
   "AGENT_ROLE_SYSTEM": "系统骨干",
-  "AGENT_ROLE_TRADER": "市场交易员",
   "AGENT_ROLE_WORKER": "工作节点",
   "AGENT_SELECTOR_TITLE": "选择智能节点",
   "ALL_SYSTEMS_NOMINAL": "所有系统正常",

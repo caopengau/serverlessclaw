@@ -11,7 +11,7 @@ describe('Jobs MetricsParser', () => {
     },
     {
       key: 'win_rate',
-      label: 'Trading Win Rate',
+      label: 'Analysis Score',
       format: 'percentage',
       regexPattern: 'Win Rate:\\s+(\\d+\\.\\d+)%',
     },

@@ -26,16 +26,6 @@ export const ROLE_IAM_MAPPING: Record<UserRole, string[]> = {
     'eventbridge:PutEvents',
   ],
   [UserRole.VIEWER]: ['s3:GetObject', 's3:ListBucket', 'dynamodb:GetItem', 'dynamodb:Query'],
-  [UserRole.TRADER]: [
-    's3:GetObject',
-    's3:PutObject',
-    's3:ListBucket',
-    'dynamodb:GetItem',
-    'dynamodb:PutItem',
-    'dynamodb:Query',
-    'lambda:InvokeFunction',
-    'eventbridge:PutEvents',
-  ],
 };
 
 /**

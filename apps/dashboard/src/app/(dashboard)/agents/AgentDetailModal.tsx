@@ -305,7 +305,7 @@ export default function AgentDetailModal({
                   <Shield size={12} className="text-amber-400" /> {t('AGENT_ROLES')}
                 </Typography>
                 <div className="flex flex-wrap gap-2">
-                  {['ORCHESTRATOR', 'WORKER', 'CRITIC', 'TRADER', 'OPERATOR'].map((role) => (
+                  {['ORCHESTRATOR', 'WORKER', 'CRITIC', 'OPERATOR'].map((role) => (
                     <button
                       key={role}
                       onClick={() => {
@@ -353,7 +353,7 @@ export default function AgentDetailModal({
                         className={`w-2 h-2 rounded-full ${
                           (agent.roles || []).some((role) =>
                             // This is a visual-only check for UI feedback
-                            ['ORCHESTRATOR', 'SYSTEM', 'TRADER', 'OPERATOR'].includes(role)
+                            ['ORCHESTRATOR', 'SYSTEM', 'OPERATOR'].includes(role)
                           )
                             ? 'bg-cyber-green shadow-[0_0_5px_rgba(0,255,163,0.5)]'
                             : 'bg-muted-more'

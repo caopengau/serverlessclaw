@@ -118,7 +118,6 @@
   "AGENT_ROLE_ORCHESTRATOR": "Orchestrator",
   "AGENT_ROLE_RESEARCHER": "Pattern Researcher",
   "AGENT_ROLE_SYSTEM": "System Backbone",
-  "AGENT_ROLE_TRADER": "Market Trader",
   "AGENT_ROLE_WORKER": "Worker Node",
   "AGENT_SELECTOR_TITLE": "Select Intelligence Node",
   "ALL_SYSTEMS_NOMINAL": "All Systems Nominal",

@@ -154,7 +154,7 @@ export default function NewAgentModal({
               {t('AGENT_ROLES')}
             </Typography>
             <div className="flex flex-wrap gap-2">
-              {['ORCHESTRATOR', 'WORKER', 'CRITIC', 'TRADER', 'OPERATOR'].map((role) => (
+              {['ORCHESTRATOR', 'WORKER', 'CRITIC', 'OPERATOR'].map((role) => (
                 <button
                   key={role}
                   type="button"
