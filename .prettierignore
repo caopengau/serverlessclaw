@@ -25,3 +25,4 @@ e2e/.auth/
 # Product extension overlays (gitignored, product-specific local directories)
 **/extensions/project/**
 src/extensions/bridge.tsx
+apps/dashboard/src/extensions/bridge.tsx
