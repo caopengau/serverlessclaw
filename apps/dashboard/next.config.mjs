@@ -121,6 +121,12 @@ const nextConfig = {
       jobsConfigPath,
     });
 
+    // Use symlink if it exists (placed by build script)
+    const symlinkPath = path.resolve(__dirname, './src/extensions/active.tsx');
+    if (fs.existsSync(symlinkPath)) {
+      extensionPath = symlinkPath;
+    }
+    
     // Ensure cross-package resolution works for workspace packages
     config.resolve.alias = {
       ...config.resolve.alias,

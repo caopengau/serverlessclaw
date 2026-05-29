@@ -1,0 +1,1 @@
+../../../../apps/goldex-dashboard/index.tsx
