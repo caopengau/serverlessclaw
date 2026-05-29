@@ -341,8 +341,6 @@ export default function AgentDetailModal({
                   {[
                     'agent:control',
                     'task:approve',
-                    'action:dispatch',
-                    'action:financial',
                     'action:infra',
                   ].map((perm) => (
                     <div key={perm} className="flex items-center justify-between opacity-80">

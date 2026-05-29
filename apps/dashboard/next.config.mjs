@@ -38,8 +38,15 @@ const nextConfig = {
     '@serverlessclaw/core',
     '@serverlessclaw/ui',
     '@serverlessclaw/hooks',
+    '@claw/core',
+    '@claw/ui',
     ...(process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS
-      ? [process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[0]]
+      ? [
+          process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[0],
+          process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[1] 
+            ? `${process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[0]}/${process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.split('/')[1]}`
+            : null
+        ].filter(Boolean)
       : []),
   ].filter((pkg) => {
     try {
@@ -136,9 +143,9 @@ const nextConfig = {
       'virtual-messages-en': messagesEnPath,
       'virtual-messages-cn': messagesCnPath,
       'virtual-jobs-config': jobsConfigPath,
-      '@serverlessclaw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),
-      '@serverlessclaw/core/lib': path.resolve(__dirname, '../../framework/packages/core/lib'),
-      '@claw/core': path.resolve(__dirname, '../../framework/packages/core/lib/index.ts'),
+      '@serverlessclaw/core': path.resolve(__dirname, '../../packages/core/lib/index.ts'),
+      '@serverlessclaw/core/lib': path.resolve(__dirname, '../../packages/core/lib'),
+      '@claw/core': path.resolve(__dirname, '../../packages/core/lib/index.ts'),
       '@framework-dashboard': path.resolve(__dirname, './src'),
       '@serverlessclaw/dashboard': path.resolve(__dirname, './'),
     };

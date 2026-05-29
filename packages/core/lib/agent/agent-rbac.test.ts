@@ -46,7 +46,7 @@ describe('Agent Role RBAC Enforcement', () => {
   it('allows tool execution when agent has the required role', async () => {
     const tool = {
       name: 'dispatch_logistics',
-      requiredPermissions: [Permission.ACTION_DISPATCH],
+      requiredPermissions: [Permission.AGENT_VIEW],
     } as any;
 
     const toolCall = {

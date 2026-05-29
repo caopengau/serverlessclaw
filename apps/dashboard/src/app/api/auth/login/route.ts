@@ -87,7 +87,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           } else if (finalUserId === 'viewer-user') {
             await identityManager.updateUserRole(finalUserId, UserRole.VIEWER, finalUserId);
           }
-        } else if (
+
+          // Auto-join default workspace for test users
+          if (['admin-user', 'owner-user', 'member-user', 'viewer-user'].includes(finalUserId)) {
+            await identityManager.addUserToWorkspace(finalUserId, 'default');
+          }
+        }
+
+ else if (
           finalUserId === 'dashboard-user' &&
           authResult.user?.role !== UserRole.ADMIN &&
           authResult.user?.role !== UserRole.OWNER

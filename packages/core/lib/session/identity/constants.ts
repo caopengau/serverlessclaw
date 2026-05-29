@@ -49,8 +49,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.CONFIG_VIEW,
     Permission.TRACE_VIEW,
     Permission.DASHBOARD_VIEW,
-    Permission.ACTION_FINANCIAL,
-    Permission.ACTION_DISPATCH,
   ],
 };
 
@@ -78,7 +76,6 @@ export const AGENT_ROLE_PERMISSIONS: Record<AgentRole, Permission[]> = {
     Permission.AGENT_VIEW,
     Permission.TASK_VIEW,
     Permission.TRACE_VIEW,
-    Permission.ACTION_DISPATCH,
   ],
   [AgentRole.SYSTEM]: Object.values(Permission),
 };
@@ -112,7 +109,5 @@ export const WORKSPACE_SCOPED_PERMISSIONS = new Set([
   Permission.TRACE_DELETE,
   Permission.DASHBOARD_VIEW,
   Permission.MISSION_COMMAND,
-  Permission.ACTION_DISPATCH,
-  Permission.ACTION_FINANCIAL,
   Permission.ACTION_INFRA,
 ]);
