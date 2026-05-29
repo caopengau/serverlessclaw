@@ -28,7 +28,9 @@ if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
 
     // Fallback log if neither exists (though Next.js will error later)
     if (!fs.existsSync(fullPath)) {
-      console.warn(`[NextConfig] WARNING: Extension path not found: ${rawPath}. Tried ${rootPath} and ${localPath}`);
+      console.warn(
+        `[NextConfig] WARNING: Extension path not found: ${rawPath}. Tried ${rootPath} and ${localPath}`
+      );
     }
   }
 
@@ -38,7 +40,6 @@ if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
   fs.writeFileSync(activePath, activeContent);
 
   const extensionDir = path.dirname(fullPath);
-
 
   if (fs.existsSync(path.join(extensionDir, 'messages/en.json'))) {
     messagesEnPath = path.join(extensionDir, 'messages/en.json');
