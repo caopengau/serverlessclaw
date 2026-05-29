@@ -82,7 +82,9 @@ const nextConfig = {
     // Resolve extension bridge dynamically based on the active local workspace extension
     let extensionPath = path.resolve(__dirname, './src/extensions/index.ts');
     if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
-      if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.startsWith('.')) {
+      if (path.isAbsolute(process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS)) {
+        extensionPath = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS;
+      } else if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS.startsWith('.')) {
         extensionPath = path.resolve(__dirname, process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS);
       } else {
         extensionPath = path.resolve(

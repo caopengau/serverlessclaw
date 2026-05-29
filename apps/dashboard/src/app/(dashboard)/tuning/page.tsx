@@ -69,7 +69,7 @@ export default function TuningGroundPage() {
   };
 
   return (
-    <RoleGuard requiredRoles={[UserRole.ADMIN, UserRole.OWNER]}>
+    <RoleGuard requiredRoles={[UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER]}>
       <div className="flex flex-col h-full bg-background p-6 overflow-hidden">
         <div className="flex items-center justify-between mb-8 shrink-0">
           <div>
