@@ -24,6 +24,7 @@ export interface DashboardExtension {
   /**
    * Custom API routes to be mounted under /api/x/
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   apiRoutes?: Record<string, (req: any) => Promise<any>>;
 }
 
@@ -168,7 +169,9 @@ export class PluginManager {
     return undefined;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static getApiRoutes(): Record<string, (req: any) => Promise<any>> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const routes: Record<string, (req: any) => Promise<any>> = {};
     for (const plugin of this.plugins.values()) {
       if (plugin.dashboard?.apiRoutes) {

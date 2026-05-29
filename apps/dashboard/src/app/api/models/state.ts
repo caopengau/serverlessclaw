@@ -17,7 +17,7 @@ class DefaultModelRegistry implements ModelRegistry {
  * Prioritizes plugin-registered registries, falling back to a default implementation.
  */
 export const modelRegistry: ModelRegistry = new Proxy({} as ModelRegistry, {
-  get: (target, prop, receiver) => {
+  get: (_target, prop, receiver) => {
     const registry = PluginManager.getModelRegistry() || new DefaultModelRegistry();
     return Reflect.get(registry, prop, receiver);
   }
@@ -26,6 +26,6 @@ export const modelRegistry: ModelRegistry = new Proxy({} as ModelRegistry, {
 /**
  * @deprecated Use PluginManager.register() to register a custom model registry.
  */
-export function setModelRegistry(registry: ModelRegistry): void {
+export function setModelRegistry(_registry: ModelRegistry): void {
   logger.warn('[Models API] setModelRegistry is deprecated. Register via PluginManager instead.');
 }

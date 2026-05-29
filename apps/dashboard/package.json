@@ -10,7 +10,7 @@
     "test": "vitest run --config ./vitest.config.ts",
     "test-silent": "vitest run --reporter=dot --config ./vitest.config.ts",
     "test-coverage": "vitest run --coverage --config ./vitest.config.ts",
-    "type-check": "node -e \"const fs=require('fs'); if(!fs.existsSync('./src/extensions/active.tsx')) fs.writeFileSync('./src/extensions/active.tsx', 'export function init(_hub: any){}; export function initServer(){}');\" && tsc --noEmit",
+    "type-check": "node -e \"const fs=require('fs'); if(!fs.existsSync('./src/extensions/active.tsx')) fs.writeFileSync('./src/extensions/active.tsx', '/* eslint-disable @typescript-eslint/no-explicit-any */\\nexport function init(_hub: any){}; export function initServer(){}');\" && tsc --noEmit",
     "format-check": "prettier --check . --ignore-path ../../.prettierignore",
     "aiready": "aiready scan"
   },
