@@ -1,2 +1,1 @@
-import * as ext from './project/index';
-export const init = ext.init;
+export function init(_hub: any){}; export function initServer(){}

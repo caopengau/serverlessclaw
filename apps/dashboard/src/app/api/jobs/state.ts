@@ -2,11 +2,23 @@ import {
   JobInputNormalizer,
   DefaultJobInputNormalizer,
 } from '@claw/core/lib/jobs/normalizer.interface';
+import { PluginManager } from '@claw/core/lib/plugin-manager';
 import { logger } from '@claw/core/lib/logger';
 
-export let jobInputNormalizer: JobInputNormalizer = new DefaultJobInputNormalizer();
+/**
+ * Resolves the job input normalizer.
+ * Prioritizes plugin-registered normalizers, falling back to a default implementation.
+ */
+export const jobInputNormalizer: JobInputNormalizer = new Proxy({} as JobInputNormalizer, {
+  get: (target, prop, receiver) => {
+    const normalizer = PluginManager.getJobInputNormalizer() || new DefaultJobInputNormalizer();
+    return Reflect.get(normalizer, prop, receiver);
+  }
+});
 
+/**
+ * @deprecated Use PluginManager.register() to register a custom job input normalizer.
+ */
 export function setJobInputNormalizer(normalizer: JobInputNormalizer): void {
-  jobInputNormalizer = normalizer;
-  logger.info('[Jobs API] Custom job input normalizer registered');
+  logger.warn('[Jobs API] setJobInputNormalizer is deprecated. Register via PluginManager instead.');
 }

@@ -75,4 +75,25 @@ describe('PluginManager', () => {
     await PluginManager.register(plugin);
     expect(onInit).toHaveBeenCalled();
   });
+
+  it('should retrieve dashboard extensions', async () => {
+    const modelRegistry = { read: vi.fn(), write: vi.fn() };
+    const jobInputNormalizer = { normalize: vi.fn() };
+    const apiRoutes = { 'test/route': vi.fn() };
+
+    const plugin = {
+      id: 'dashboard-plugin',
+      dashboard: {
+        modelRegistry,
+        jobInputNormalizer,
+        apiRoutes,
+      },
+    };
+
+    await PluginManager.register(plugin);
+
+    expect(PluginManager.getModelRegistry()).toBe(modelRegistry);
+    expect(PluginManager.getJobInputNormalizer()).toBe(jobInputNormalizer);
+    expect(PluginManager.getApiRoutes()['test/route']).toBe(apiRoutes['test/route']);
+  });
 });

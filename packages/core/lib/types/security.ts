@@ -47,6 +47,7 @@ export enum Permission {
   // Mission & Action permissions
   MISSION_COMMAND = 'mission:command',
   ACTION_INFRA = 'action:infra',
+  ACTION_FINANCIAL = 'action:financial',
 }
 
 /**

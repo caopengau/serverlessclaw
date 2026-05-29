@@ -33,7 +33,7 @@ if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
 
   // Overwrite the active extension file to point to the desired workspace extension
   const activePath = path.resolve(__dirname, './src/extensions/active.tsx');
-  const activeContent = `import * as ext from '${importPath}';\nexport const init = ext.init;\n`;
+  const activeContent = `import * as ext from '${importPath}';\nexport const init = ext.init;\nexport const initServer = (ext as any).initServer;\n`;
   fs.writeFileSync(activePath, activeContent);
 
   const extensionDir = path.dirname(fullPath);
