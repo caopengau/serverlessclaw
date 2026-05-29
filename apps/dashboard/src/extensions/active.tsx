@@ -1,3 +1,2 @@
-export function init(_hooks?: unknown) {
-  // Placeholder for dynamic extensions
-}
+import * as ext from './project/index';
+export const init = ext.init;
