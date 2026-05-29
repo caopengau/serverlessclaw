@@ -75,7 +75,7 @@ describe('Agent Role RBAC Enforcement', () => {
   it('blocks tool execution when agent lacks the required role', async () => {
     const tool = {
       name: 'market_bid',
-      requiredPermissions: [Permission.ACTION_FINANCIAL],
+      requiredPermissions: [Permission.AGENT_CONTROL],
     } as any;
 
     const toolCall = {
@@ -92,7 +92,7 @@ describe('Agent Role RBAC Enforcement', () => {
 
     vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValue({
       id: 'worker-agent',
-      roles: [AgentRole.WORKER], // Worker role doesn't have ACTION_FINANCIAL
+      roles: [AgentRole.WORKER], // Worker role doesn't have AGENT_CONTROL
       safetyTier: SafetyTier.PROD,
     } as any);
 
@@ -105,7 +105,7 @@ describe('Agent Role RBAC Enforcement', () => {
   it('defaults to WORKER role if none specified in config', async () => {
     const tool = {
       name: 'dispatch_resource',
-      requiredPermissions: [Permission.ACTION_DISPATCH],
+      requiredPermissions: [Permission.TASK_CREATE],
     } as any;
 
     const toolCall = {
