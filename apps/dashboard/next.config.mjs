@@ -20,12 +20,13 @@ if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
   if (path.isAbsolute(rawPath)) {
     importPath = rawPath;
     fullPath = rawPath;
-  } else if (rawPath.includes('src/extensions/project')) {
-    // Force relative import for local project extensions (common in SST builds)
+  } else if (rawPath.includes('src/extensions/project') || process.env.SST_RESOURCE_App) {
+    // Force relative import for project extensions in SST build environment
+    // even if rawPath doesn't explicitly look like the local path
     importPath = './project/index';
-    fullPath = path.resolve(__dirname, rawPath);
+    fullPath = path.resolve(__dirname, './src/extensions/project/index.tsx');
   } else {
-    // Fallback to absolute resolution from workspace root (common in local dev)
+    // Fallback for local development
     fullPath = path.resolve(__dirname, '../../../', rawPath);
     importPath = fullPath;
   }
