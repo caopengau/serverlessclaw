@@ -94,7 +94,9 @@ const nextConfig = {
 
     if (process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS) {
       const rawPath = process.env.NEXT_PUBLIC_ACTIVE_EXTENSIONS;
-      const fullPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(__dirname, '../../../', rawPath);
+      const fullPath = path.isAbsolute(rawPath)
+        ? rawPath
+        : path.resolve(__dirname, '../../../', rawPath);
 
       // Create a bridge file inside the dashboard to ensure proper resolution
       const bridgePath = path.resolve(__dirname, './src/extensions/bridge.tsx');
