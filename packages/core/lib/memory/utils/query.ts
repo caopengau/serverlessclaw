@@ -225,6 +225,12 @@ export async function queryByTypeAndMap(
       params.FilterExpression = params.FilterExpression
         ? `${params.FilterExpression as string} AND (${filterExpression})`
         : filterExpression;
+      if (filterExpression.includes('#status')) {
+        params.ExpressionAttributeNames = {
+          ...((params.ExpressionAttributeNames as Record<string, string>) || {}),
+          '#status': 'status',
+        };
+      }
     }
   }
   const items = await base.queryItems(params);
