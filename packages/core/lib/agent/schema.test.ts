@@ -23,8 +23,8 @@ describe('DEFAULT_SIGNAL_SCHEMA', () => {
     expect(schema.type).toBe('object');
   });
 
-  it('has required fields: status, message', () => {
-    expect(schema.required).toEqual(['status', 'message']);
+  it('has required fields for strict schema compatibility', () => {
+    expect(schema.required).toEqual(['status', 'message', 'data', 'coveredGapIds']);
   });
 
   it('disallows additional properties', () => {

@@ -19,7 +19,9 @@ export const DEFAULT_SIGNAL_SCHEMA: ResponseFormat = {
         data: { type: 'object', properties: {}, additionalProperties: false },
         coveredGapIds: { type: 'array', items: { type: 'string' } },
       },
-      required: ['status', 'message'],
+      // OpenAI strict JSON schema now requires every declared property to be
+      // represented in required; optionality should be modeled in-schema.
+      required: ['status', 'message', 'data', 'coveredGapIds'],
       additionalProperties: false,
     },
   },
