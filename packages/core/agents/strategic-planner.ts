@@ -145,6 +145,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   }
 
   // 2b. Conflict Detection: Acquire gap lock to prevent race conditions
+  let primaryGapLockAcquired = false;
   if (gapId) {
     const lockAcquired = await memory.acquireGapLock(gapId, AGENT_TYPES.STRATEGIC_PLANNER);
     if (!lockAcquired) {
@@ -160,113 +161,125 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       );
       return { status: 'GAP_LOCKED', lockedBy: lockInfo?.agentId };
     }
+    primaryGapLockAcquired = true;
   }
-
-  // 3. Process with High Reasoning via unified lifecycle (Session Locking + Heartbeat)
-  const { processEventWithAgent } = await import('../handlers/events/shared');
-
-  let responseText: string;
-  let parsedData: unknown;
 
   try {
-    const result = await processEventWithAgent(
-      userId,
-      AGENT_TYPES.STRATEGIC_PLANNER,
-      plannerPrompt,
-      {
-        context: _context,
-        traceId,
-        taskId: traceId,
-        sessionId,
-        depth,
-        initiatorId,
-        isContinuation: false,
-        workspaceId,
-        teamId,
-        staffId,
-        userRole: userRole as UserRole,
-        metadata: metadata as Record<string, unknown>,
-        attachments: (metadata as unknown as AgentPayload | undefined)?.attachments as Attachment[],
-        handlerTitle: 'Strategic Planner',
-        outboundHandlerName: AGENT_TYPES.STRATEGIC_PLANNER,
-        skipOutbound: true,
-        formatResponse: (text) => text,
-        tokenBudget: config.tokenBudget,
-        costLimit: config.costLimit,
-      }
-    );
-    responseText = result.responseText;
-    parsedData = result.parsedData;
-  } catch (error) {
-    const errorDetail = error instanceof Error ? error.message : String(error);
-    logger.error(`[StrategicPlanner] Unified execution failure: ${errorDetail}`, error);
-    responseText = AGENT_ERRORS.PROCESS_FAILURE;
-  }
+    // 3. Process with High Reasoning via unified lifecycle (Session Locking + Heartbeat)
+    const { processEventWithAgent } = await import('../handlers/events/shared');
 
-  const planId = `PLAN-${Date.now()}-${randomUUID().substring(0, 8)}`;
-  logger.info(`[PLANNER] Generated Plan ID: ${planId}`);
-  logger.info('Strategic Plan Raw Response:', responseText);
+    let responseText: string;
+    let parsedData: unknown;
 
-  const isSystemFailure = responseText === AGENT_ERRORS.PROCESS_FAILURE;
-
-  let status = 'SUCCESS';
-  let plan = responseText;
-  let coveredGapIds: string[] = [];
-  let toolOptimizations: Array<{ action: string; toolName: string; reason: string }> = [];
-  let structuredTasks: Array<{ agentId: string; task: string; gapIds: string[] }> | undefined;
-
-  if (!isSystemFailure && isProactive) {
     try {
-      type PlannerResult = {
-        status: string;
-        plan: string;
-        coveredGapIds: string[];
-        tasks?: Array<{ agentId: string; task: string; gapIds: string[] }>;
-        toolOptimizations?: Array<{ action: string; toolName: string; reason: string }>;
-      };
-      const parsed =
-        (parsedData as PlannerResult) || parseStructuredResponse<PlannerResult>(responseText);
-      status = parsed.status || 'SUCCESS';
-      plan = parsed.plan || responseText;
-      coveredGapIds = parsed.coveredGapIds ?? [];
-      structuredTasks = parsed.tasks;
-      toolOptimizations = parsed.toolOptimizations ?? [];
-      logger.info(
-        `Parsed Strategic Plan. Status: ${status}, Gaps: ${coveredGapIds.join(', ')}, StructuredTasks: ${structuredTasks?.length ?? 0}`
+      const result = await processEventWithAgent(
+        userId,
+        AGENT_TYPES.STRATEGIC_PLANNER,
+        plannerPrompt,
+        {
+          context: _context,
+          traceId,
+          taskId: traceId,
+          sessionId,
+          depth,
+          initiatorId,
+          isContinuation: false,
+          workspaceId,
+          teamId,
+          staffId,
+          userRole: userRole as UserRole,
+          metadata: metadata as Record<string, unknown>,
+          attachments: (metadata as unknown as AgentPayload | undefined)
+            ?.attachments as Attachment[],
+          handlerTitle: 'Strategic Planner',
+          outboundHandlerName: AGENT_TYPES.STRATEGIC_PLANNER,
+          skipOutbound: true,
+          formatResponse: (text) => text,
+          tokenBudget: config.tokenBudget,
+          costLimit: config.costLimit,
+        }
       );
-    } catch (e) {
-      logger.warn('Failed to parse Planner structured response, falling back to raw text.', e);
+      responseText = result.responseText;
+      parsedData = result.parsedData;
+    } catch (error) {
+      const errorDetail = error instanceof Error ? error.message : String(error);
+      logger.error(`[StrategicPlanner] Unified execution failure: ${errorDetail}`, error);
+      responseText = AGENT_ERRORS.PROCESS_FAILURE;
+    }
+
+    const planId = `PLAN-${Date.now()}-${randomUUID().substring(0, 8)}`;
+    logger.info(`[PLANNER] Generated Plan ID: ${planId}`);
+    logger.info('Strategic Plan Raw Response:', responseText);
+
+    const isSystemFailure = responseText === AGENT_ERRORS.PROCESS_FAILURE;
+
+    let status = 'SUCCESS';
+    let plan = responseText;
+    let coveredGapIds: string[] = [];
+    let toolOptimizations: Array<{ action: string; toolName: string; reason: string }> = [];
+    let structuredTasks: Array<{ agentId: string; task: string; gapIds: string[] }> | undefined;
+
+    if (!isSystemFailure && isProactive) {
+      try {
+        type PlannerResult = {
+          status: string;
+          plan: string;
+          coveredGapIds: string[];
+          tasks?: Array<{ agentId: string; task: string; gapIds: string[] }>;
+          toolOptimizations?: Array<{ action: string; toolName: string; reason: string }>;
+        };
+        const parsed =
+          (parsedData as PlannerResult) || parseStructuredResponse<PlannerResult>(responseText);
+        status = parsed.status || 'SUCCESS';
+        plan = parsed.plan || responseText;
+        coveredGapIds = parsed.coveredGapIds ?? [];
+        structuredTasks = parsed.tasks;
+        toolOptimizations = parsed.toolOptimizations ?? [];
+        logger.info(
+          `Parsed Strategic Plan. Status: ${status}, Gaps: ${coveredGapIds.join(', ')}, StructuredTasks: ${structuredTasks?.length ?? 0}`
+        );
+      } catch (e) {
+        logger.warn('Failed to parse Planner structured response, falling back to raw text.', e);
+      }
+    }
+
+    // B2: Validate plan before coder dispatch
+    const validation = validatePlan(plan, coveredGapIds);
+    if (!validation.isValid && status === 'SUCCESS') {
+      logger.warn(`[PLANNER] Plan validation failed: ${validation.reason}`);
+      status = 'FAILED';
+    }
+
+    const isFailure = status === 'FAILED' || !validation.isValid;
+
+    // Use post-processing submodule
+    const { postProcessPlan } = await import('./strategic-planner/processing');
+    return await postProcessPlan(memory, {
+      plan,
+      planId,
+      status,
+      coveredGapIds,
+      toolOptimizations,
+      structuredTasks,
+      isFailure,
+      userId,
+      sessionId: sessionId || '',
+      traceId: traceId || '',
+      initiatorId: initiatorId || '',
+      depth: depth || 0,
+      gapId,
+      task: task || 'Strategic Review',
+      isScheduledReview: isScheduledReview || false,
+      config,
+      metadata: (metadata as unknown as Record<string, unknown>) || {},
+    });
+  } finally {
+    if (primaryGapLockAcquired && gapId) {
+      try {
+        await memory.releaseGapLock(gapId, AGENT_TYPES.STRATEGIC_PLANNER);
+      } catch (error) {
+        logger.warn(`[PLANNER] Failed to release primary gap lock for ${gapId}:`, error);
+      }
     }
   }
-
-  // B2: Validate plan before coder dispatch
-  const validation = validatePlan(plan, coveredGapIds);
-  if (!validation.isValid && status === 'SUCCESS') {
-    logger.warn(`[PLANNER] Plan validation failed: ${validation.reason}`);
-    status = 'FAILED';
-  }
-
-  const isFailure = status === 'FAILED' || !validation.isValid;
-
-  // Use post-processing submodule
-  const { postProcessPlan } = await import('./strategic-planner/processing');
-  return await postProcessPlan(memory, {
-    plan,
-    planId,
-    status,
-    coveredGapIds,
-    toolOptimizations,
-    structuredTasks,
-    isFailure,
-    userId,
-    sessionId: sessionId || '',
-    traceId: traceId || '',
-    initiatorId: initiatorId || '',
-    depth: depth || 0,
-    gapId,
-    task: task || 'Strategic Review',
-    isScheduledReview: isScheduledReview || false,
-    config,
-    metadata: (metadata as unknown as Record<string, unknown>) || {},
-  });
 }
