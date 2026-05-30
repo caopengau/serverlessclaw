@@ -52,8 +52,8 @@ describe('DEFAULT_SIGNAL_SCHEMA', () => {
       expect(schema.properties.data.type).toBe('object');
     });
 
-    it('allows additional properties', () => {
-      expect(schema.properties.data.additionalProperties).toBe(true);
+    it('disallows additional properties for strict schema compatibility', () => {
+      expect(schema.properties.data.additionalProperties).toBe(false);
     });
   });
 
