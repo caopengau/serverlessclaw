@@ -20,16 +20,16 @@ const sessionStateManager = new SessionStateManager();
 export async function handleTaskCancellation(
   event: EventBridgeEvent<string, TaskCancellation>
 ): Promise<void> {
-  const { taskId, initiatorId, reason, parallelDispatchId, userId, sessionId, agentId } =
-    event.detail as unknown as {
-      taskId?: string;
-      initiatorId?: string;
-      reason?: string;
-      parallelDispatchId?: string;
-      userId?: string;
-      sessionId?: string;
-      agentId?: string;
-    };
+  const detail = (event.detail || event) as unknown as {
+    taskId?: string;
+    initiatorId?: string;
+    reason?: string;
+    parallelDispatchId?: string;
+    userId?: string;
+    sessionId?: string;
+    agentId?: string;
+  };
+  const { taskId, initiatorId, reason, parallelDispatchId, userId, sessionId, agentId } = detail;
 
   logger.info(
     `Task cancellation requested: taskId=${taskId}, parallelDispatchId=${parallelDispatchId}, initiatorId=${initiatorId}`

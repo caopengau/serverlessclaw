@@ -34,6 +34,7 @@ const DEFAULT_BARRIER_TIMEOUT_MS = TIME.MS_PER_MINUTE * 5;
 export async function handleParallelDispatch(
   event: EventBridgeEvent<string, ParallelTaskEvent>
 ): Promise<void> {
+  const detail = event.detail || (event as unknown as any);
   const {
     userId,
     tasks,
@@ -48,7 +49,7 @@ export async function handleParallelDispatch(
     tokenBudget,
     costLimit,
     workspaceId,
-  } = event.detail;
+  } = detail;
 
   const timeoutMs =
     ((await ConfigManager.getRawConfig('parallel_barrier_timeout_ms')) as number) ??
