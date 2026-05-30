@@ -57,7 +57,7 @@ For your chosen area:
 > **Audit Report File Location & Tracking**:
 > All audit reports MUST be generated in the **root `reports/` folder** of the workspace (`/reports/audit-<YYYY-MM-DD>-<topic>.md`).
 > They **MUST NOT** be generated or tracked under the `docs/governance/` directory.
-> To ensure these files are correctly tracked in Git despite the root `reports/` folder being gitignored by default, the `.gitignore` has been configured to exclude audit report markdown files via `!reports/audit-*.md`.
+> **Note**: The `reports/` folder is gitignored to prevent tracking local audit logs in the repository. Do not attempt to force-add them.
 
 Create the report using the template specified in `docs/governance/AUDIT.md`.
 
