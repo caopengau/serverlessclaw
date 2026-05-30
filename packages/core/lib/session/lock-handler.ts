@@ -48,7 +48,7 @@ export class SessionLockHandler {
               'pendingMessages = if_not_exists(pendingMessages, :empty), ' +
               'workspaceId = :ws, teamId = :team, staffId = :staff',
             ConditionExpression:
-              'attribute_not_exists(processingAgentId) OR processingAgentId = :null OR lockExpiresAt < :nowSec',
+              'attribute_not_exists(processingAgentId) OR processingAgentId = :null OR processingAgentId = :agentId OR lockExpiresAt < :nowSec',
             ExpressionAttributeValues: {
               ':agentId': agentId,
               ':now': Date.now(),

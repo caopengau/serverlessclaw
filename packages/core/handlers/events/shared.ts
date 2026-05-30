@@ -284,15 +284,11 @@ export async function processEventWithAgent(
 
   const sessionStateManager = new SessionStateManager();
   if (options.sessionId) {
-    const lockAcquired = await sessionStateManager.acquireProcessing(
-      options.sessionId,
-      `event-handler-${agentId}`,
-      {
-        workspaceId: options.workspaceId,
-        teamId: options.teamId,
-        staffId: options.staffId,
-      }
-    );
+    const lockAcquired = await sessionStateManager.acquireProcessing(options.sessionId, agentId, {
+      workspaceId: options.workspaceId,
+      teamId: options.teamId,
+      staffId: options.staffId,
+    });
 
     if (!lockAcquired) {
       logger.info(
