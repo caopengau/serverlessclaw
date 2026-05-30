@@ -9,7 +9,7 @@ vi.mock('./ExtensionProvider', () => ({
 }));
 
 // Mock the dynamic import
-vi.mock('../../extensions', () => ({
+vi.mock('../../extensions/active', () => ({
   init: vi.fn(),
 }));
 
@@ -27,7 +27,7 @@ describe('ExtensionLoader', () => {
   });
 
   it('should attempt to load extensions on mount', async () => {
-    const { init } = await import('../../extensions');
+    const { init } = await import('../../extensions/active');
 
     render(<ExtensionLoader />);
 
@@ -40,7 +40,7 @@ describe('ExtensionLoader', () => {
   });
 
   it('should only load extensions once even if re-rendered', async () => {
-    const { init } = await import('../../extensions');
+    const { init } = await import('../../extensions/active');
 
     const { rerender } = render(<ExtensionLoader />);
     rerender(<ExtensionLoader />);
@@ -51,7 +51,7 @@ describe('ExtensionLoader', () => {
   });
 
   it('should fail silently if no extensions are found', async () => {
-    const { init } = await import('../../extensions');
+    const { init } = await import('../../extensions/active');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (init as unknown as { mockImplementationOnce: (v: any) => void }).mockImplementationOnce(() => {
       throw new Error('Not found');
