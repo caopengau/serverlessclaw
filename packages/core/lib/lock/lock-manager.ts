@@ -71,7 +71,7 @@ export class LockManager {
     const expiresAt = now + options.ttlSeconds;
 
     const conditionExpression =
-      'attribute_not_exists(ownerId) OR ownerId = :null OR expiresAt < :now';
+      'attribute_not_exists(ownerId) OR ownerId = :null OR ownerId = :owner OR expiresAt < :now';
 
     try {
       await this.docClient.send(
