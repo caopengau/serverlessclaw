@@ -57,7 +57,7 @@ export class SessionLockHandler {
               ':exp': expiresAt,
               ':empty': [],
               ':null': null,
-              ':ws': scope?.workspaceId ?? null,
+              ':ws': scope?.workspaceId ?? 'global',
               ':team': scope?.teamId ?? null,
               ':staff': scope?.staffId ?? null,
             },

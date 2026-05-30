@@ -46,7 +46,7 @@ export class SessionMessageHandler {
             ':now': now,
             ':exp': expiresAt,
             ':max': MAX_PENDING,
-            ':ws': scope?.workspaceId ?? null,
+            ':ws': scope?.workspaceId ?? 'global',
             ':team': scope?.teamId ?? null,
             ':staff': scope?.staffId ?? null,
           },
