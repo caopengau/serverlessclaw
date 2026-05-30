@@ -60,8 +60,12 @@ playwright-report/
 **/playwright-report/
 blob-report/
 **/blob-report/
-reports/
+reports/**
+!reports/
+!reports/audit-*.md
 **/reports/
+!**/reports/
+!**/reports/audit-*.md
 .aiready/
 **/.aiready/
 lint_report.json
