@@ -1,8 +1,7 @@
 import { logger } from '../../logger';
-import { EvolutionTrack, GapStatus } from '../../types/agent';
+import { EvolutionTrack, GapStatus, GapTransitionResult } from '../../types/agent';
 import { MEMORY_KEYS, RETENTION } from '../../constants';
 import { normalizeGapId } from '../utils';
-import type { BaseMemoryProvider } from '../base';
 
 /** Minimal interface for track operations — satisfied by BaseMemoryProvider and DynamoMemory. */
 export interface TrackStore {
@@ -15,6 +14,12 @@ export interface TrackStore {
     }>
   ): Promise<void>;
   queryItems(params: Record<string, unknown>): Promise<Record<string, unknown>[]>;
+  updateGapStatus(
+    gapId: string,
+    status: GapStatus,
+    scope?: string | import('../../types/memory').ContextualScope,
+    metadata?: Record<string, unknown>
+  ): Promise<GapTransitionResult>;
 }
 
 /**
@@ -27,13 +32,7 @@ export async function assignGapToTrack(
   priority?: number,
   scope?: string | import('../../types/memory').ContextualScope
 ): Promise<void> {
-  const { updateGapStatus } = await import('./core');
-  const transitionResult = await updateGapStatus(
-    base as unknown as BaseMemoryProvider,
-    gapId,
-    GapStatus.PLANNED,
-    scope
-  );
+  const transitionResult = await base.updateGapStatus(gapId, GapStatus.PLANNED, scope);
   if (!transitionResult.success) {
     throw new Error(
       `[GapTrack] Failed to transition ${gapId} to PLANNED: ${transitionResult.error}`
