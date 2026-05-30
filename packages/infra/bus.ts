@@ -30,6 +30,17 @@ export function createBus(options: { pathPrefix?: string } = {}) {
   // FIFO queue for strategic planner tasks — guarantees serial execution per workspace
   // and eliminates the concurrent GAP_LOCK races that plague the self-evolution loop.
   // MessageGroupId = workspaceId ensures one in-flight planner task per workspace.
+  // Note: SQS FIFO queues require a FIFO DLQ — cannot reuse the standard EventDLQ.
+  const plannerDlq = new sst.aws.Queue('PlannerDLQ', {
+    fifo: true,
+    transform: {
+      queue: {
+        messageRetentionSeconds: 14 * 24 * 60 * 60, // 14 days
+        visibilityTimeoutSeconds: 60,
+      },
+    },
+  });
+
   const plannerQueue = new sst.aws.Queue('PlannerQueue', {
     fifo: true,
     transform: {
@@ -38,9 +49,10 @@ export function createBus(options: { pathPrefix?: string } = {}) {
         visibilityTimeoutSeconds: 660, // must exceed Lambda max timeout (600 s)
         messageRetentionSeconds: 4 * 24 * 60 * 60, // 4 days
         receiveMessageWaitTimeSeconds: 20,
-        redrivePolicy: dlq
-          ? $util.jsonStringify({ deadLetterTargetArn: dlq.arn, maxReceiveCount: 3 })
-          : undefined,
+        redrivePolicy: $util.jsonStringify({
+          deadLetterTargetArn: plannerDlq.arn,
+          maxReceiveCount: 3,
+        }),
       },
     },
   });
