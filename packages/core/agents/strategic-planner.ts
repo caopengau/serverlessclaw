@@ -179,7 +179,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
         sessionId,
         depth,
         initiatorId,
-        isContinuation: isProactive,
+        isContinuation: false,
         workspaceId,
         teamId,
         staffId,
