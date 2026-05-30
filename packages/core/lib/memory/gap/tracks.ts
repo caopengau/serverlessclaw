@@ -34,9 +34,13 @@ export async function assignGapToTrack(
 ): Promise<void> {
   const transitionResult = await base.updateGapStatus(gapId, GapStatus.PLANNED, scope);
   if (!transitionResult.success) {
-    throw new Error(
-      `[GapTrack] Failed to transition ${gapId} to PLANNED: ${transitionResult.error}`
-    );
+    const isAlreadyPlanned = transitionResult.error?.includes('from PLANNED to PLANNED');
+    if (!isAlreadyPlanned) {
+      throw new Error(
+        `[GapTrack] Failed to transition ${gapId} to PLANNED: ${transitionResult.error}`
+      );
+    }
+    logger.info(`[GapTrack] Gap ${gapId} is already in PLANNED status. Proceeding gracefully.`);
   }
 
   const normalizedId = normalizeGapId(gapId);
