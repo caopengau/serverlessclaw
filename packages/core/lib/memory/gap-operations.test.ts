@@ -360,7 +360,9 @@ describe('Gap-Track Assignment', () => {
 
       await assignGapToTrack(base, 'gap-42', EvolutionTrack.SECURITY);
 
-      const putCalls = ddbMock.commandCalls(PutCommand);
+      const putCalls = ddbMock
+        .commandCalls(PutCommand)
+        .filter((c) => c.args[0].input.Item?.type === 'TRACK_ASSIGNMENT');
       expect(putCalls).toHaveLength(1);
       const item = putCalls[0].args[0].input.Item;
       expect(item?.userId).toBe('TRACK#gap-42');
@@ -380,7 +382,10 @@ describe('Gap-Track Assignment', () => {
 
       await assignGapToTrack(base, 'gap-1', EvolutionTrack.PERFORMANCE, 1);
 
-      const item = ddbMock.commandCalls(PutCommand)[0].args[0].input.Item;
+      const putCalls = ddbMock
+        .commandCalls(PutCommand)
+        .filter((c) => c.args[0].input.Item?.type === 'TRACK_ASSIGNMENT');
+      const item = putCalls[0].args[0].input.Item;
       expect(item?.priority).toBe(1);
     });
 
@@ -396,7 +401,66 @@ describe('Gap-Track Assignment', () => {
         'Failed to transition'
       );
 
-      expect(ddbMock.commandCalls(PutCommand)).toHaveLength(0);
+      const putCalls = ddbMock
+        .commandCalls(PutCommand)
+        .filter((c) => c.args[0].input.Item?.type === 'TRACK_ASSIGNMENT');
+      expect(putCalls).toHaveLength(0);
+    });
+
+    it('should handle ConditionalCheckFailedException gracefully if it is the same track', async () => {
+      ddbMock
+        .on(QueryCommand)
+        .resolvesOnce({
+          Items: [
+            { userId: 'gap-42', timestamp: 1000, content: 'test', metadata: { status: 'open' } },
+          ],
+        })
+        .resolvesOnce({
+          Items: [{ userId: 'TRACK#gap-42', timestamp: 0, track: 'security', priority: 2 }],
+        });
+      ddbMock.on(UpdateCommand).resolves({});
+      ddbMock
+        .on(PutCommand)
+        .rejectsOnce(
+          Object.assign(new Error('ConditionalCheckFailedException'), {
+            name: 'ConditionalCheckFailedException',
+          })
+        )
+        .resolves({});
+
+      await assignGapToTrack(base, 'gap-42', EvolutionTrack.SECURITY, 3);
+
+      const putCalls = ddbMock
+        .commandCalls(PutCommand)
+        .filter((c) => c.args[0].input.Item?.type === 'TRACK_ASSIGNMENT');
+      expect(putCalls).toHaveLength(2);
+      const secondPutInput = putCalls[1].args[0].input;
+      expect(secondPutInput.ConditionExpression).toBeUndefined();
+      expect(secondPutInput.Item?.track).toBe('security');
+      expect(secondPutInput.Item?.priority).toBe(3);
+    });
+
+    it('should rethrow ConditionalCheckFailedException if the existing track is different', async () => {
+      ddbMock
+        .on(QueryCommand)
+        .resolvesOnce({
+          Items: [
+            { userId: 'gap-42', timestamp: 1000, content: 'test', metadata: { status: 'open' } },
+          ],
+        })
+        .resolvesOnce({
+          Items: [{ userId: 'TRACK#gap-42', timestamp: 0, track: 'performance', priority: 2 }],
+        });
+      ddbMock.on(UpdateCommand).resolves({});
+      ddbMock.on(PutCommand).rejectsOnce(
+        Object.assign(new Error('ConditionalCheckFailedException'), {
+          name: 'ConditionalCheckFailedException',
+        })
+      );
+
+      await expect(assignGapToTrack(base, 'gap-42', EvolutionTrack.SECURITY, 3)).rejects.toThrow(
+        'ConditionalCheckFailedException'
+      );
     });
   });
 
