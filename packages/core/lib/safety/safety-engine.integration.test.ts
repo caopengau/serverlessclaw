@@ -6,6 +6,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SafetyEngine } from './safety-engine';
 import { SafetyTier, AgentCategory, UserRole } from '../types/agent';
+import { mockClient } from 'aws-sdk-client-mock';
+import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+
+vi.mock('sst', () => ({
+  Resource: {
+    MemoryTable: { name: 'test-memory-table' },
+    ConfigTable: { name: 'test-config-table' },
+  },
+}));
+
+const ddbMock = mockClient(DynamoDBDocumentClient);
 
 const { mockDefaults } = vi.hoisted(() => {
   return {
@@ -87,6 +98,8 @@ describe('Safety Engine Integration', () => {
   let engine: SafetyEngine;
 
   beforeEach(() => {
+    ddbMock.reset();
+    ddbMock.on(PutCommand).resolves({});
     vi.clearAllMocks();
     // Use a fixed time outside of business hours (Sunday)
     vi.useFakeTimers();
