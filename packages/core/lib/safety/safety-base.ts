@@ -85,7 +85,7 @@ export class SafetyBase {
   ): SafetyViolation {
     return {
       id: `violation_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      timestamp: new Date(),
+      timestamp: Date.now(),
       agentId,
       safetyTier,
       action,

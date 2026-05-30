@@ -60,7 +60,7 @@ export interface TimeRestriction {
  */
 export interface SafetyViolation {
   id: string;
-  timestamp: Date;
+  timestamp: number;
   agentId: string;
   safetyTier: SafetyTier;
   action: string;

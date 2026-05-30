@@ -1,4 +1,4 @@
-import { AGENT_TYPES, Attachment, AgentPayload } from '../lib/types/agent';
+import { AGENT_TYPES, Attachment, AgentPayload, UserRole } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { randomUUID } from 'node:crypto';
@@ -44,6 +44,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     workspaceId,
     teamId,
     staffId,
+    userRole,
   } = payload;
 
   logger.info(
@@ -183,6 +184,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
         workspaceId,
         teamId,
         staffId,
+        userRole: userRole as UserRole,
         metadata: metadata as Record<string, unknown>,
         attachments: (metadata as unknown as AgentPayload | undefined)?.attachments as Attachment[],
         handlerTitle: 'Strategic Planner',

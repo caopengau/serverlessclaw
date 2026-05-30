@@ -2,6 +2,8 @@
  * Planner Agent type definitions
  */
 
+import { UserRole } from '../../lib/types/common';
+
 /**
  * Metadata signals extracted for identified capability gaps.
  */
@@ -54,6 +56,8 @@ export interface PlannerPayload {
   teamId?: string;
   /** Staff ID. */
   staffId?: string;
+  /** User Role for RBAC. */
+  userRole?: UserRole | string;
 }
 
 /**

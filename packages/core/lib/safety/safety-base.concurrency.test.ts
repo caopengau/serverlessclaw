@@ -39,7 +39,7 @@ describe('SafetyBase Concurrency', () => {
         action: 'test',
         reason: 'test',
         outcome: 'blocked' as const,
-        timestamp: new Date(),
+        timestamp: Date.now(),
       };
 
       // First attempt: collision
@@ -73,7 +73,7 @@ describe('SafetyBase Concurrency', () => {
         action: 'test',
         reason: 'test',
         outcome: 'blocked' as const,
-        timestamp: new Date(),
+        timestamp: Date.now(),
       };
 
       const collisionError = new Error('Collision');
