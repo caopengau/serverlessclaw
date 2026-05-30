@@ -4,15 +4,16 @@ import { OpenAIResponse, ContentItem, ToolConfig } from './types';
 
 /**
  * Determines if a model/profile combination should request a reasoning summary.
+ * For GPT-5 family models, always request summaries to enable the thoughtText fallback
+ * when the model uses reasoning tokens but produces no direct text output.
  */
 export function shouldRequestReasoningSummary(
   model: string,
-  requestedProfile: ReasoningProfile
+  _requestedProfile: ReasoningProfile
 ): boolean {
-  const isGpt5Family = model.includes('gpt-5');
-  const isThinkingMode =
-    requestedProfile === ReasoningProfile.THINKING || requestedProfile === ReasoningProfile.DEEP;
-  return isGpt5Family && isThinkingMode;
+  // Enable summaries for all GPT-5 models so that reasoning-heavy responses
+  // can be captured via thoughtText fallback when no text output is generated.
+  return model.includes('gpt-5');
 }
 
 /**
