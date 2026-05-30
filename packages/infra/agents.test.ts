@@ -64,4 +64,15 @@ describe('EventBridge routing contracts', () => {
       expect(match).toBeTruthy();
     });
   });
+
+  describe('Planner FIFO queue routing', () => {
+    it('excludes strategic planner and evolution plan from high-power EventBridge pattern', () => {
+      const match = multiplexersSource.match(
+        /bus\.subscribe\('HighPowerSubscriber'[\s\S]*?detailType:\s*\[([\s\S]*?)\]/m
+      );
+      expect(match).toBeTruthy();
+      expect(match![1]).not.toContain('EventType.STRATEGIC_PLANNER_TASK');
+      expect(match![1]).not.toContain('EventType.EVOLUTION_PLAN');
+    });
+  });
 });
