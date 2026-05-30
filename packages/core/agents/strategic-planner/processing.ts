@@ -465,6 +465,7 @@ export async function postProcessPlan(
           initiatorId: AGENT_TYPES.STRATEGIC_PLANNER,
           depth: depth ?? 0,
           sessionId,
+          workspaceId,
         });
       } else {
         const { dispatchTask: dispatcher } = await import('../../tools/knowledge/agent');
