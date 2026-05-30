@@ -14,10 +14,9 @@ const processedEvents = new LRUSet<string>(DEDUP_MAX_SIZE);
  * Orchestrates parallel aggregation, DAG updates, or initiator wakeup.
  */
 export async function handleTaskResult(
-  event: { 'detail-type': string; detail: Record<string, unknown>; id?: string },
+  eventDetail: Record<string, unknown>,
   detailType: string
 ): Promise<void> {
-  const eventDetail = event.detail;
   const workspaceId = (eventDetail.workspaceId as string) || undefined;
 
   const stablePayload = { ...eventDetail };
@@ -29,10 +28,7 @@ export async function handleTaskResult(
     .substring(0, 16);
 
   const idempotencyKey =
-    (eventDetail.idempotencyKey as string) ||
-    (eventDetail.__envelopeId as string) ||
-    (event.id as string) ||
-    contentHash;
+    (eventDetail.idempotencyKey as string) || (eventDetail.__envelopeId as string) || contentHash;
 
   if (processedEvents.has(idempotencyKey)) return;
   processedEvents.add(idempotencyKey);
@@ -66,7 +62,7 @@ export async function handleTaskResult(
     const { routeToDlq } = await import('../route-to-dlq');
     const { emitMetrics, METRICS } = await import('../../lib/metrics');
     await routeToDlq(
-      event,
+      { 'detail-type': detailType, detail: eventDetail },
       detailType,
       'SYSTEM',
       traceId,
