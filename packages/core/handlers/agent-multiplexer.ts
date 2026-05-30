@@ -235,7 +235,39 @@ export const handler = async (
       await sessionStateManager.renewProcessing(sessionId, targetAgent, scope);
     }
 
-    const agentModule = await import(handlerPath);
+    let agentModule: any;
+    switch (targetAgent) {
+      case AGENT_TYPES.CODER:
+        agentModule = await import('../agents/coder');
+        break;
+      case AGENT_TYPES.RESEARCHER:
+        agentModule = await import('../agents/researcher');
+        break;
+      case AGENT_TYPES.CRITIC:
+        agentModule = await import('../agents/critic');
+        break;
+      case AGENT_TYPES.FACILITATOR:
+        agentModule = await import('../agents/facilitator');
+        break;
+      case AGENT_TYPES.MERGER:
+        agentModule = await import('../agents/merger');
+        break;
+      case AGENT_TYPES.QA:
+        agentModule = await import('../agents/qa');
+        break;
+      case AGENT_TYPES.STRATEGIC_PLANNER:
+        agentModule = await import('../agents/strategic-planner');
+        break;
+      case AGENT_TYPES.COGNITION_REFLECTOR:
+        agentModule = await import('../agents/cognition-reflector');
+        break;
+      default:
+        if (handlerPath === './agent-runner') {
+          agentModule = await import('./agent-runner');
+        } else {
+          agentModule = await import(handlerPath);
+        }
+    }
 
     if (typeof agentModule.handler === 'function') {
       return await agentModule.handler(event, context);
