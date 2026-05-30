@@ -59,10 +59,7 @@ describe('task-result-handler.unit', () => {
       sessionId: 's1',
     };
 
-    await handleTaskResult(
-      { 'detail-type': EventType.TASK_COMPLETED, detail: eventDetail, id: 'test-id' },
-      EventType.TASK_COMPLETED
-    );
+    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
 
     expect(shared.wakeupInitiator as any).toHaveBeenCalledTimes(1);
     const callArgs = (shared.wakeupInitiator as any).mock.calls[0];

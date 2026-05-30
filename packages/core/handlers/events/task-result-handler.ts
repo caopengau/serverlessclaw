@@ -28,7 +28,10 @@ export async function handleTaskResult(
     .substring(0, 16);
 
   const idempotencyKey =
-    (eventDetail.idempotencyKey as string) || (eventDetail.__envelopeId as string) || contentHash;
+    (eventDetail.idempotencyKey as string) ||
+    (eventDetail.__envelopeId as string) ||
+    (eventDetail.id as string) ||
+    contentHash;
 
   if (processedEvents.has(idempotencyKey)) return;
   processedEvents.add(idempotencyKey);
