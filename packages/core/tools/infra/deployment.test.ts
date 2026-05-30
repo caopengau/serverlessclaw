@@ -20,6 +20,12 @@ vi.mock('child_process', () => {
   };
 });
 
+vi.mock('isomorphic-git', () => ({
+  statusMatrix: vi.fn().mockResolvedValue([]),
+  walk: vi.fn().mockResolvedValue([]),
+  diff: vi.fn().mockResolvedValue(''),
+}));
+
 const mockArchiveOn = vi.fn();
 const mockArchivePipe = vi.fn();
 const mockArchiveFile = vi.fn();

@@ -4,6 +4,14 @@ import { existsSync } from 'fs';
 import * as path from 'path';
 import { createWorkspace, createMergeWorkspace, cleanupWorkspace } from './workspace-manager';
 import { execSync } from 'child_process';
+import * as git from 'isomorphic-git';
+
+vi.mock('isomorphic-git', () => ({
+  init: vi.fn().mockResolvedValue(undefined),
+  add: vi.fn().mockResolvedValue(undefined),
+  commit: vi.fn().mockResolvedValue(undefined),
+  statusMatrix: vi.fn().mockResolvedValue([]),
+}));
 
 vi.mock('child_process', () => {
   const mockExecSync = vi.fn((cmd: string) => {
@@ -103,8 +111,26 @@ describe('WorkspaceManager', () => {
     );
   });
 
-  it('should throw Error if git init fails', async () => {
+  it('should fallback to isomorphic-git if system git fails', async () => {
     (global as any).__FAIL_GIT__ = true;
+    const wsPath = await createWorkspace(traceId);
+    createdPaths.push(wsPath);
+
+    expect(wsPath).toContain('/tmp/workspace-test-trace-123');
+    expect(git.init).toHaveBeenCalledWith(expect.objectContaining({ dir: wsPath }));
+    expect(git.add).toHaveBeenCalledWith(expect.objectContaining({ dir: wsPath, filepath: '.' }));
+    expect(git.commit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dir: wsPath,
+        author: expect.objectContaining({ name: 'Claw Agent' }),
+      })
+    );
+    (global as any).__FAIL_GIT__ = false;
+  });
+
+  it('should throw Error if both git methods fail', async () => {
+    (global as any).__FAIL_GIT__ = true;
+    vi.mocked(git.init).mockRejectedValueOnce(new Error('isogit fail'));
     try {
       await expect(createWorkspace(traceId)).rejects.toThrow('WORKSPACE_GIT_INIT_FAILED');
     } finally {

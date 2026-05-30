@@ -10,6 +10,8 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { createWriteStream } from 'fs';
 import archiver from 'archiver';
+import * as git from 'isomorphic-git';
+import * as nodefs from 'fs';
 
 const s3Client = new S3Client({});
 
@@ -60,7 +62,19 @@ export const stageChanges = {
           .filter(Boolean);
         gitFiles.forEach((f) => allFilesToStage.add(f));
       } catch (e) {
-        logger.warn('Failed to get git modified files, falling back to provided modifiedFiles', e);
+        logger.warn('System git failed, falling back to isomorphic-git for statusMatrix', e);
+        try {
+          const matrix = await git.statusMatrix({ fs: nodefs, dir: process.cwd() });
+          // statusMatrix returns [filepath, head, workdir, stage]
+          // head=1, workdir=2 means modified
+          // head=0, workdir=2 means untracked
+          const modified = matrix
+            .filter((row: any[]) => (row[2] as number) === 2 && (row[1] as number) !== 2) // Modified or Untracked
+            .map((row) => row[0]);
+          modified.forEach((f) => allFilesToStage.add(f));
+        } catch (matrixError) {
+          logger.error('isomorphic-git statusMatrix failed:', matrixError);
+        }
       }
 
       const finalFiles = Array.from(allFilesToStage);

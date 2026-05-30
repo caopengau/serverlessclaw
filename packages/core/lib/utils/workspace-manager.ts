@@ -4,6 +4,8 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 import { logger } from '../logger';
 import { getStagingBucketName } from './resource-helpers';
+import * as git from 'isomorphic-git';
+import * as nodefs from 'fs';
 
 /**
  * Common workspace setup logic.
@@ -57,10 +59,26 @@ async function setupWorkspace(
   // Required because Coder Agent tools like generatePatch need a Git repo.
   // We also configure a local user to avoid "Author identity unknown" errors.
   try {
-    execSync(
-      `git init -q && git config user.email "agent@claw.local" && git config user.name "Claw Agent" && git add -A && git commit -q -m "${commitMsg}"`,
-      { cwd: workspacePath, encoding: 'utf-8', timeout: 30000 }
-    );
+    // Attempt system git first (fastest)
+    try {
+      execSync(
+        `git init -q && git config user.email "agent@claw.local" && git config user.name "Claw Agent" && git add -A && git commit -q -m "${commitMsg}"`,
+        { cwd: workspacePath, encoding: 'utf-8', timeout: 30000 }
+      );
+      logger.info('Initialized git workspace using system git.');
+    } catch (gitError) {
+      logger.warn(`System git failed, falling back to isomorphic-git: ${gitError}`);
+      // Fallback to isomorphic-git (works in serverless environments)
+      await git.init({ fs: nodefs, dir: workspacePath });
+      await git.add({ fs: nodefs, dir: workspacePath, filepath: '.' });
+      await git.commit({
+        fs: nodefs,
+        dir: workspacePath,
+        author: { name: 'Claw Agent', email: 'agent@claw.local' },
+        message: commitMsg,
+      });
+      logger.info('Initialized git workspace using isomorphic-git.');
+    }
   } catch (error) {
     logger.error(`Failed to initialize git in workspace: ${error}`);
     throw new Error(

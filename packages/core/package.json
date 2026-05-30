@@ -39,6 +39,8 @@
     "@openai/agents-core": "^0.11.0",
     "@serverlessclaw/integration-github": "workspace:*",
     "archiver": "^7.0.1",
+    "isomorphic-git": "^1.25.10",
+    "http-node": "^1.2.0",
     "openai": "^6.31.0",
     "uuid": "^14.0.0",
     "zod": "^4.3.6"
