@@ -97,6 +97,7 @@ vi.mock('../lib/registry', () => ({
     getRawConfig: vi.fn().mockResolvedValue({}),
     recordToolUsage: vi.fn().mockResolvedValue(undefined),
     initializeToolStats: vi.fn().mockResolvedValue(undefined),
+    isBackboneAgent: vi.fn().mockReturnValue(false),
   },
 }));
 
