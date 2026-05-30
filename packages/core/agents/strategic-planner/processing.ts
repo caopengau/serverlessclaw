@@ -34,6 +34,7 @@ interface PostProcessingOptions {
   isScheduledReview: boolean;
   config: { name: string };
   metadata: Record<string, unknown>;
+  workspaceId?: string;
 }
 
 /**
@@ -62,6 +63,7 @@ export async function postProcessPlan(
     isScheduledReview,
     config,
     metadata,
+    workspaceId,
   } = options;
 
   const { extractBaseUserId } = await import('../../lib/utils/agent-helpers');
@@ -141,6 +143,7 @@ export async function postProcessPlan(
           initiatorId,
           depth,
           sessionId,
+          workspaceId,
           userNotified: !isFailure,
         })
       );
@@ -371,6 +374,7 @@ export async function postProcessPlan(
         initiatorId: AGENT_TYPES.STRATEGIC_PLANNER,
         depth: depth ?? 0,
         sessionId,
+        workspaceId,
       });
 
       const councilPlanKey = `TEMP#COUNCIL_PLAN#${councilTraceId}`;
@@ -475,6 +479,7 @@ export async function postProcessPlan(
           },
           traceId,
           sessionId,
+          workspaceId,
         });
       }
     } else if (!isFailure && processedGapIds.length > 0) {

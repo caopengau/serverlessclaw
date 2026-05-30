@@ -272,6 +272,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       isScheduledReview: isScheduledReview || false,
       config,
       metadata: (metadata as unknown as Record<string, unknown>) || {},
+      workspaceId,
     });
   } finally {
     if (primaryGapLockAcquired && gapId) {
