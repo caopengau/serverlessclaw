@@ -10,12 +10,32 @@ import { bootstrap } from '../lib/bootstrap';
  * Agent Multiplexer (Mono-lambda).
  * Routes incoming EventBridge tasks to the specialized agent logic.
  * Consolidated into a single high-performance Lambda to reduce cold-start latency.
+ *
+ * Also handles SQS FIFO events from PlannerQueue: each SQS Record body is a
+ * JSON-encoded EventBridge-style payload { source, 'detail-type', detail }.
  */
 export const handler = async (
   event: Record<string, unknown>,
   context: Context
 ): Promise<unknown> => {
   await bootstrap();
+
+  // SQS FIFO record (PlannerQueue) — unwrap the single record and re-enter as an
+  // EventBridge-shaped event.  The queue is configured with batchSize=1, so Records
+  // always contains exactly one entry when this path is taken.
+  if (Array.isArray(event.Records) && (event.Records as unknown[]).length > 0) {
+    const record = (event.Records as Array<Record<string, unknown>>)[0];
+    if (record?.eventSource === 'aws:sqs' && typeof record.body === 'string') {
+      try {
+        const parsed = JSON.parse(record.body) as Record<string, unknown>;
+        return handler(parsed, context);
+      } catch (e) {
+        logger.error('[MULTIPLEXER] Failed to parse SQS record body:', e);
+        throw e; // re-throw so SQS retries the message
+      }
+    }
+  }
+
   const detailType = (event['detail-type'] as string) || (event.type as string);
 
   // 1. Handle Centralized Warmup

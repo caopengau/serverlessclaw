@@ -1,9 +1,11 @@
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { SQSClient } from '@aws-sdk/client-sqs';
 import { getAgentBusName } from '../resource-helpers';
 
 let _eventbridge: EventBridgeClient | null = null;
+let _sqs: SQSClient | null = null;
 let _db: DynamoDBDocumentClient | null = null;
 let _busName: string | null = null;
 let _memoryTableName: string | null = null;
@@ -15,6 +17,15 @@ export function getEventBridge(): EventBridgeClient {
 
 export function resetEventBridge(): void {
   _eventbridge = null;
+}
+
+export function getSQSClient(): SQSClient {
+  if (!_sqs) _sqs = new SQSClient({});
+  return _sqs;
+}
+
+export function resetSQSClient(): void {
+  _sqs = null;
 }
 
 export function getDb(): DynamoDBDocumentClient {

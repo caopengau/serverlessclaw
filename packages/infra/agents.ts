@@ -38,6 +38,7 @@ export function createAgents(
     secrets,
     bus,
     dlq,
+    plannerQueue,
   } = ctx;
 
   const validSecrets = getValidSecrets(secrets);
@@ -60,6 +61,7 @@ export function createAgents(
     dataLakeBucket,
     ...validSecrets,
     ...(ctx.realtime ? [ctx.realtime] : []),
+    ...(plannerQueue ? [plannerQueue] : []),
   ].filter(Boolean);
 
   const basePermissions = [
@@ -67,6 +69,8 @@ export function createAgents(
       actions: ['cloudwatch:PutMetricData', 'iot:Publish'],
       resources: ['*'],
     },
+    // Allow all agent Lambdas to enqueue strategic planner tasks
+    ...(plannerQueue ? [{ actions: ['sqs:SendMessage'], resources: [plannerQueue.arn] }] : []),
     ...(mcpServers
       ? [
           {
@@ -115,16 +119,18 @@ export function createAgents(
   };
 
   // 1. Create Multiplexers
-  const { highPowerMultiplexer, standardMultiplexer, lightMultiplexer } = createMultiplexers(ctx, {
-    prefix,
-    liveInLocalOnly,
-    baseLink,
-    basePermissions,
-    schedulerPermissions,
-    agentEnv,
-    tenantFilter,
-    dlq,
-  });
+  const { highPowerMultiplexer, standardMultiplexer, lightMultiplexer, plannerConsumer } =
+    createMultiplexers(ctx, {
+      prefix,
+      liveInLocalOnly,
+      baseLink,
+      basePermissions,
+      schedulerPermissions,
+      agentEnv,
+      tenantFilter,
+      dlq,
+      plannerQueue,
+    });
 
   // 2. Create System Handlers
   const { eventHandler, notifier, agentRunner, bridge, dlqHandler } = createSystemHandlers(ctx, {
@@ -167,7 +173,7 @@ export function createAgents(
   return {
     coderAgent: highPowerMultiplexer,
     researcherAgent: highPowerMultiplexer,
-    plannerAgent: highPowerMultiplexer,
+    plannerAgent: plannerConsumer ?? highPowerMultiplexer,
     qaAgent: standardMultiplexer,
     criticAgent: lightMultiplexer,
     reflectorAgent: lightMultiplexer,

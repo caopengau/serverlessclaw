@@ -43,6 +43,7 @@ export interface SharedContext {
   heartbeatHandler?: sst.aws.Function;
   schedulerRole?: aws.iam.Role;
   dlq?: sst.aws.Queue;
+  plannerQueue?: sst.aws.Queue;
   multiplexer?: sst.aws.Function;
   agents?: AgentFunctionResources;
 }

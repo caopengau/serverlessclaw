@@ -96,6 +96,8 @@ export const getTraceTableName = () =>
   resolveSSTResourceValue('TraceTable', 'name', 'TRACE_TABLE_NAME');
 export const getConfigTableName = () =>
   resolveSSTResourceValue('ConfigTable', 'name', 'CONFIG_TABLE_NAME');
+export const getPlannerQueueUrl = () =>
+  resolveSSTResourceValue('PlannerQueue', 'url', 'PLANNER_QUEUE_URL');
 
 /** Gets application metadata (name and stage) */
 export function getAppInfo(): { name: string; stage: string } {

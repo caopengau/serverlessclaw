@@ -1,13 +1,21 @@
 import { PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { SendMessageCommand } from '@aws-sdk/client-sqs';
 import { logger } from '../../logger';
 import { BUS } from '../../constants';
-import { getEventBridge, getBusName } from './client';
+import { getEventBridge, getBusName, getSQSClient } from './client';
+import { getPlannerQueueUrl } from '../resource-helpers';
 import { reserveIdempotencyKey, commitIdempotencyKey } from './idempotency';
 import { storeInDLQ, purgeDlqEntry } from './dlq';
 import { EventOptions, EventPriority, ErrorCategory, DlqEntry, EventType } from './types';
 
 const MAX_RETRIES = BUS.MAX_RETRIES;
 const INITIAL_BACKOFF_MS = BUS.INITIAL_BACKOFF_MS;
+
+/** Event types that must be serialised through the SQS FIFO PlannerQueue. */
+const PLANNER_EVENT_TYPES: ReadonlySet<string> = new Set([
+  EventType.STRATEGIC_PLANNER_TASK,
+  EventType.EVOLUTION_PLAN,
+]);
 
 function categorizeError(error: unknown): ErrorCategory {
   if (error instanceof Error) {
@@ -68,6 +76,12 @@ export async function emitEvent(
       logger.info(`Duplicate event detected: ${idempotencyKey}`);
       return { success: false, reason: 'DUPLICATE' };
     }
+  }
+
+  // Strategic planner events are routed through SQS FIFO to prevent concurrent
+  // gap-lock races. MessageGroupId=workspaceId ensures serial execution per workspace.
+  if (PLANNER_EVENT_TYPES.has(type as string)) {
+    return emitPlannerEvent(source, type as string, detail, { idempotencyKey, workspaceId });
   }
 
   const busName = await getBusName();
@@ -140,6 +154,57 @@ export async function emitEvent(
     }
   }
   return { success: false, reason: 'MAX_RETRIES' };
+}
+
+/**
+ * Routes a strategic planner event to the SQS FIFO PlannerQueue.
+ * Using MessageGroupId=workspaceId guarantees at-most-one concurrent planner
+ * execution per workspace, eliminating the GAP_LOCK race condition.
+ */
+async function emitPlannerEvent(
+  source: string,
+  type: string,
+  detail: Record<string, unknown>,
+  opts: { idempotencyKey?: string; workspaceId?: string }
+): Promise<{ success: boolean; eventId?: string; reason?: string }> {
+  const queueUrl = getPlannerQueueUrl();
+  if (!queueUrl) {
+    logger.warn(`[Bus] PlannerQueue URL unavailable — falling back to EventBridge for ${type}`);
+    // Graceful degradation: fall through to EventBridge so events aren't silently dropped
+    const busName = await getBusName();
+    const command = new PutEventsCommand({
+      Entries: [
+        { Source: source, DetailType: type, Detail: JSON.stringify(detail), EventBusName: busName },
+      ],
+    });
+    await getEventBridge().send(command);
+    return { success: true };
+  }
+
+  const body = JSON.stringify({ source, 'detail-type': type, detail });
+  const messageGroupId = opts.workspaceId ?? 'global';
+
+  try {
+    const result = await getSQSClient().send(
+      new SendMessageCommand({
+        QueueUrl: queueUrl,
+        MessageBody: body,
+        MessageGroupId: messageGroupId,
+        // Content-based deduplication is enabled on the queue; no explicit
+        // MessageDeduplicationId needed.
+      })
+    );
+    if (opts.idempotencyKey) {
+      await commitIdempotencyKey(opts.idempotencyKey, result.MessageId, opts.workspaceId);
+    }
+    logger.info(`[Bus] Planner event ${type} enqueued (group=${messageGroupId})`, {
+      messageId: result.MessageId,
+    });
+    return { success: true, eventId: result.MessageId };
+  } catch (error) {
+    logger.error(`[Bus] Failed to enqueue planner event ${type}:`, error);
+    return { success: false, reason: 'SQS_ERROR' };
+  }
 }
 
 export async function retryDlqEntry(entry: DlqEntry): Promise<boolean> {

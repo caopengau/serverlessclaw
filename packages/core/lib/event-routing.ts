@@ -9,13 +9,12 @@ import { logger } from './logger';
 export const EVENTBRIDGE_ONLY_EVENTS: EventType[] = [
   EventType.CODER_TASK,
   EventType.RESEARCH_TASK,
-  EventType.EVOLUTION_PLAN,
+  // EVOLUTION_PLAN removed — now in SQS_ONLY_EVENTS (PlannerQueue FIFO)
   EventType.REFLECT_TASK,
   EventType.MERGER_TASK,
   EventType.CRITIC_TASK,
   EventType.FACILITATOR_TASK,
   EventType.QA_TASK,
-  EventType.STRATEGIC_PLANNER_TASK,
   EventType.COGNITION_REFLECTOR_TASK,
   EventType.CODER_TASK_COMPLETED,
   EventType.OUTBOUND_MESSAGE,
@@ -34,6 +33,19 @@ export const EVENTBRIDGE_ONLY_EVENTS: EventType[] = [
 ];
 
 /**
+ * Event types that are routed directly to an SQS FIFO queue (PlannerQueue)
+ * instead of EventBridge. They bypass the events.ts Lambda fallback handler
+ * and bypass EventBridge subscriptions.
+ *
+ * These events require serial execution per workspace to prevent concurrent
+ * gap-lock races in the self-evolution loop.
+ */
+export const SQS_ONLY_EVENTS: EventType[] = [
+  EventType.STRATEGIC_PLANNER_TASK,
+  EventType.EVOLUTION_PLAN,
+];
+
+/**
  * Verifies that event types expected to be handled by EventBridge are not
  * present in the DEFAULT_EVENT_ROUTING (to prevent silent event loss).
  * Also checks for event types defined in EventType enum but missing handlers.
@@ -42,11 +54,11 @@ export const EVENTBRIDGE_ONLY_EVENTS: EventType[] = [
 export function verifyEventRoutingConfiguration(): EventType[] {
   const mismatches: EventType[] = [];
 
-  // Check 1: EventBridge-only events should not be in fallback routing
-  for (const eventType of EVENTBRIDGE_ONLY_EVENTS) {
+  // Check 1: EventBridge-only and SQS-only events should not be in fallback routing
+  for (const eventType of [...EVENTBRIDGE_ONLY_EVENTS, ...SQS_ONLY_EVENTS]) {
     if (eventType in DEFAULT_EVENT_ROUTING) {
       logger.error(
-        `[EventRouting] CRITICAL: ${eventType} found in DEFAULT_EVENT_ROUTING but should only be handled via EventBridge. This will cause duplicate processing.`
+        `[EventRouting] CRITICAL: ${eventType} found in DEFAULT_EVENT_ROUTING but should only be handled via EventBridge/SQS. This will cause duplicate processing.`
       );
       mismatches.push(eventType);
     }
@@ -58,6 +70,7 @@ export function verifyEventRoutingConfiguration(): EventType[] {
   const handledEvents = new Set([
     ...Object.keys(DEFAULT_EVENT_ROUTING),
     ...EVENTBRIDGE_ONLY_EVENTS,
+    ...SQS_ONLY_EVENTS, // PlannerQueue FIFO events — not EventBridge but still handled
   ]);
 
   for (const eventType of allDefinedEvents) {
@@ -84,10 +97,13 @@ export function verifyEventRoutingConfiguration(): EventType[] {
 /**
  * Hardcoded fallback for event routing if DynamoDB is unavailable or key is missing.
  *
- * NOTE: Agent task events (CODER_TASK, RESEARCH_TASK, EVOLUTION_PLAN, REFLECT_TASK,
+ * NOTE: Agent task events (CODER_TASK, RESEARCH_TASK, REFLECT_TASK,
  * MERGER_TASK, CRITIC_TASK, FACILITATOR_TASK, QA_TASK) are strictly excluded.
  * These events are routed directly to their respective multiplexer Lambdas via
  * EventBridge subscriptions (infra/agents.ts).
+ *
+ * STRATEGIC_PLANNER_TASK and EVOLUTION_PLAN are also excluded — they are routed
+ * via SQS FIFO PlannerQueue for serial execution (infra/bus.ts + infra/agents.ts).
  */
 const BASE_EVENT_ROUTING: EventRoutingTable = {
   [EventType.SYSTEM_BUILD_FAILED]: {

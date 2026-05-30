@@ -1,7 +1,8 @@
 /**
  * Creates the event bus and realtime communication resources for agent orchestration.
  *
- * @returns An object containing the AgentBus (EventBridge), RealtimeBus (IoT Core), and DLQ (SQS) instances.
+ * @returns An object containing the AgentBus (EventBridge), RealtimeBus (IoT Core),
+ *          DLQ (SQS), and PlannerQueue (SQS FIFO) instances.
  */
 export function createBus(options: { pathPrefix?: string } = {}) {
   const prefix = options.pathPrefix ?? '';
@@ -26,5 +27,23 @@ export function createBus(options: { pathPrefix?: string } = {}) {
     },
   });
 
-  return { bus, realtime, dlq };
+  // FIFO queue for strategic planner tasks — guarantees serial execution per workspace
+  // and eliminates the concurrent GAP_LOCK races that plague the self-evolution loop.
+  // MessageGroupId = workspaceId ensures one in-flight planner task per workspace.
+  const plannerQueue = new sst.aws.Queue('PlannerQueue', {
+    fifo: true,
+    transform: {
+      queue: {
+        contentBasedDeduplication: true, // dedup identical messages within 5-min window
+        visibilityTimeoutSeconds: 660, // must exceed Lambda max timeout (600 s)
+        messageRetentionSeconds: 4 * 24 * 60 * 60, // 4 days
+        receiveMessageWaitTimeSeconds: 20,
+        redrivePolicy: dlq
+          ? $util.jsonStringify({ deadLetterTargetArn: dlq.arn, maxReceiveCount: 3 })
+          : undefined,
+      },
+    },
+  });
+
+  return { bus, realtime, dlq, plannerQueue };
 }

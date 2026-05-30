@@ -86,8 +86,8 @@ export default $config({
       secrets,
     } = createStorage();
 
-    // 2. Multi-Agent Orchestration (EventBridge)
-    const { bus, realtime, dlq } = createBus();
+    // 2. Multi-Agent Orchestration (EventBridge + SQS)
+    const { bus, realtime, dlq, plannerQueue } = createBus();
 
     // 3. The Deployer (CodeBuild)
     const { deployer, linkable: deployerLink } = createDeployer({
@@ -140,6 +140,7 @@ export default $config({
         deployerLink,
         realtime,
         dlq,
+        plannerQueue,
         api, // Linkable API instance
         multiplexer,
       },

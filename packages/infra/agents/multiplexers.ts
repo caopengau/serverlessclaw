@@ -16,6 +16,7 @@ interface MultiplexerOptions {
   agentEnv: Record<string, string>;
   tenantFilter: Record<string, unknown>;
   dlq?: sst.aws.Queue;
+  plannerQueue?: sst.aws.Queue;
 }
 
 export function createMultiplexers(ctx: SharedContext, options: MultiplexerOptions) {
@@ -29,9 +30,13 @@ export function createMultiplexers(ctx: SharedContext, options: MultiplexerOptio
     agentEnv,
     tenantFilter,
     dlq,
+    plannerQueue,
   } = options;
 
-  // 1. High-Power Multiplexer (Coder, Researcher, Strategic Planner)
+  // 1. High-Power Multiplexer (Coder, Researcher)
+  // NOTE: STRATEGIC_PLANNER_TASK and EVOLUTION_PLAN are intentionally excluded here.
+  //       They are now routed via PlannerQueue (SQS FIFO) to prevent concurrent
+  //       gap-lock races in the self-evolution loop.
   const highPowerMultiplexer = new sst.aws.Function('HighPowerMultiplexer', {
     handler: `${prefix}packages/core/handlers/agent-multiplexer.handler`,
     dev: liveInLocalOnly,
@@ -53,12 +58,35 @@ export function createMultiplexers(ctx: SharedContext, options: MultiplexerOptio
       detailType: [
         EventType.CODER_TASK,
         EventType.RESEARCH_TASK,
-        EventType.EVOLUTION_PLAN,
-        EventType.STRATEGIC_PLANNER_TASK,
+        // EVOLUTION_PLAN + STRATEGIC_PLANNER_TASK removed — now serial via PlannerQueue
       ],
     },
     transform: { target: { deadLetterConfig: dlq ? { arn: dlq.arn } : undefined } },
   });
+
+  // 1b. Planner Consumer — dedicated SQS FIFO consumer for strategic planner tasks.
+  //     batchSize=1 + FIFO MessageGroupId=workspaceId means only one planner task
+  //     runs per workspace at a time, eliminating concurrent GAP_LOCK races.
+  let plannerConsumer: sst.aws.Function | undefined;
+  if (plannerQueue) {
+    plannerConsumer = plannerQueue.subscribe(
+      {
+        handler: `${prefix}packages/core/handlers/agent-multiplexer.handler`,
+        dev: liveInLocalOnly,
+        link: [...baseLink, stagingBucket, deployerLink].filter(Boolean) as sst.Linkable<
+          Record<string, unknown>
+        >[],
+        permissions: [...basePermissions, ...schedulerPermissions],
+        architecture: LAMBDA_ARCHITECTURE,
+        nodejs: { loader: NODEJS_LOADERS },
+        environment: { ...agentEnv, MULTIPLEXER_TIER: 'planner' },
+        memory: AGENT_CONFIG.memory.LARGE,
+        timeout: AGENT_CONFIG.timeout.MAX,
+        logging: { retention: LOG_RETENTION_PERIOD },
+      },
+      { batch: { size: 1 } }
+    );
+  }
 
   // 2. Standard Multiplexer (QA, Facilitator)
   const standardMultiplexer = new sst.aws.Function('StandardMultiplexer', {
@@ -120,5 +148,6 @@ export function createMultiplexers(ctx: SharedContext, options: MultiplexerOptio
     highPowerMultiplexer,
     standardMultiplexer,
     lightMultiplexer,
+    plannerConsumer,
   };
 }
