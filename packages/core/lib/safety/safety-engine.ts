@@ -62,7 +62,12 @@ function normalizeSafetyAction(action: string, toolName?: string): string {
   if (CLASS_C_ACTIONS.map((a) => a.toLowerCase()).includes(lowerAction)) {
     return lowerAction;
   }
-  if (lowerToolName.includes('deployment') || lowerToolName.includes('deploy')) return 'deployment';
+  if (
+    lowerToolName.includes('deployment') ||
+    lowerToolName.includes('deploy') ||
+    lowerToolName.includes('stage')
+  )
+    return 'deployment';
   if (
     lowerToolName.includes('shell') ||
     lowerToolName.includes('command') ||

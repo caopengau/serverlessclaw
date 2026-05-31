@@ -66,7 +66,7 @@ export const infraSchema: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
     connectionProfile: ['codebuild'],
-    requiresApproval: true,
+    requiresApproval: false,
     requiredPermissions: ['admin'],
   },
   triggerInfraRebuild: {
