@@ -95,6 +95,7 @@ export const dispatchTask = {
       depth,
       sessionId,
       workspaceId,
+      userRole,
     } = args as {
       agentId: string;
       userId: string;
@@ -106,6 +107,7 @@ export const dispatchTask = {
       depth?: number;
       sessionId?: string;
       workspaceId?: string;
+      userRole?: string;
     };
 
     if (agentId === 'superclaw') {
@@ -148,6 +150,7 @@ export const dispatchTask = {
           depth: (depth ?? 0) + 1,
           sessionId,
           workspaceId,
+          userRole,
         });
       }
       return `TASK_PAUSED: I have decomposed this mission into ${decomposition.totalSubTasks} sub-tasks and dispatched them to the appropriate agents. Monitoring progress...`;
@@ -169,6 +172,7 @@ export const dispatchTask = {
         depth: (depth ?? 0) + 1,
         sessionId,
         workspaceId,
+        userRole,
       });
       return `TASK_PAUSED: I have successfully dispatched this task to the **${agentId}** agent. I'll let you know once they have an update.`;
     } catch (error) {
@@ -194,6 +198,7 @@ export const technicalResearch = {
       depth,
       sessionId,
       workspaceId,
+      userRole,
     } = args as {
       goal: string;
       agentId?: string;
@@ -205,6 +210,7 @@ export const technicalResearch = {
       depth?: number;
       sessionId?: string;
       workspaceId?: string;
+      userRole?: string;
     };
 
     const targetAgentId = agentId ?? 'researcher';
@@ -227,6 +233,7 @@ export const technicalResearch = {
         depth: depth ?? 0,
         sessionId,
         workspaceId,
+        userRole,
       });
       return `RESEARCH_INITIATED: I have successfully dispatched a technical research mission to the **${targetAgentId}** agent. I'll let you know once they have an update.`;
     } catch (error) {

@@ -35,6 +35,7 @@ interface PostProcessingOptions {
   config: { name: string };
   metadata: Record<string, unknown>;
   workspaceId?: string;
+  userRole?: string;
 }
 
 /**
@@ -64,6 +65,7 @@ export async function postProcessPlan(
     config,
     metadata,
     workspaceId,
+    userRole,
   } = options;
 
   const { extractBaseUserId } = await import('../../lib/utils/agent-helpers');
@@ -375,6 +377,7 @@ export async function postProcessPlan(
         depth: depth ?? 0,
         sessionId,
         workspaceId,
+        userRole,
       });
 
       const councilPlanKey = `TEMP#COUNCIL_PLAN#${councilTraceId}`;
@@ -466,6 +469,7 @@ export async function postProcessPlan(
           depth: depth ?? 0,
           sessionId,
           workspaceId,
+          userRole,
         });
       } else {
         const { dispatchTask: dispatcher } = await import('../../tools/knowledge/agent');
@@ -481,6 +485,7 @@ export async function postProcessPlan(
           traceId,
           sessionId,
           workspaceId,
+          userRole,
         });
       }
     } else if (!isFailure && processedGapIds.length > 0) {

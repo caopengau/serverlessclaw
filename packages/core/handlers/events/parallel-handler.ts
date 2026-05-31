@@ -27,6 +27,7 @@ export interface ParallelTaskEvent {
   tokenBudget?: number;
   costLimit?: number;
   workspaceId?: string;
+  userRole?: string;
 }
 
 const DEFAULT_BARRIER_TIMEOUT_MS = TIME.MS_PER_MINUTE * 5;
@@ -49,6 +50,7 @@ export async function handleParallelDispatch(
     tokenBudget,
     costLimit,
     workspaceId,
+    userRole,
   } = detail;
 
   const timeoutMs =
@@ -201,7 +203,8 @@ export async function handleParallelDispatch(
           userId,
           perTaskBudget,
           perTaskCost,
-          workspaceId
+          workspaceId,
+          userRole
         );
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -307,7 +310,8 @@ export async function handleParallelDispatch(
         userId,
         perTaskBudget,
         perTaskCost,
-        workspaceId
+        workspaceId,
+        userRole
       );
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -406,7 +410,8 @@ async function dispatchTask(
   userId: string,
   tokenBudget?: number,
   costLimit?: number,
-  workspaceId?: string
+  workspaceId?: string,
+  userRole?: string
 ): Promise<void> {
   const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
 
@@ -430,5 +435,6 @@ async function dispatchTask(
     tokenBudget,
     costLimit,
     workspaceId,
+    userRole,
   });
 }
