@@ -1,8 +1,11 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { SelfVerificationStatus } from '../types/system';
 import { GapStatus } from '../types/index';
 import { runDeepHealthCheck } from './health';
+import { ConfigManager } from '../registry/config';
+import { DYNAMO_KEYS, SYSTEM } from '../constants/system';
+import { getDeployCountToday } from '../metrics/deploy-stats';
 import { getMemoryTableName, getConfigTableName } from '../utils/ddb-client';
 
 // Default client for backward compatibility - can be overridden via constructor for testing
@@ -55,9 +58,15 @@ export class SelfVerifier {
     const gapResult = await this.docClient.send(
       new ScanCommand({
         TableName: memoryTable,
-        FilterExpression: 'begins_with(id, :gapPrefix)',
+        FilterExpression:
+          '(begins_with(userId, :gapPrefix) OR begins_with(userId, :workspaceGapPrefix)) AND #type = :gapType',
+        ExpressionAttributeNames: {
+          '#type': 'type',
+        },
         ExpressionAttributeValues: {
           ':gapPrefix': 'GAP#',
+          ':workspaceGapPrefix': 'WS#default#GAP#',
+          ':gapType': 'GAP',
         },
       })
     );
@@ -65,7 +74,8 @@ export class SelfVerifier {
     const gaps = gapResult.Items ?? [];
     const totalGaps = gaps.length;
     const activeGaps = gaps.filter(
-      (g) => g.status === GapStatus.OPEN || g.status === GapStatus.PROGRESS
+      (g) =>
+        g.status === GapStatus.OPEN || g.status === GapStatus.PROGRESS || g.status === 'IN_PROGRESS'
     ).length;
     const doneGaps = gaps.filter((g) => g.status === GapStatus.DONE).length;
     const failedGaps = gaps.filter((g) => g.status === GapStatus.FAILED).length;
@@ -81,10 +91,7 @@ export class SelfVerifier {
    * Verifies the resilience mechanism by checking circuit breakers and health probes.
    */
   async verifyResilience() {
-    const memoryTable = getMemoryTableName();
-    const configTable = getConfigTableName();
-
-    if (!memoryTable || !configTable) {
+    if (!getMemoryTableName() || !getConfigTableName()) {
       return {
         circuitBreakerActive: false,
         deployCountToday: 0,
@@ -92,25 +99,14 @@ export class SelfVerifier {
       };
     }
 
-    // 1. Get Limits from Config
-    const configRes = await this.docClient.send(
-      new GetCommand({
-        TableName: configTable,
-        Key: { id: 'system:config' },
-      })
-    );
-    const deployLimit = configRes.Item?.deploy_limit ?? 5;
-
-    // 2. Check Circuit Breaker State
-    const statsResult = await this.docClient.send(
-      new GetCommand({
-        TableName: memoryTable,
-        Key: { id: 'system:deploy-stats' },
-      })
+    // 1. Get deploy limit from canonical config path
+    const deployLimit = await ConfigManager.getTypedConfig<number>(
+      DYNAMO_KEYS.DEPLOY_LIMIT,
+      SYSTEM.DEFAULT_DEPLOY_LIMIT
     );
 
-    const stats = statsResult.Item ?? { count: 0 };
-    const deployCountToday = stats.count;
+    // 2. Check current deploy count using canonical stats key
+    const deployCountToday = await getDeployCountToday();
     const circuitBreakerActive = deployCountToday >= deployLimit;
 
     // 3. Perform Deep Health Check (Non-mocked)
@@ -127,9 +123,7 @@ export class SelfVerifier {
    * Verifies the awareness mechanism by checking topology discovery.
    */
   async verifyAwareness() {
-    const configTable = getConfigTableName();
-
-    if (!configTable) {
+    if (!getConfigTableName()) {
       return {
         nodeCount: 0,
         lastScanTimestamp: undefined,
@@ -137,35 +131,41 @@ export class SelfVerifier {
       };
     }
 
-    // 1. Check discovered nodes
-    const topoResult = await this.docClient.send(
-      new GetCommand({
-        TableName: configTable,
-        Key: { id: 'topology:current' },
-      })
-    );
+    // 1. Check discovered topology from canonical config key
+    let topo = (await ConfigManager.getTypedConfig(DYNAMO_KEYS.SYSTEM_TOPOLOGY, {
+      nodes: [],
+      edges: [],
+      updatedAt: undefined,
+    })) as {
+      nodes: Array<{ type: string }>;
+      edges: unknown[];
+      updatedAt?: string;
+    };
 
-    const topo = topoResult.Item ?? { nodes: [], edges: [], updatedAt: undefined };
+    // Fallback to live discovery when topology cache is missing/stale.
+    if (!Array.isArray(topo.nodes) || topo.nodes.length === 0) {
+      try {
+        const { discoverSystemTopology } = await import('../utils/topology');
+        topo = await discoverSystemTopology();
+      } catch {
+        // Keep empty fallback topology; health gate will reflect low awareness.
+      }
+    }
+
     const nodeCount = topo.nodes.length;
     const lastScanTimestamp = topo.updatedAt;
 
-    // 2. Registry Coverage
-    // Compare agents in registry vs agents in topology
-    const registryResult = await this.docClient.send(
-      new ScanCommand({
-        TableName: configTable,
-        FilterExpression: 'begins_with(id, :agentPrefix)',
-        ExpressionAttributeValues: {
-          ':agentPrefix': 'AGENT#',
-        },
-      })
-    );
+    // 2. Compare configured agents in ConfigTable vs agents represented in topology
+    const configuredAgents = (await ConfigManager.getTypedConfig(
+      DYNAMO_KEYS.AGENTS_CONFIG,
+      {}
+    )) as Record<string, unknown>;
+    const registeredAgentCount = Object.keys(configuredAgents).length;
 
-    const registeredAgents = registryResult.Items ?? [];
-    const agentsInTopo = topo.nodes.filter((n: { type: string }) => n.type === 'agent').length;
+    const agentsInTopo = topo.nodes.filter((n) => n.type === 'agent').length;
 
     const registryCoverage =
-      registeredAgents.length > 0 ? (agentsInTopo / registeredAgents.length) * 100 : 100;
+      registeredAgentCount > 0 ? (agentsInTopo / registeredAgentCount) * 100 : 100;
 
     return {
       nodeCount,

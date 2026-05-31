@@ -199,16 +199,31 @@ export async function postProcessPlan(
           lockResults
             .filter(({ acquired }) => acquired)
             .map(async ({ numericId }) => {
-              await assignGapToTrack(memory as unknown as TrackStore, numericId, track);
-              return numericId;
+              try {
+                await assignGapToTrack(memory as unknown as TrackStore, numericId, track);
+                return numericId;
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                logger.warn(
+                  `[PLANNER] Skipping gap ${numericId} during PLANNED assignment: ${message}`
+                );
+                return null;
+              }
             })
         );
 
-        processedGapIds.push(...results);
+        processedGapIds.push(...results.filter((id): id is string => !!id));
       } else if (gapId) {
         logger.info(`Marking specific gap ${gapId} as PLANNED after design.`);
-        await assignGapToTrack(memory as unknown as TrackStore, gapId, track);
-        processedGapIds.push(gapId);
+        try {
+          await assignGapToTrack(memory as unknown as TrackStore, gapId, track);
+          processedGapIds.push(gapId);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          logger.warn(
+            `[PLANNER] Skipping primary gap ${gapId} during PLANNED assignment: ${message}`
+          );
+        }
       }
     }
 

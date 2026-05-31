@@ -1,4 +1,4 @@
-import { SelfVerifier } from '../../packages/core/lib/self-verify';
+import { SelfVerifier } from '../../packages/core/lib/lifecycle/self-verify';
 
 /**
  * CLI runner for Self-Mechanism verification.

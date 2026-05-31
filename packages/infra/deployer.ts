@@ -95,7 +95,7 @@ export function createDeployer(ctx: DeployerContext) {
     { name: 'SST_STAGE', value: $app.stage },
     { name: 'STAGING_BUCKET_NAME', value: stagingBucket.name },
     { name: 'GITHUB_REPO', value: githubRepo },
-    { name: 'TRUNK_SYNC_ENABLED', value: process.env.TRUNK_SYNC_ENABLED || 'false' },
+    { name: 'TRUNK_SYNC_ENABLED', value: process.env.TRUNK_SYNC_ENABLED || 'true' },
   ];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -241,6 +241,45 @@ describe('Strategic Planner — selective PLANNED marking', () => {
     expect(assignedGapIds.some((id) => String(id).includes('1002'))).toBe(false);
   });
 
+  it('should continue gracefully when a covered gap cannot be transitioned', async () => {
+    const validPlanText =
+      'Implement a resilient strategic enhancement for capability routing by adding robust fallback handling, richer observability, and stable transition safety checks. ' +
+      'The implementation should include deterministic validation, structured telemetry, and non-blocking degradation behavior so planner orchestration remains stable under partial data drift and stale gap identifiers.';
+
+    const planResponse = JSON.stringify({
+      status: 'SUCCESS',
+      plan: validPlanText,
+      coveredGapIds: ['GAP#1001'],
+      reasoning: 'stale id handling',
+    });
+
+    gapOperationsMocks.assignGapToTrack.mockRejectedValueOnce(
+      new Error('[GapTrack] Failed to transition 1001 to PLANNED: Gap 1001 not found in any status')
+    );
+
+    const { processEventWithAgent } = await import('../handlers/events/shared');
+    vi.mocked(processEventWithAgent).mockResolvedValueOnce({
+      responseText: 'plan response',
+      attachments: [],
+      parsedData: JSON.parse(planResponse),
+    });
+
+    const event = {
+      detail: {
+        userId: 'user-1',
+        isScheduledReview: true,
+        traceId: 'trace-assign-fail-1',
+      },
+    };
+
+    await expect(
+      handler(
+        event as unknown as Parameters<typeof handler>[0],
+        {} as unknown as Parameters<typeof handler>[1]
+      )
+    ).resolves.toBeDefined();
+  });
+
   it('should return COOLDOWN_ACTIVE if the same gapId was planned recently', async () => {
     const cooldownStore = JSON.stringify([
       { gapId: 'GAP#5001', expiresAt: Date.now() + 3_600_000 }, // still active
