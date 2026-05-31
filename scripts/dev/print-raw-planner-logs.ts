@@ -10,15 +10,15 @@ async function main() {
   const response = await client.send(
     new FilterLogEventsCommand({
       logGroupName,
-      startTime: Date.now() - 15 * 60 * 1000,
-      limit: 10000,
+      startTime: Date.now() - 2 * 60 * 1000,
+      limit: 1000,
     })
   );
 
   const events = response.events || [];
   events.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
-  console.log(`\n📊 Found ${events.length} events in the last 15 minutes:\n`);
+  console.log(`\n📊 Found ${events.length} events in the last 2 minutes:\n`);
   for (const event of events) {
     const date = new Date(event.timestamp || 0).toISOString();
     console.log(`🕒 [${date}] ${event.message?.trim()}`);

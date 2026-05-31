@@ -78,11 +78,27 @@ export const handler = async (
   const isUserRole = (value: string | undefined): value is UserRole =>
     !!value && (Object.values(UserRole) as string[]).includes(value);
 
+  const isInternalSource = (src: string): boolean => {
+    return (
+      src.startsWith('agent.') ||
+      src.startsWith('pipeline.') ||
+      src === 'superclaw' ||
+      src === 'orchestrator' ||
+      src.startsWith('system.') ||
+      src.startsWith('build.') ||
+      src.startsWith('consensus-') ||
+      src.startsWith('handoff') ||
+      src.startsWith('events.') ||
+      src.startsWith('notification.') ||
+      src.startsWith('promotion.')
+    );
+  };
+
   // Internal autonomous task events may omit userRole. Default to MEMBER so
   // system-dispatched coder/researcher tasks are not downgraded to VIEWER.
   const inferredUserRole: UserRole | undefined =
     (isUserRole(_userRole) ? _userRole : undefined) ||
-    (_source.startsWith('agent.') || _source.startsWith('pipeline.') ? UserRole.MEMBER : undefined);
+    (isInternalSource(_source) ? UserRole.MEMBER : undefined);
 
   if (inferredUserRole && !detail.userRole) {
     (detail as Record<string, unknown>).userRole = inferredUserRole;

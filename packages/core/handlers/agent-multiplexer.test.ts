@@ -146,4 +146,40 @@ describe('AgentMultiplexer', () => {
       'Agent merger does not export a valid handler function.'
     );
   });
+
+  it('should infer MEMBER role for internal sources like superclaw', async () => {
+    vi.mocked(agentHelpers.handleWarmup).mockResolvedValue(false);
+
+    const event = {
+      'detail-type': EventType.CODER_TASK,
+      source: 'superclaw',
+      detail: {
+        ...baseEventDetail,
+        userId: 'SYSTEM',
+        // userRole is intentionally omitted
+      },
+    };
+
+    const result = await handler(event, mockContext);
+    expect(result).toBe('CODER_DONE');
+    expect((event.detail as any).userRole).toBe('member');
+  });
+
+  it('should infer MEMBER role for internal sources like pipeline.evolution', async () => {
+    vi.mocked(agentHelpers.handleWarmup).mockResolvedValue(false);
+
+    const event = {
+      'detail-type': EventType.CODER_TASK,
+      source: 'pipeline.evolution',
+      detail: {
+        ...baseEventDetail,
+        userId: 'SYSTEM',
+        // userRole is intentionally omitted
+      },
+    };
+
+    const result = await handler(event, mockContext);
+    expect(result).toBe('CODER_DONE');
+    expect((event.detail as any).userRole).toBe('member');
+  });
 });
