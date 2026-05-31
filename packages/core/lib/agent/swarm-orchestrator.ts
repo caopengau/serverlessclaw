@@ -92,11 +92,14 @@ export async function handleSwarmDecomposition(
 
   const isPaused = isTaskPaused(responseText);
   const hasMissionMarkers = responseText.includes('### Goal:') || responseText.includes('### Step');
+  const skipDirectSmokeDecomposition =
+    payload.metadata?.directSmokeTask === true || payload.metadata?.compactTask === true;
 
   const maxDepth = await getMaxRecursionDepth();
 
   // Guard: Only decompose if not paused, not too deep, and contains mission intent
   if (
+    !skipDirectSmokeDecomposition &&
     !isContinuation &&
     !isAggregation &&
     !isPaused &&
