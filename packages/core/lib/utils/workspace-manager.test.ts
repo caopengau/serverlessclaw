@@ -136,9 +136,10 @@ describe('WorkspaceManager', () => {
           headers: { Authorization: 'Bearer test-token' },
         }
       );
-      expect(execSync).toHaveBeenCalledWith(
-        expect.stringContaining('tar -xzf "/tmp/workspace-source-'),
-        expect.objectContaining({ stdio: 'ignore' })
+      // Extraction now uses Node.js built-ins (no `tar` CLI dependency)
+      expect(execSync).not.toHaveBeenCalledWith(
+        expect.stringContaining('tar -xzf'),
+        expect.anything()
       );
     } finally {
       global.fetch = originalFetch;

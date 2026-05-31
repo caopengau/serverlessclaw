@@ -7,6 +7,59 @@ import { getStagingBucketName } from './resource-helpers';
 import * as git from 'isomorphic-git';
 import * as nodefs from 'fs';
 import { SYSTEM } from '../constants/system';
+import { createGunzip } from 'zlib';
+
+/**
+ * Extract a .tar.gz archive to a destination directory using Node.js built-ins.
+ * Strips the first path component (equivalent to --strip-components=1).
+ * This avoids a dependency on the `tar` CLI binary which is absent in Lambda.
+ */
+async function extractTarGz(archivePath: string, destDir: string): Promise<void> {
+  const gzipped = await fs.readFile(archivePath);
+
+  // Decompress gzip layer
+  const decompressed = await new Promise<Buffer>((resolve, reject) => {
+    const gunzip = createGunzip();
+    const chunks: Buffer[] = [];
+    gunzip.on('data', (chunk: Buffer) => chunks.push(chunk));
+    gunzip.on('end', () => resolve(Buffer.concat(chunks)));
+    gunzip.on('error', reject);
+    gunzip.end(gzipped);
+  });
+
+  // Parse tar format (512-byte blocks)
+  let offset = 0;
+  while (offset + 512 <= decompressed.length) {
+    const header = decompressed.subarray(offset, offset + 512);
+    const name = header.subarray(0, 100).toString('utf8').replace(/\0/g, '');
+    if (!name) break;
+
+    const sizeOctal = header.subarray(124, 136).toString('utf8').replace(/\0/g, '').trim();
+    const size = parseInt(sizeOctal, 8) || 0;
+    const typeFlag = String.fromCharCode(header[156]);
+
+    offset += 512;
+
+    // Strip first path component (repo-name-branch/ prefix from GitHub archives)
+    const parts = name.split('/');
+    const stripped = parts.slice(1).join('/');
+
+    if (stripped) {
+      const dest = path.join(destDir, stripped);
+      if (typeFlag === '5' || name.endsWith('/')) {
+        // Directory entry
+        await fs.mkdir(dest, { recursive: true });
+      } else if (typeFlag === '0' || typeFlag === '\0' || typeFlag === '') {
+        // Regular file
+        await fs.mkdir(path.dirname(dest), { recursive: true });
+        await fs.writeFile(dest, decompressed.subarray(offset, offset + size));
+      }
+    }
+
+    // Advance past file data, padded to 512-byte boundary
+    offset += Math.ceil(size / 512) * 512;
+  }
+}
 
 async function hydrateWorkspaceFromGitHub(workspacePath: string): Promise<void> {
   const pkgPath = path.join(workspacePath, 'package.json');
@@ -40,10 +93,9 @@ async function hydrateWorkspaceFromGitHub(workspacePath: string): Promise<void> 
   await fs.rm(workspacePath, { recursive: true, force: true });
   await fs.mkdir(workspacePath, { recursive: true });
 
-  execSync(`tar -xzf "${archivePath}" -C "${workspacePath}" --strip-components=1`, {
-    stdio: 'ignore',
-  });
+  await extractTarGz(archivePath, workspacePath);
   await fs.rm(archivePath, { force: true });
+  logger.info(`[Workspace] Hydration complete from ${repo}@${ref}.`);
 }
 
 /**
