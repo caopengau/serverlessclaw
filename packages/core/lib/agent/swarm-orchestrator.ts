@@ -158,6 +158,10 @@ export async function handleSwarmDecomposition(
           depth: depth,
           isParallel: true,
           dependsOn: dependsOn.length > 0 ? dependsOn : undefined,
+          workspaceId: payload.workspaceId,
+          teamId: payload.teamId,
+          staffId: payload.staffId,
+          userRole: payload.userRole,
           metadata: {
             ...payload.metadata,
             originalPlan: responseText,
@@ -204,6 +208,10 @@ export async function handleSwarmDecomposition(
         traceId,
         initiatorId: initiatorId || payload.initiatorId,
         depth,
+        workspaceId: payload.workspaceId,
+        teamId: payload.teamId,
+        staffId: payload.staffId,
+        userRole: payload.userRole,
         metadata: {
           lockedGapIds,
         },
