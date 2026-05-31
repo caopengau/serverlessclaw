@@ -15,7 +15,7 @@ vi.mock('../lib/safety/safety-engine', () => ({
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './qa';
-import { GapStatus, EvolutionMode } from '../lib/types/index';
+import { AGENT_TYPES, GapStatus, EvolutionMode } from '../lib/types/index';
 
 vi.mock('./prompts/index', () => ({
   QA_SYSTEM_PROMPT: `QA System Prompt Content
@@ -260,6 +260,34 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
     expect(memoryMocks.updateGapStatus).toHaveBeenCalledWith('GAP#1001', GapStatus.DONE);
     expect(memoryMocks.incrementGapAttemptCount).not.toHaveBeenCalled();
     expect(registryMocks.saveRawConfig).not.toHaveBeenCalled();
+  });
+
+  it('should forward userRole into shared QA processing context', async () => {
+    const { processEventWithAgent } = await import('../handlers/events/shared');
+    vi.mocked(processEventWithAgent).mockResolvedValueOnce({
+      responseText: 'QA verification satisfied.',
+      attachments: [],
+      parsedData: {
+        status: 'SUCCESS',
+        satisfied: true,
+      },
+    });
+
+    const payloadWithRole = {
+      detail: {
+        ...BASE_PAYLOAD.detail,
+        userRole: 'member',
+      },
+    };
+
+    await handler(payloadWithRole as any, {} as any);
+
+    expect(processEventWithAgent).toHaveBeenCalledWith(
+      'user-1',
+      AGENT_TYPES.QA,
+      expect.any(String),
+      expect.objectContaining({ userRole: 'member' })
+    );
   });
 
   it('should REOPEN gap and increment attempt count on REOPEN status below cap', async () => {

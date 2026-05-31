@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SafetyEngine } from './safety-engine';
-import { SafetyTier, AgentCategory, IAgentConfig, UserRole } from '../types/agent';
+import { SafetyTier, AgentCategory, IAgentConfig, UserRole, EvolutionMode } from '../types/agent';
 import { ConfigManager } from '../registry/config';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
@@ -276,6 +276,62 @@ describe('SafetyEngine', () => {
         expect(result.allowed).toBe(true);
         expect(result.requiresApproval).toBe(false);
       }
+    });
+    it('should allow filesystem read/list/search MCP tools in PROD without approval', async () => {
+      const config = {
+        id: 'coder',
+        name: 'Coder',
+        systemPrompt: '',
+        enabled: true,
+        safetyTier: SafetyTier.PROD,
+        trustScore: 80,
+        description: 'coder',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
+        evolutionMode: EvolutionMode.AUTO,
+      } as IAgentConfig;
+
+      for (const toolName of [
+        'filesystem_list_directory',
+        'filesystem_read_file',
+        'filesystem_search_files',
+      ]) {
+        const result = await engine.evaluateAction(config, toolName, {
+          userId: 'SYSTEM',
+          userRole: UserRole.MEMBER,
+          workspaceId: 'ws1',
+          toolName,
+        });
+        expect(result.requiresApproval).toBe(false);
+        expect(result.allowed).toBe(true);
+      }
+    });
+
+    it('should normalize filesystem_write_file to code_change (not file_operation)', async () => {
+      const config = {
+        id: 'coder',
+        name: 'Coder',
+        systemPrompt: '',
+        enabled: true,
+        safetyTier: SafetyTier.PROD,
+        trustScore: 80,
+        description: 'coder',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
+        evolutionMode: EvolutionMode.AUTO,
+      } as IAgentConfig;
+
+      const result = await engine.evaluateAction(config, 'filesystem_write_file', {
+        userId: 'SYSTEM',
+        userRole: UserRole.ADMIN,
+        workspaceId: 'ws1',
+        toolName: 'filesystem_write_file',
+      });
+      // filesystem_write_file normalizes to code_change (via 'write' pattern).
+      // PROD requireCodeApproval is false → requiresApproval should be false.
+      expect(result.requiresApproval).toBe(false);
     });
   });
 

@@ -81,6 +81,9 @@ function normalizeSafetyAction(action: string, toolName?: string): string {
     lowerToolName.includes('access')
   )
     return 'iam_change';
+  // MCP filesystem tools: read/list/search operations map to file_operation (requireFileApproval).
+  // Note: write tools are already caught above by the 'write' pattern → code_change.
+  if (lowerToolName.startsWith('filesystem_')) return 'file_operation';
   return action;
 }
 

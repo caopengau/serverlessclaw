@@ -36,6 +36,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
     workspaceId,
     teamId,
     staffId,
+    userRole,
   } = payload;
   const gapIds = payload.metadata?.gapIds as string[];
 
@@ -92,6 +93,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
       sessionId,
       depth,
       initiatorId,
+      userRole,
       isContinuation: true,
       handlerTitle: 'QA Auditor',
       outboundHandlerName: AGENT_TYPES.QA,

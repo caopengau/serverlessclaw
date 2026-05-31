@@ -103,6 +103,36 @@ describe('Coder Agent', () => {
     );
   });
 
+  it('should forward userRole into shared processing and completion events', async () => {
+    vi.mocked(processEventWithAgent).mockResolvedValueOnce({
+      responseText: 'Completed task',
+      attachments: [],
+      parsedData: { status: 'SUCCESS', response: 'Completed task' },
+    });
+
+    const event = {
+      detail: {
+        userId: 'user123',
+        userRole: 'member',
+        task: 'implement feature',
+        traceId: 'trace123',
+        sessionId: 'session123',
+        depth: 0,
+      },
+    } as any;
+
+    await handler(event, mockContext);
+
+    expect(processEventWithAgent).toHaveBeenCalledWith(
+      'user123',
+      AGENT_TYPES.CODER,
+      expect.any(String),
+      expect.objectContaining({ userRole: 'member' })
+    );
+
+    expect(emitTaskEvent).toHaveBeenCalledWith(expect.objectContaining({ userRole: 'member' }));
+  });
+
   it('should pass patch metadata in emitTaskEvent when patch is present in response', async () => {
     vi.mocked(processEventWithAgent).mockResolvedValueOnce({
       responseText: 'Completed with patch',

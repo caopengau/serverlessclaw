@@ -39,6 +39,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     workspaceId,
     teamId,
     staffId,
+    userRole,
   } = payload;
   const gapIds = metadata?.gapIds as string[] | undefined;
   const applyStagedChanges = metadata?.applyStagedChanges as boolean | undefined;
@@ -157,6 +158,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       workspaceId,
       teamId,
       staffId,
+      userRole,
       metadata,
       attachments: metadata?.attachments as Attachment[],
       handlerTitle: 'Coder Agent',
@@ -257,6 +259,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     sessionId,
     initiatorId,
     depth,
+    userRole,
     metadata: {
       patch: parsed?.patch,
       buildId: parsed?.buildId,
