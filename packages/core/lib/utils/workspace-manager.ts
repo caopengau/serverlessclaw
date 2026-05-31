@@ -6,6 +6,45 @@ import { logger } from '../logger';
 import { getStagingBucketName } from './resource-helpers';
 import * as git from 'isomorphic-git';
 import * as nodefs from 'fs';
+import { SYSTEM } from '../constants/system';
+
+async function hydrateWorkspaceFromGitHub(workspacePath: string): Promise<void> {
+  const pkgPath = path.join(workspacePath, 'package.json');
+  if (nodefs.existsSync(pkgPath)) {
+    return;
+  }
+
+  const repo = process.env.GITHUB_REPO || SYSTEM.DEFAULT_GITHUB_REPO;
+  const ref = process.env.GITHUB_REF_NAME || 'main';
+  const archiveUrl = `https://codeload.github.com/${repo}/tar.gz/refs/heads/${ref}`;
+  const archivePath = path.join('/tmp', `workspace-source-${Date.now()}.tar.gz`);
+
+  logger.warn(
+    `[Workspace] package.json missing in copied bundle. Hydrating source from ${repo}@${ref}.`
+  );
+
+  const response = await fetch(archiveUrl, {
+    headers: process.env.GITHUB_TOKEN
+      ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+      : undefined,
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to download repository archive: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const archiveBytes = await response.arrayBuffer();
+  await fs.writeFile(archivePath, Buffer.from(archiveBytes));
+  await fs.rm(workspacePath, { recursive: true, force: true });
+  await fs.mkdir(workspacePath, { recursive: true });
+
+  execSync(`tar -xzf "${archivePath}" -C "${workspacePath}" --strip-components=1`, {
+    stdio: 'ignore',
+  });
+  await fs.rm(archivePath, { force: true });
+}
 
 /**
  * Common workspace setup logic.
@@ -37,6 +76,12 @@ async function setupWorkspace(
       );
     },
   });
+
+  try {
+    await hydrateWorkspaceFromGitHub(workspacePath);
+  } catch (error) {
+    logger.warn(`Failed to hydrate workspace from GitHub: ${error}`);
+  }
 
   // 2. Fix Read-Only permissions inherited from Lambda's /var/task
   try {
