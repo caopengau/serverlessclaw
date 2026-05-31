@@ -164,7 +164,7 @@ describe('EventHandler', () => {
       vi.mocked(tracker.incrementRecursionDepth).mockResolvedValueOnce(-1);
 
       const event = {
-        'detail-type': EventType.SYSTEM_HEALTH_REPORT,
+        'detail-type': EventType.CONTINUATION_TASK,
         detail: {
           userId: 'u1',
           sessionId: 'test-session',
@@ -181,13 +181,13 @@ describe('EventHandler', () => {
 
       const detail = JSON.parse(entry?.Detail ?? '{}');
       expect(detail).toMatchObject({
-        detailType: EventType.SYSTEM_HEALTH_REPORT,
+        detailType: EventType.CONTINUATION_TASK,
         traceId: 'trace-loop-1',
         sessionId: 'test-session',
       });
 
-      const { handleHealthReport } = await import('./events/health-handler');
-      expect(handleHealthReport).not.toHaveBeenCalled();
+      const { handleContinuationTask } = await import('./events/continuation-handler');
+      expect(handleContinuationTask).not.toHaveBeenCalled();
     });
 
     it('should not emit DLQ when processing DLQ_ROUTE event itself', async () => {

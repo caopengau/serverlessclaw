@@ -6,7 +6,11 @@ import { TraceSource, Attachment } from '../../lib/types/index';
 import { Context } from 'aws-lambda';
 import { isTaskPaused } from '../../lib/utils/agent-helpers';
 import { SessionStateManager } from '../../lib/session/session-state';
-import { incrementRecursionDepth, getRecursionLimit } from '../../lib/recursion-tracker';
+import {
+  incrementRecursionDepth,
+  getRecursionLimit,
+  getRecursionDepth,
+} from '../../lib/recursion-tracker';
 import { getNotificationManager } from '../../lib/services/notification-manager';
 import { NotificationType, ResourceType } from '../../lib/types/notification';
 
@@ -51,14 +55,22 @@ export async function checkAndPushRecursion(
   traceId: string,
   sessionId: string,
   agentId: string,
-  options: { isMissionContext?: boolean; workspaceId?: string } = {}
+  options: { isMissionContext?: boolean; workspaceId?: string; parallelDispatchId?: string } = {}
 ): Promise<number | null> {
   const isMission = !!options.isMissionContext;
   const RECURSION_LIMIT = await getRecursionLimit({ isMissionContext: isMission });
-  const newDepth = await incrementRecursionDepth(traceId, sessionId, agentId, {
-    isMissionContext: isMission,
-    workspaceId: options.workspaceId,
-  });
+
+  let newDepth: number;
+  if (options.parallelDispatchId) {
+    // Sibling task in parallel dispatch — just get the current depth without incrementing
+    newDepth = await getRecursionDepth(traceId, options.workspaceId);
+  } else {
+    // Nested delegation step — increment depth
+    newDepth = await incrementRecursionDepth(traceId, sessionId, agentId, {
+      isMissionContext: isMission,
+      workspaceId: options.workspaceId,
+    });
+  }
 
   if (newDepth > RECURSION_LIMIT || newDepth === -1) {
     logger.error(

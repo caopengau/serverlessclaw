@@ -18,6 +18,7 @@ async function main() {
     gapId: gapId,
     workspaceId: 'default',
     userRole: 'admin',
+    timestamp: Date.now(),
   });
 
   console.log('Result:', result);

@@ -134,7 +134,11 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
     traceId || 'unknown',
     sessionId || 'unknown',
     agentId,
-    { isMissionContext: isMission, workspaceId }
+    {
+      isMissionContext: isMission,
+      workspaceId,
+      parallelDispatchId: payload.metadata?.parallelDispatchId as string | undefined,
+    }
   );
 
   if (currentDepth === null) {

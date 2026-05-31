@@ -1,8 +1,13 @@
 import { logger } from '../../lib/logger';
 import { isMissionContext } from './shared';
-import { getRecursionLimit, incrementRecursionDepth } from '../../lib/recursion-tracker';
+import {
+  getRecursionLimit,
+  incrementRecursionDepth,
+  getRecursionDepth,
+} from '../../lib/recursion-tracker';
 import { routeToDlq } from '../route-to-dlq';
 import { emitMetrics, METRICS } from '../../lib/metrics';
+import { EventType } from '../../lib/types/agent';
 
 /**
  * Checks and increments recursion depth for an event.
@@ -18,12 +23,27 @@ export async function checkRecursionLimit(
 ): Promise<boolean> {
   const isMission = isMissionContext(detailType, eventDetail);
   const recursionLimit = await getRecursionLimit({ isMissionContext: isMission });
-  const currentDepth = await incrementRecursionDepth(traceId, sessionId, 'system.spine', {
-    isMissionContext: isMission,
-    workspaceId,
-  });
 
-  if (currentDepth > recursionLimit || currentDepth === -1) {
+  // Only increment depth for events that initiate or continue agent task dispatches.
+  // Completion, timeout, and health alert events are popped off the stack and must not increment depth.
+  const isDispatchEvent = [
+    EventType.CONTINUATION_TASK,
+    EventType.PARALLEL_TASK_DISPATCH,
+    EventType.DELEGATION_TASK,
+  ].includes(detailType as EventType);
+
+  let currentDepth: number;
+  if (isDispatchEvent) {
+    currentDepth = await incrementRecursionDepth(traceId, sessionId, 'system.spine', {
+      isMissionContext: isMission,
+      workspaceId,
+    });
+  } else {
+    // Just fetch the current depth without incrementing
+    currentDepth = await getRecursionDepth(traceId, workspaceId);
+  }
+
+  if (isDispatchEvent && (currentDepth > recursionLimit || currentDepth === -1)) {
     logger.warn(
       `[RECURSION] Limit exceeded for trace ${traceId} (Depth: ${currentDepth}, Limit: ${recursionLimit})`
     );
