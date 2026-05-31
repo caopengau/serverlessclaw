@@ -74,13 +74,26 @@ export const handler = async (
   const _teamId = (detail.teamId as string) || (event.teamId as string);
   const _staffId = (detail.staffId as string) || (event.staffId as string);
   const _userRole = (detail.userRole as string) || (event.userRole as string);
+  const _source = (event.source as string) || '';
+  const isUserRole = (value: string | undefined): value is UserRole =>
+    !!value && (Object.values(UserRole) as string[]).includes(value);
+
+  // Internal autonomous task events may omit userRole. Default to MEMBER so
+  // system-dispatched coder/researcher tasks are not downgraded to VIEWER.
+  const inferredUserRole: UserRole | undefined =
+    (isUserRole(_userRole) ? _userRole : undefined) ||
+    (_source.startsWith('agent.') || _source.startsWith('pipeline.') ? UserRole.MEMBER : undefined);
+
+  if (inferredUserRole && !detail.userRole) {
+    (detail as Record<string, unknown>).userRole = inferredUserRole;
+  }
 
   const scope = {
     workspaceId: _workspaceId,
     orgId: _orgId,
     teamId: _teamId,
     staffId: _staffId,
-    userRole: _userRole as UserRole,
+    userRole: inferredUserRole,
   };
 
   // Session lock management
