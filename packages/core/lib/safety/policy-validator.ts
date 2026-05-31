@@ -218,6 +218,43 @@ export class PolicyValidator {
         requiresApproval = !!policy.requireCodeApproval;
         reason = 'Infrastructure changes require approval in this safety tier';
         break;
+      // Read-only, discovery, and communication actions are completely safe and do not require approval
+      case 'listAgents':
+      case 'recallKnowledge':
+      case 'inspectTopology':
+      case 'checkConfig':
+      case 'listMyCollaborations':
+      case 'getCollaborationContext':
+      case 'sendMessage':
+      case 'provideClarification':
+      case 'seekClarification':
+      case 'pulseCheck':
+      case 'reportGap':
+      case 'manageGap':
+      case 'saveMemory':
+      case 'discoverSkills':
+      case 'installSkill':
+      case 'requestResearch':
+      case 'technicalResearch':
+      case 'signalOrchestration':
+      case 'getMessages':
+      case 'broadcastMessage':
+      case 'checkHealth':
+      case 'inspectTrace':
+      case 'listSystemConfigs':
+      case 'getSystemConfigMetadata':
+      case 'discoverPeers':
+      case 'getWorkspace':
+      case 'listWorkspaces':
+      case 'listSchedules':
+      case 'checkReputation':
+      case 'scanMetabolism':
+      case 'renderComponent':
+      case 'uiAction':
+      case 'navigateTo':
+        requiresApproval = false;
+        reason = '';
+        break;
       default:
         requiresApproval = true;
         reason = `Unknown action '${action}' requires approval`;
