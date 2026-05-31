@@ -1,6 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import type { PendingMessage } from '../types/session';
+import { UserRole } from '../types/agent';
 import { logger } from '../logger';
 import { TIME, RETENTION } from '../constants';
 import { getMemoryTableName } from '../utils/ddb-client';
@@ -132,6 +133,13 @@ export class SessionStateManager {
           const { emitEvent } = await import('../utils/bus');
           const idempotencyKey = `resume:${sessionId}:${nextMsg.id}`;
 
+          // Infer userRole for internal session-release tasks. Default to MEMBER if not specified
+          // (system-emitted tasks are trusted automation that require agentic permissions).
+          const isUserRole = (value: string | undefined): value is UserRole =>
+            !!value && (Object.values(UserRole) as string[]).includes(value);
+          const inferredUserRole: UserRole | undefined =
+            (isUserRole(attributes.userRole) ? attributes.userRole : undefined) || UserRole.MEMBER;
+
           await emitEvent(
             `${agentId}.session-release`,
             `dynamic_${targetAgentId}_task`,
@@ -145,6 +153,7 @@ export class SessionStateManager {
               workspaceId: attributes.workspaceId,
               teamId: attributes.teamId,
               staffId: attributes.staffId,
+              userRole: inferredUserRole,
             },
             { idempotencyKey }
           );
