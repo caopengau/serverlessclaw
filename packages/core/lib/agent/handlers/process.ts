@@ -100,7 +100,7 @@ export async function handleProcess(
   // Authorization check
   if (
     baseUserId &&
-    baseUserId !== AGENT_SYSTEM_IDS.SYSTEM &&
+    baseUserId.toUpperCase() !== AGENT_SYSTEM_IDS.SYSTEM &&
     baseUserId !== AGENT_SYSTEM_IDS.DASHBOARD_USER &&
     !isE2ETest()
   ) {

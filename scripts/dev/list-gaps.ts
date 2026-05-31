@@ -4,9 +4,12 @@ import { Resource } from 'sst';
 
 async function main() {
   // @ts-expect-error - sst resource typing
-  const tableName = Resource.MemoryTable.name;
-  if (!tableName) {
-    console.error('❌ MemoryTable not found');
+  const memoryTableName = Resource.MemoryTable.name;
+  // @ts-expect-error - sst resource typing
+  const configTableName = Resource.ConfigTable.name;
+
+  if (!memoryTableName || !configTableName) {
+    console.error('❌ Table(s) not found');
     process.exit(1);
   }
 
@@ -15,21 +18,42 @@ async function main() {
     marshallOptions: { removeUndefinedValues: true },
   });
 
-  const result = await docClient.send(
+  // 1. Scan MemoryTable
+  const memoryResult = await docClient.send(
     new ScanCommand({
-      TableName: tableName,
+      TableName: memoryTableName,
     })
   );
+  const memoryItems = memoryResult.Items || [];
 
-  const items = result.Items || [];
-
-  console.log(`\n📊 All keys containing 1780160289451:\n`);
-  const matched = items.filter((item) => {
-    return JSON.stringify(item).includes('1780160289451');
+  console.log(`\n📊 Isolated GAP/gap records in MemoryTable (Total: ${memoryItems.length}):\n`);
+  const matched = memoryItems.filter((item) => {
+    const key = item.userId ?? '';
+    return key.startsWith('GAP#') || key.startsWith('WS#default#GAP#') || key.toLowerCase().includes('gap');
+  }).filter(item => {
+    const key = item.userId ?? '';
+    return key.includes('GAP') || item.type === 'GAP';
   });
 
   for (const item of matched) {
     console.log(`- Key: ${item.userId} | Type: ${item.type} | Status: ${item.status ?? 'N/A'}`);
+    if (item.content) console.log(`  Content:`, typeof item.content === 'string' ? item.content.slice(0, 100) : JSON.stringify(item.content).slice(0, 100));
+  }
+
+  // 2. Scan ConfigTable
+  const configResult = await docClient.send(
+    new ScanCommand({
+      TableName: configTableName,
+    })
+  );
+  const configItems = configResult.Items || [];
+
+  console.log(`\n⚙️ evolution_mode value in ConfigTable:\n`);
+  const evoModeItem = configItems.find(item => item.key === 'evolution_mode');
+  if (evoModeItem) {
+    console.log(`- Key: ${evoModeItem.key} | Value:`, JSON.stringify(evoModeItem.value));
+  } else {
+    console.log(`❌ evolution_mode not found in ConfigTable!`);
   }
 }
 
