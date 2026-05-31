@@ -8,6 +8,10 @@ node_modules/
 .turbo/
 .git/
 pnpm-lock.yaml
+scratch/
+scripts/dev/
+tmp/
+temp/
 *.log
 *.zip
 *.tsbuildinfo
