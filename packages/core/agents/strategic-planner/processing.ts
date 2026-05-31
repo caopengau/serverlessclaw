@@ -458,8 +458,14 @@ export async function postProcessPlan(
         }));
 
         // Start a fresh fanout depth so planner decomposition does not trip recursion guards.
+        // Use dashboard-user for execution tasks that require TASK_CREATE permission.
+        const hasExecutionTasks = subTaskEvents.some(
+          (t) => t.agentId === AGENT_TYPES.CODER || t.agentId === AGENT_TYPES.RESEARCHER
+        );
+        const executionUserId = hasExecutionTasks ? 'dashboard-user' : baseUserId;
+
         await emitEvent(AGENT_TYPES.STRATEGIC_PLANNER, EventType.PARALLEL_TASK_DISPATCH, {
-          userId: baseUserId,
+          userId: executionUserId,
           tasks: subTaskEvents,
           barrierTimeoutMs: 30 * 60 * 1000,
           aggregationType: subTaskEvents.some((t) => t.agentId === AGENT_TYPES.RESEARCHER)
@@ -483,9 +489,14 @@ export async function postProcessPlan(
         const { dispatchTask: dispatcher } = await import('../../tools/knowledge/agent');
         const targetAgent = decomposed.subTasks[0]?.agentId || AGENT_TYPES.CODER;
 
+        // Use dashboard-user for execution tasks that require TASK_CREATE permission.
+        const isExecutionTask =
+          targetAgent === AGENT_TYPES.CODER || targetAgent === AGENT_TYPES.RESEARCHER;
+        const executionUserId = isExecutionTask ? 'dashboard-user' : baseUserId;
+
         await dispatcher.execute({
           agentId: targetAgent,
-          userId: baseUserId,
+          userId: executionUserId,
           task: plan,
           metadata: {
             gapIds: processedGapIds,
