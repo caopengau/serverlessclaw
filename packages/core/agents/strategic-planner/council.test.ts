@@ -406,7 +406,7 @@ describe('Council of Agents — Threshold Logic', () => {
     expect(dispatchTaskMock).toHaveBeenCalledWith(
       expect.objectContaining({
         agentId: AGENT_TYPES.CODER,
-        userId: 'user-1',
+        userId: 'dashboard-user',
       })
     );
   });
