@@ -1,6 +1,7 @@
 import { RetentionManager } from '../tiering';
 import type { BaseMemoryProvider } from '../base';
 import { queryLatestContentByUserId } from '../utils';
+import { logger } from '../../logger';
 
 /**
  * Retrieves the latest summary for a conversation session.
@@ -34,18 +35,37 @@ export async function updateSummary(
     workspaceId = scope.workspaceId;
   }
 
-  await base.putItem(
-    {
-      userId: scopedUserId,
-      timestamp: Date.now(),
-      type: 'SUMMARY',
-      expiresAt,
-      content: summary,
-      workspaceId: workspaceId || undefined,
-    },
-    {
-      ConditionExpression: 'attribute_not_exists(userId) AND attribute_not_exists(#ts)',
-      ExpressionAttributeNames: { '#ts': 'timestamp' },
+  let attempts = 0;
+  let success = false;
+  const baseTimestamp = Date.now();
+
+  while (attempts < 5 && !success) {
+    try {
+      await base.putItem(
+        {
+          userId: scopedUserId,
+          timestamp: baseTimestamp + attempts,
+          type: 'SUMMARY',
+          expiresAt,
+          content: summary,
+          workspaceId: workspaceId || undefined,
+        },
+        {
+          ConditionExpression: 'attribute_not_exists(userId) AND attribute_not_exists(#ts)',
+          ExpressionAttributeNames: { '#ts': 'timestamp' },
+        }
+      );
+      success = true;
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+        attempts++;
+      } else {
+        throw e;
+      }
     }
-  );
+  }
+
+  if (!success) {
+    logger.error(`[Summary] Failed to save summary after ${attempts} attempts (collision).`);
+  }
 }
