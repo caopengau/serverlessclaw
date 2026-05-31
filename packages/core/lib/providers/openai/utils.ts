@@ -169,7 +169,10 @@ export function mapToolsToOpenAI(tools: ITool[]): ToolConfig[] {
         connector_id: t.connector_id,
       };
     }
-    if (t.type && t.type !== OPENAI.FUNCTION_TYPE) {
+    // MCP placeholder tools (skipConnection=true) have type MCP but no connector_id.
+    // Treat them as standard function tools so OpenAI doesn't reject the request with
+    // "Missing required parameter: 'tools[N].server_label'".
+    if (t.type && t.type !== OPENAI.FUNCTION_TYPE && t.type !== OPENAI.MCP_TYPE) {
       return { type: t.type };
     }
     return {
