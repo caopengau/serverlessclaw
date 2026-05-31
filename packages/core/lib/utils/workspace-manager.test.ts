@@ -111,6 +111,43 @@ describe('WorkspaceManager', () => {
     );
   });
 
+  it('should hydrate workspace from GitHub when copied bundle is missing package.json', async () => {
+    const originalFetch = global.fetch;
+    const originalRepo = process.env.GITHUB_REPO;
+    const originalRef = process.env.GITHUB_REF_NAME;
+    const originalToken = process.env.GITHUB_TOKEN;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+    });
+
+    global.fetch = fetchMock as typeof fetch;
+    process.env.GITHUB_REPO = 'serverlessclaw/serverlessclaw';
+    process.env.GITHUB_REF_NAME = 'main';
+    process.env.GITHUB_TOKEN = 'test-token';
+
+    try {
+      const wsPath = await createWorkspace(traceId);
+      createdPaths.push(wsPath);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://codeload.github.com/serverlessclaw/serverlessclaw/tar.gz/refs/heads/main',
+        {
+          headers: { Authorization: 'Bearer test-token' },
+        }
+      );
+      expect(execSync).toHaveBeenCalledWith(
+        expect.stringContaining('tar -xzf "/tmp/workspace-source-'),
+        expect.objectContaining({ stdio: 'ignore' })
+      );
+    } finally {
+      global.fetch = originalFetch;
+      process.env.GITHUB_REPO = originalRepo;
+      process.env.GITHUB_REF_NAME = originalRef;
+      process.env.GITHUB_TOKEN = originalToken;
+    }
+  });
+
   it('should fallback to isomorphic-git if system git fails', async () => {
     (global as any).__FAIL_GIT__ = true;
     const wsPath = await createWorkspace(traceId);
