@@ -298,7 +298,17 @@ export class ClawTracer {
       values[':wsId'] = this.workspaceId;
     }
 
-    await this.docClient.send(new UpdateCommand(updateParams));
+    try {
+      await this.docClient.send(new UpdateCommand(updateParams));
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+        logger.warn(
+          `[Tracer] addStep: trace node ${this.traceId}/${this.nodeId} not found or workspaceId mismatch, skipping step.`
+        );
+        return;
+      }
+      throw e;
+    }
 
     const extra: Record<string, unknown> = { lastStepType: step.type };
 
@@ -361,7 +371,17 @@ export class ClawTracer {
       values[':wsId'] = this.workspaceId;
     }
 
-    await this.docClient.send(new UpdateCommand(updateParams));
+    try {
+      await this.docClient.send(new UpdateCommand(updateParams));
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+        logger.warn(
+          `[Tracer] batchAddSteps: trace node ${this.traceId}/${this.nodeId} not found or workspaceId mismatch, skipping steps.`
+        );
+        return;
+      }
+      throw e;
+    }
 
     let totalTokens = 0;
     const toolNames = new Set<string>();
@@ -429,7 +449,17 @@ export class ClawTracer {
       values[':wsId'] = this.workspaceId;
     }
 
-    await this.docClient.send(new UpdateCommand(updateParams));
+    try {
+      await this.docClient.send(new UpdateCommand(updateParams));
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+        logger.warn(
+          `[Tracer] endTrace: trace node ${this.traceId}/${this.nodeId} not found or workspaceId mismatch, skipping update.`
+        );
+      } else {
+        throw e;
+      }
+    }
 
     await this.updateSummary(TRACE_STATUS.COMPLETED, {
       extra: { finalResponse },
@@ -498,7 +528,17 @@ export class ClawTracer {
       values[':wsId'] = this.workspaceId;
     }
 
-    await this.docClient.send(new UpdateCommand(updateParams));
+    try {
+      await this.docClient.send(new UpdateCommand(updateParams));
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+        logger.warn(
+          `[Tracer] failTrace: trace node ${this.traceId}/${this.nodeId} not found or workspaceId mismatch, skipping update.`
+        );
+      } else {
+        throw e;
+      }
+    }
 
     await this.emitCompletionMetrics(endTime, { success: false });
 

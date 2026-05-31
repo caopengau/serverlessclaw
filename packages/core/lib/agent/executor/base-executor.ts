@@ -210,17 +210,24 @@ export abstract class BaseExecutor {
       logger.warn(
         `[${this.agentId}] Semantic loop detected (count: ${loopResult.consecutiveCount}). Penalizing trust.`
       );
-      await TrustManager.recordFailure(
-        this.agentId,
-        `Semantic reasoning loop detected (${loopResult.consecutiveCount} turns).`,
-        3,
-        undefined,
-        {
-          workspaceId: options.workspaceId,
-          teamId: options.teamId,
-          staffId: options.staffId,
-        }
-      );
+      try {
+        await TrustManager.recordFailure(
+          this.agentId,
+          `Semantic reasoning loop detected (${loopResult.consecutiveCount} turns).`,
+          3,
+          undefined,
+          {
+            workspaceId: options.workspaceId,
+            teamId: options.teamId,
+            staffId: options.staffId,
+          }
+        );
+      } catch (trustErr) {
+        logger.warn(
+          `[${this.agentId}] Failed to record trust penalty for semantic loop:`,
+          trustErr
+        );
+      }
 
       if (loopResult.action === 'escalate' || loopResult.action === 'switch_agent') {
         return {
