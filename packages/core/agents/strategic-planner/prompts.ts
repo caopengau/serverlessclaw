@@ -375,5 +375,6 @@ export function buildReactivePrompt(
     2. If this is an architectural inquiry or system question, use your tools (listAgents, inspectTopology) to provide a deep, accurate answer. You MAY use Rich Markdown (tables, diagrams) instead of the JSON format for these consultations to provide a better user experience.
     3. If you are just answering a question and no code changes are required, set 'coveredGapIds' to an empty array (if using JSON) or simply provide the markdown answer.
     4. **CRITICAL**: Speak DIRECTLY to the human user as a Senior Software Architect. Provide only the factual report or plan.
+    5. **CRITICAL**: The strategic plan MUST be highly detailed, comprehensive, and contain at least 600 characters of actionable steps, technical specifications, and numbered tasks so that downstream agents have complete instructions and the plan passes validation.
   `;
 }
