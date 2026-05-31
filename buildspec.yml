@@ -7,12 +7,13 @@ phases:
     commands:
       - mkdir -p /tmp/ci-logs
       - npm install -g pnpm
-      - echo "Installing dependencies and Playwright in parallel..."
-      - (pnpm install) &
-      - PNPM_PID=$!
-      - (npx playwright install --with-deps chromium) &
-      - PW_PID=$!
-      - wait $PNPM_PID && wait $PW_PID
+      - |
+        echo "Installing dependencies and Playwright in parallel..."
+        pnpm install &
+        PNPM_PID=$!
+        npx playwright install --with-deps chromium &
+        PW_PID=$!
+        wait $PNPM_PID && wait $PW_PID
   pre_build:
     commands:
       - |
