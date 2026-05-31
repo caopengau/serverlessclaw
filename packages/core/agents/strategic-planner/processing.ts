@@ -366,6 +366,7 @@ export async function postProcessPlan(
         },
       ];
 
+      // Start a fresh fanout depth for council review so long traces do not trip recursion guards.
       await emitTypedEvent(AGENT_TYPES.STRATEGIC_PLANNER, EventType.PARALLEL_TASK_DISPATCH, {
         userId: baseUserId,
         tasks: councilTasks,
@@ -374,7 +375,7 @@ export async function postProcessPlan(
         aggregationPrompt: `Synthesize the Council discussion in session ${collaborationId} and the individual reviews for Plan ${planId}. Return your response starting with [COUNCIL_REVIEW_RESULT] followed by VERDICT: <APPROVED|REJECTED|CONDITIONAL> and a summary of findings. If all reviews are APPROVED, return VERDICT: APPROVED. If ANY review has verdict REJECTED, return VERDICT: REJECTED with consolidated feedback. Always include the Plan ID ${planId} and Collaboration ID ${collaborationId} in your response.`,
         traceId: councilTraceId,
         initiatorId: AGENT_TYPES.STRATEGIC_PLANNER,
-        depth: depth ?? 0,
+        depth: 0,
         sessionId,
         workspaceId,
         userRole,
@@ -442,14 +443,21 @@ export async function postProcessPlan(
 
       if (decomposed.wasDecomposed && decomposed.subTasks.length > 1) {
         const { emitTypedEvent: emitEvent } = await import('../../lib/utils/typed-emit');
+        const fanoutTraceId = `${traceId || `trace-${planId}`}-fanout-${planId}`;
         const subTaskEvents = decomposed.subTasks.map((sub) => ({
           taskId: sub.subTaskId,
           agentId: sub.agentId,
           task: sub.task,
-          metadata: { gapIds: sub.gapIds, subTaskId: sub.subTaskId, planId: sub.planId },
+          metadata: {
+            gapIds: sub.gapIds,
+            subTaskId: sub.subTaskId,
+            planId: sub.planId,
+            parentTraceId: traceId,
+          },
           dependsOn: sub.dependencies.map((depIndex) => decomposed.subTasks[depIndex].subTaskId),
         }));
 
+        // Start a fresh fanout depth so planner decomposition does not trip recursion guards.
         await emitEvent(AGENT_TYPES.STRATEGIC_PLANNER, EventType.PARALLEL_TASK_DISPATCH, {
           userId: baseUserId,
           tasks: subTaskEvents,
@@ -464,9 +472,9 @@ export async function postProcessPlan(
                Identify overarching patterns, cross-repo dependencies, and specific implementation gaps. 
                The goal is to inform the next phase of development for: "${plan.substring(0, 500)}..."`
             : undefined,
-          traceId,
+          traceId: fanoutTraceId,
           initiatorId: AGENT_TYPES.STRATEGIC_PLANNER,
-          depth: depth ?? 0,
+          depth: 0,
           sessionId,
           workspaceId,
           userRole,
