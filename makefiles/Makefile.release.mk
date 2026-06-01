@@ -42,7 +42,7 @@ release-all: ## Release to both dev and prod sequentially
 pre-release-check: ## [FAIL-FAST #1/3] Validate environment and credentials before release
 	@$(call log_step,[FAIL-FAST #1/3] Pre-release environment check for $(ENV)...)
 	@$(call load_env); \
-	export AWS_PROFILE=$$AWS_PROFILE; \
+	if [ -n "$$AWS_PROFILE" ]; then export AWS_PROFILE=$$AWS_PROFILE; fi; \
 	export AWS_REGION=$${AWS_REGION:-$(AWS_REGION)}; \
 	$(call verify_env,EXPECTED_ACCOUNT); \
 	$(call log_info,Verifying AWS identity using profile: $$AWS_PROFILE in region: $$AWS_REGION...); \
