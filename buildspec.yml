@@ -49,7 +49,7 @@ phases:
       - |
         if [ -n "$CODEBUILD_BUILD_ID" ] && [ ! -f ".env.${SST_STAGE:-prod}" ]; then
           echo "Creating .env.${SST_STAGE:-prod} for CodeBuild CI..."
-          CI_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "316759592139")
+          CI_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null) || { echo "ERROR: Could not determine AWS account ID. Check CodeBuild service role." && exit 1; }
           printf "AWS_REGION=%s\nEXPECTED_ACCOUNT=%s\n" "${AWS_DEFAULT_REGION:-ap-southeast-2}" "$CI_ACCOUNT_ID" > ".env.${SST_STAGE:-prod}"
           echo "Created .env.${SST_STAGE:-prod} (account: $CI_ACCOUNT_ID)"
         fi
