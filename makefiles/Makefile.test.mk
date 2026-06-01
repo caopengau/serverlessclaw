@@ -84,7 +84,13 @@ verify-deploy: ## Full post-deploy verification: API, dashboard, CSS, JS
 	fi ; \
 	\
 	if [ -n "$$DASHBOARD_URL" ]; then \
-		STATUS=$$(curl -s -L -o /dev/null -w "%{http_code}" --max-time 15 "$$DASHBOARD_URL") ; \
+		DASH_ATTEMPT=0; STATUS=000; \
+		while [ $$DASH_ATTEMPT -lt 6 ]; do \
+			STATUS=$$(curl -s -L -o /dev/null -w "%{http_code}" --max-time 30 "$$DASHBOARD_URL"); \
+			if [ "$$STATUS" = "200" ]; then break; fi; \
+			DASH_ATTEMPT=$$((DASH_ATTEMPT + 1)); \
+			if [ $$DASH_ATTEMPT -lt 6 ]; then printf "  ⏳ Dashboard HTML:     HTTP %s (attempt %s/6, retrying in 30s...)\n" "$$STATUS" "$$DASH_ATTEMPT"; sleep 30; fi; \
+		done; \
 		if [ "$$STATUS" = "200" ]; then printf "  ✅ Dashboard HTML:     HTTP %s\n" "$$STATUS"; else printf "  ❌ Dashboard HTML:     HTTP %s\n" "$$STATUS"; FAIL=1; fi ; \
 		\
 		if [ "$$STATUS" = "200" ]; then \

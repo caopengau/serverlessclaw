@@ -55,7 +55,9 @@ phases:
           printf "AWS_REGION=%s\nEXPECTED_ACCOUNT=%s\n" "${AWS_DEFAULT_REGION:-ap-southeast-2}" "$CI_ACCOUNT_ID" > ".env.${SST_STAGE:-prod}"
           [ -n "$CF_API_TOKEN" ] && printf "CLOUDFLARE_API_TOKEN=%s\n" "$CF_API_TOKEN" >> ".env.${SST_STAGE:-prod}"
           [ -n "$CF_ZONE_ID" ] && printf "CLOUDFLARE_ZONE_ID=%s\n" "$CF_ZONE_ID" >> ".env.${SST_STAGE:-prod}"
-          echo "Created .env.${SST_STAGE:-prod} (account: $CI_ACCOUNT_ID, cloudflare: $([ -n "$CF_API_TOKEN" ] && echo "yes" || echo "no"))"
+          printf "CLAW_DOMAIN_DASHBOARD=demo.clawmore.ai\n" >> ".env.${SST_STAGE:-prod}"
+          printf "CLAW_DOMAIN_API=api.demo.clawmore.ai\n" >> ".env.${SST_STAGE:-prod}"
+          echo "Created .env.${SST_STAGE:-prod} (account: $CI_ACCOUNT_ID, cloudflare: $([ -n "$CF_API_TOKEN" ] && echo "yes" || echo "no"), domains: yes)"
         fi
       - |
         if [ "$SYNC_ONLY" = "true" ]; then
