@@ -39,6 +39,11 @@ phases:
             echo "Applying staged changes..."
             unzip -o staged_changes.zip || { echo "ERROR: Failed to unzip staged changes." && exit 1; }
             rm staged_changes.zip
+            echo "Committing staged changes for clean working directory..."
+            git config --global user.email "agent@serverlessclaw.local"
+            git config --global user.name "Claw Coder Agent"
+            git add -A
+            HUSKY=0 git commit -m "${COMMIT_MESSAGE:-chore: apply staged changes from autonomous coder [skip ci]}" || echo "No staged changes to commit."
           fi
         fi
       - |
