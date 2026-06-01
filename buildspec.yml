@@ -63,11 +63,11 @@ phases:
         if [ "$SYNC_ONLY" != "true" ]; then
           echo "Running audited release (gates + deploy + tag)..."
           # make release handles: Tier 1 gates, Tier 2 (coverage/aiready) + Deploy in parallel, Tier 3 (E2E), and Audit Tag.
-          make release ENV=$SST_STAGE > /tmp/ci-logs/release.log 2>&1
-          RELEASE_EXIT=$?
+          make release ENV=$SST_STAGE 2>&1 | tee /tmp/ci-logs/release.log; RELEASE_EXIT=${PIPESTATUS[0]}
           if [ $RELEASE_EXIT -ne 0 ]; then
-             echo "Release failed. Check release.log"
+             echo "=== Release failed (exit $RELEASE_EXIT). Full log above. ==="
              cp /tmp/ci-logs/*.log . || true
+             aws s3 cp /tmp/ci-logs/release.log "s3://${STAGING_BUCKET_NAME}/logs/release-${CODEBUILD_BUILD_ID}.log" 2>/dev/null || true
              npx tsx scripts/ci/generate-manifest.ts /tmp/ci-logs .
              exit 1
           fi
