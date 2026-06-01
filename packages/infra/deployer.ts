@@ -111,7 +111,7 @@ export function createDeployer(ctx: DeployerContext) {
     serviceRole: deployerRole.arn,
     artifacts: { type: 'NO_ARTIFACTS' },
     environment: {
-      computeType: 'BUILD_GENERAL1_SMALL',
+      computeType: 'BUILD_GENERAL1_LARGE',
       image: 'aws/codebuild/standard:7.0',
       type: 'LINUX_CONTAINER',
       environmentVariables: envVars,
