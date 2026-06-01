@@ -1,6 +1,6 @@
 {
   "name": "serverlessclaw",
-  "version": "1.1.25",
+  "version": "1.1.26",
   "packageManager": "pnpm@10.33.4",
   "description": "A serverless implementation of OpenClaw AI agent using SST, AWS Lambda, and DynamoDB.",
   "repository": {
