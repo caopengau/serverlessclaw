@@ -57,7 +57,7 @@ pre-release-check: ## [FAIL-FAST #1/3] Validate environment and credentials befo
 		exit 1; \
 	fi; \
 	$(call log_info,Verifying AWS permissions...); \
-	aws lambda list-functions --max-items 1 --region $$AWS_REGION > /dev/null 2>&1 || { $(call log_error,AWS credentials invalid or Lambda access denied); exit 1; }; \
+	aws s3 ls --region $$AWS_REGION > /dev/null 2>&1 || { $(call log_error,AWS credentials invalid or S3 access denied); exit 1; }; \
 	$(call log_success,Environment validated: Account $$EXPECTED_ACCOUNT, Region $$AWS_REGION)
 
 verify-build-readiness: ## [FAIL-FAST #2/3] Verify the dashboard build will succeed
