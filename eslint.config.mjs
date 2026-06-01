@@ -34,6 +34,8 @@ export default tseslint.config(
       '**/sst-env.d.ts',
       '.aiready/',
       '**/.aiready/',
+      'scratch/',
+      '**/scratch/',
     ],
   },
   eslint.configs.recommended,
