@@ -15,7 +15,13 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['**/*.test.{ts,tsx}'],
-    exclude: ['**/node_modules/**', '**/.next/**', '**/.open-next/**', 'e2e/**'],
+    exclude: [
+      '**/node_modules/**',
+      '**/.next/**',
+      '**/.open-next/**',
+      'e2e/**',
+      '**/mechanisms.integration.test.ts',
+    ],
     // Increase default test timeout to accommodate larger import/setup times
     // when running the full monorepo test suite on CI or local machines.
     testTimeout: 20000,

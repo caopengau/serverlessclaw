@@ -74,6 +74,7 @@ vi.mock('./session/identity', () => ({
     hasPermission: vi.fn().mockResolvedValue(true),
   }),
   Permission: { TASK_CREATE: 'task:create' },
+  AgentRole: { WORKER: 'WORKER', OPERATOR: 'OPERATOR' },
 }));
 
 // Mock Tracer as a class that uses these functions

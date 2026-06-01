@@ -41,6 +41,7 @@ vi.mock('../session/identity', () => ({
     hasPermission: vi.fn().mockResolvedValue(true),
   }),
   Permission: { TASK_CREATE: 'task:create' },
+  AgentRole: { WORKER: 'WORKER', OPERATOR: 'OPERATOR' },
 }));
 
 describe('Agent Memory Scoping', () => {
