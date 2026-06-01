@@ -50,8 +50,12 @@ phases:
         if [ -n "$CODEBUILD_BUILD_ID" ] && [ ! -f ".env.${SST_STAGE:-prod}" ]; then
           echo "Creating .env.${SST_STAGE:-prod} for CodeBuild CI..."
           CI_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null) || { echo "ERROR: Could not determine AWS account ID. Check CodeBuild service role." && exit 1; }
+          CF_API_TOKEN=$(aws ssm get-parameter --name "/serverlessclaw/${SST_STAGE:-prod}/CLOUDFLARE_API_TOKEN" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+          CF_ZONE_ID=$(aws ssm get-parameter --name "/serverlessclaw/${SST_STAGE:-prod}/CLOUDFLARE_ZONE_ID" --query 'Parameter.Value' --output text 2>/dev/null || echo "")
           printf "AWS_REGION=%s\nEXPECTED_ACCOUNT=%s\n" "${AWS_DEFAULT_REGION:-ap-southeast-2}" "$CI_ACCOUNT_ID" > ".env.${SST_STAGE:-prod}"
-          echo "Created .env.${SST_STAGE:-prod} (account: $CI_ACCOUNT_ID)"
+          [ -n "$CF_API_TOKEN" ] && printf "CLOUDFLARE_API_TOKEN=%s\n" "$CF_API_TOKEN" >> ".env.${SST_STAGE:-prod}"
+          [ -n "$CF_ZONE_ID" ] && printf "CLOUDFLARE_ZONE_ID=%s\n" "$CF_ZONE_ID" >> ".env.${SST_STAGE:-prod}"
+          echo "Created .env.${SST_STAGE:-prod} (account: $CI_ACCOUNT_ID, cloudflare: $([ -n "$CF_API_TOKEN" ] && echo "yes" || echo "no"))"
         fi
       - |
         if [ "$SYNC_ONLY" = "true" ]; then
