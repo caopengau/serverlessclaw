@@ -67,7 +67,6 @@
     "onlyBuiltDependencies": [
       "@mcp-server/google-search-mcp",
       "@swc/core",
-      "@vscode/ripgrep",
       "esbuild",
       "puppeteer",
       "sharp",
