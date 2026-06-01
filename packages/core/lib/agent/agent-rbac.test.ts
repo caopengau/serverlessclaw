@@ -156,4 +156,30 @@ describe('Agent Role RBAC Enforcement', () => {
     const result = await ToolSecurityValidator.validate(tool, toolCall, {}, execContext);
     expect(result.allowed).toBe(true);
   });
+
+  it('allows triggerDeployment to proceed when agent has the OPERATOR role', async () => {
+    const { infraSchema } = await import('../../tools/infra/schema');
+    const tool = infraSchema.triggerDeployment as any;
+
+    const toolCall = {
+      id: 'call-deploy',
+      function: { name: 'triggerDeployment', arguments: '{}' },
+    } as any;
+
+    const execContext = {
+      agentId: 'coder-agent',
+      userId: 'user-coder',
+      workspaceId: 'ws-coder',
+      agentConfig: { evolutionMode: EvolutionMode.AUTO },
+    } as any;
+
+    vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValue({
+      id: 'coder-agent',
+      roles: [AgentRole.OPERATOR],
+      safetyTier: SafetyTier.LOCAL,
+    } as any);
+
+    const result = await ToolSecurityValidator.validate(tool, toolCall, {}, execContext);
+    expect(result.allowed).toBe(true);
+  });
 });

@@ -72,7 +72,12 @@ export const AGENT_ROLE_PERMISSIONS: Record<AgentRole, Permission[]> = {
     Permission.EVOLUTION_VIEW,
   ],
   [AgentRole.RESEARCHER]: [Permission.AGENT_VIEW, Permission.TASK_VIEW, Permission.TRACE_VIEW],
-  [AgentRole.OPERATOR]: [Permission.AGENT_VIEW, Permission.TASK_VIEW, Permission.TRACE_VIEW],
+  [AgentRole.OPERATOR]: [
+    Permission.AGENT_VIEW,
+    Permission.TASK_VIEW,
+    Permission.TRACE_VIEW,
+    Permission.ACTION_INFRA,
+  ],
   [AgentRole.SYSTEM]: Object.values(Permission),
 };
 

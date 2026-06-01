@@ -7,6 +7,7 @@ import {
   SafetyTier,
   EvolutionMode,
 } from './types/index';
+import { AgentRole } from './session/identity';
 import {
   TOOLS,
   UNIVERSAL_SYSTEM_TOOLS,
@@ -99,6 +100,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'Code',
     enabled: true,
+    roles: [AgentRole.OPERATOR],
     ...BACKBONE_LLM_DEFAULTS,
     ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.DEEP,
