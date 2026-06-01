@@ -50,18 +50,15 @@ export function createDeployer(ctx: DeployerContext) {
             'kms:*',
             'iot:*',
             'scheduler:*',
+            'cloudfront:*',
             'iam:PassRole',
             'iam:GetRole',
             'iam:ListRolePolicies',
             'iam:GetRolePolicy',
+            'iam:PutRolePolicy',
+            'iam:DeleteRolePolicy',
           ],
           Resource: '*',
-          Condition: {
-            StringEquals: {
-              'aws:ResourceTag/sst:app': $app.name,
-              'aws:ResourceTag/sst:stage': $app.stage,
-            },
-          },
         },
         // Dedicated statement for CloudWatch Logs (untagged)
         {
