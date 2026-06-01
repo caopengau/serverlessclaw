@@ -65,7 +65,7 @@ function normalizeSafetyAction(action: string, toolName?: string): string {
   if (
     lowerToolName.includes('deployment') ||
     lowerToolName.includes('deploy') ||
-    lowerToolName.includes('stage')
+    (lowerToolName.includes('stage') && !lowerToolName.includes('agent'))
   )
     return 'deployment';
   if (

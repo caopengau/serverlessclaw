@@ -3,7 +3,7 @@ import { CloudWatchLogsClient, DescribeLogGroupsCommand, FilterLogEventsCommand 
 async function main() {
   const region = process.env.AWS_REGION || 'ap-southeast-2';
   const client = new CloudWatchLogsClient({ region });
-  const queries = ['1780221547259', '1780219991962'];
+  const queries = [process.env.QUERY || '1780274431269'];
 
   console.log(`🔍 Finding all production log groups...`);
   // Fetch multiple prefixes to be extremely thorough

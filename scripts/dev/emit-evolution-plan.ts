@@ -17,7 +17,7 @@ async function main() {
 
   await emitEvent('pipeline.evolution', EventType.EVOLUTION_PLAN, {
     userId: 'SYSTEM',
-    sessionId: 'session-spine-evolution',
+    sessionId: 'session-spine-evolution-' + Date.now(),
     traceId: `trace-manual-evolution-${Date.now()}`,
     workspaceId: 'default',
     agentId: 'strategic-planner',

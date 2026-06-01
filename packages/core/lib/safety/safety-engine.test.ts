@@ -308,6 +308,31 @@ describe('SafetyEngine', () => {
       }
     });
 
+    it('should not normalize listAgents to deployment because it has stage as a substring', async () => {
+      const config = {
+        id: 'planner',
+        name: 'Planner',
+        systemPrompt: '',
+        enabled: true,
+        safetyTier: SafetyTier.PROD,
+        trustScore: 80,
+        description: 'planner',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
+        evolutionMode: EvolutionMode.AUTO,
+      } as IAgentConfig;
+
+      const result = await engine.evaluateAction(config, 'listAgents', {
+        userId: 'SYSTEM',
+        userRole: UserRole.MEMBER,
+        workspaceId: 'ws1',
+        toolName: 'listAgents',
+      });
+      // Should remain allowed and not get blocked as a Class C 'deployment' action
+      expect(result.allowed).toBe(true);
+    });
+
     it('should normalize filesystem_write_file to code_change (not file_operation)', async () => {
       const config = {
         id: 'coder',

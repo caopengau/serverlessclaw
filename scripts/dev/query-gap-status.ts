@@ -23,13 +23,20 @@ async function main() {
 
   console.log(`🔍 Scanning MemoryTable (${tableName}) for references to ${gapId}...`);
 
-  const result = await docClient.send(
-    new ScanCommand({
-      TableName: tableName,
-    })
-  );
-
-  const items = result.Items || [];
+  const items: any[] = [];
+  let lastEvaluatedKey: any = undefined;
+  do {
+    const result = await docClient.send(
+      new ScanCommand({
+        TableName: tableName,
+        ExclusiveStartKey: lastEvaluatedKey,
+      })
+    );
+    if (result.Items) {
+      items.push(...result.Items);
+    }
+    lastEvaluatedKey = result.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
   const related = items.filter((item) => {
     const str = JSON.stringify(item);
     return str.includes(gapId);
@@ -47,6 +54,9 @@ async function main() {
           ? JSON.stringify(JSON.parse(item.content), null, 2)
           : item.content;
       console.log(`🔹 Content:`, displayContent);
+    }
+    if (item.value) {
+      console.log(`🔹 Value:`, JSON.stringify(item.value, null, 2));
     }
     if (item.metadata) {
       console.log(`🔹 Metadata:`, JSON.stringify(item.metadata, null, 2));
