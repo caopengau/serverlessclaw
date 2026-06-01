@@ -173,6 +173,9 @@ describe('Cognitive Health Probes', () => {
     });
 
     it('should include staging and knowledge bucket names', async () => {
+      // Ensure CI env vars don't shadow the sst mock
+      vi.stubEnv('STAGING_BUCKET_NAME', '');
+      vi.stubEnv('KNOWLEDGE_BUCKET_NAME', '');
       (mockDB.send as any).mockResolvedValue({});
       (mockS3.send as any).mockResolvedValueOnce({});
       (mockIot.send as any).mockResolvedValueOnce({});
@@ -181,6 +184,8 @@ describe('Cognitive Health Probes', () => {
       const details = result.details as any;
       expect(details?.stagingBucket.name).toBe('test-bucket');
       expect(details?.knowledgeBucket.name).toBe('test-knowledge-bucket');
+
+      vi.unstubAllEnvs();
     });
   });
 
