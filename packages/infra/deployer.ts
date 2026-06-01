@@ -49,6 +49,7 @@ export function createDeployer(ctx: DeployerContext) {
             'codebuild:*',
             'kms:*',
             'iot:*',
+            'scheduler:*',
             'iam:PassRole',
             'iam:GetRole',
             'iam:ListRolePolicies',
