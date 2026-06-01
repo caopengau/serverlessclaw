@@ -89,6 +89,9 @@ function normalizeSafetyAction(action: string, toolName?: string): string {
   // MCP filesystem tools: read/list/search operations map to file_operation (requireFileApproval).
   // Note: write tools are already caught above by the 'write' pattern → code_change.
   if (lowerToolName.startsWith('filesystem_')) return 'file_operation';
+  // MCP AST tools: map AST MCP read/resolve/search operations to file_operation as well
+  // so they are treated as safe file read/list/search operations and do not require manual approval.
+  if (lowerToolName.startsWith('ast_')) return 'file_operation';
   return action;
 }
 
